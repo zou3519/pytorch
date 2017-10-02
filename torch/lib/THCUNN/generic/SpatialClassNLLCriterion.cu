@@ -37,7 +37,8 @@ void THNN_(SpatialClassNLLCriterion_updateOutput)(
            bool sizeAverage,
            THCTensor *weights,
            THCTensor *total_weight,
-           int64_t ignore_index)
+           int64_t ignore_index,
+           bool reduce)
 {
   THNN_(SpatialClassNLLCriterion_shapeCheck)(state, input, target, weights);
   THCTensor_(resize1d)(state, output, 1);
@@ -98,11 +99,13 @@ void THNN_(SpatialClassNLLCriterion_updateGradInput)(
            THCState *state,
            THCTensor *input,
            THCIndexTensor *target,
+           THCTensor *gradOutput,
            THCTensor *gradInput,
            bool sizeAverage,
            THCTensor *weights,
            THCTensor *total_weight,
-           int64_t ignore_index)
+           int64_t ignore_index,
+           bool reduce)
 {
   THNN_(SpatialClassNLLCriterion_shapeCheck)(state, input, target, weights);
   THArgCheck(THCTensor_(isContiguous)(state, gradInput), 4,

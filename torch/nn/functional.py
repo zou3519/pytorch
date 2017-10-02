@@ -746,9 +746,9 @@ def nll_loss(input, target, weight=None, size_average=True, ignore_index=-100):
     """
     dim = input.dim()
     if dim == 2:
-        return _functions.thnn.NLLLoss.apply(input, target, weight, size_average, ignore_index)
+        return _functions.thnn.NLLLoss.apply(input, target, weight, size_average, ignore_index, reduce)
     elif dim == 4:
-        return _functions.thnn.NLLLoss2d.apply(input, target, weight, size_average, ignore_index)
+        return _functions.thnn.NLLLoss2d.apply(input, target, weight, size_average, ignore_index, reduce)
     else:
         raise ValueError('Expected 2 or 4 dimensions (got {})'.format(dim))
 
