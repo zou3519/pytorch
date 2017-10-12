@@ -29,7 +29,7 @@ void THNN_(SpatialClassNLLCriterion_shapeCheck)(
   }
 }
 
-void THNN_(SpatialClassNLLCriterion_gradOutput_no_reduce_shapeCheck)(
+static void THNN_(SpatialClassNLLCriterion_gradOutput_no_reduce_shapeCheck)(
            THCState *state,
            THCTensor *gradOutput,
            THCIndexTensor *target)
@@ -73,9 +73,7 @@ void THNN_(SpatialClassNLLCriterion_updateOutput)(
     
     THCTensor_(resize3d)(state, output, batch_size, H, W);
 
-    bool not_contiguous_weights = 
-        weights && !THCTensor_(isContiguous)(state, weights);
-    if (not_contiguous_weights) {
+    if (weights) {
       weights = THCTensor_(newContiguous)(state, weights);
     }
 
@@ -89,7 +87,7 @@ void THNN_(SpatialClassNLLCriterion_updateOutput)(
         weights ? THCTensor_(data)(state, weights) : NULL, 
         ignore_index);
 
-    if (not_contiguous_weights) {
+    if (weights) {
       THCTensor_(free)(state, weights);
     }
     return;
@@ -173,9 +171,7 @@ void THNN_(SpatialClassNLLCriterion_updateGradInput)(
     int64_t H = THCTensor_(size)(state, input, 2);
     int64_t W = THCTensor_(size)(state, input, 3);
 
-    bool not_contiguous_weights = 
-        weights && !THCTensor_(isContiguous)(state, weights);
-    if (not_contiguous_weights) {
+    if (weights) {
       weights = THCTensor_(newContiguous)(state, weights);
     }
 
@@ -189,7 +185,7 @@ void THNN_(SpatialClassNLLCriterion_updateGradInput)(
         weights ? THCTensor_(data)(state, weights) : NULL, 
         ignore_index);
 
-    if (not_contiguous_weights) {
+    if (weights) {
       THCTensor_(free)(state, weights);
     }
     return;
@@ -231,7 +227,5 @@ void THNN_(SpatialClassNLLCriterion_updateGradInput)(
   THCIndexTensor_(free)(state, target);
   THCTensor_(free)(state, input);
 }
-
-#undef TO_DEVICE
 
 #endif
