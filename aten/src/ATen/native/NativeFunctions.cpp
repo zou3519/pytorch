@@ -256,8 +256,35 @@ Tensor & squeeze_(Tensor& self, int64_t dim) {
   return self.as_strided_(std::get<0>(g), std::get<1>(g));
 }
 
+Tensor sparseUnsqueeze(const Tensor& self, int64_t dim) {
+  std::vector<int64_t> sizes(self.sizes());
+  sizes.insert(sizes.begin() + dim, 1);
+
+  if (dim > self.nDimensionI()) {
+    auto new_values = self._values().unsqueeze_(dim - self.nDimensionI());
+    return self.type().tensor(self._indices(), new_values, sizes);
+  }
+
+  auto new_indices = self._indices();
+  auto zeros = new_indices.type().zeros({1, new_indices.size(1)});
+  if (dim == 0) {
+    new_indices = at::cat({zeros, new_indices}, 0);
+  } else if (dim == self.nDimensionI()) {
+    new_indices = at::cat({new_indices, zeros}, 0);
+  } else {
+    auto first_half = new_indices.narrow(0, 0, dim);
+    auto second_half = new_indices.narrow(0, dim, self.nDimensionI() - dim);
+    new_indices = at::cat({first_half, zeros, second_half}, 0);
+  }
+  return self.type().tensor(new_indices, self._values(), sizes);
+}
+
 Tensor unsqueeze(const Tensor& self, int64_t dim) {
   dim = maybe_wrap_dim(dim, self.dim() + 1);
+
+  if (self.is_sparse()) {
+    return sparseUnsqueeze(self, dim);
+  }
 
   auto g = inferUnsqueezeGeometry(self, dim);
   return self.as_strided(std::get<0>(g), std::get<1>(g));

@@ -4039,3 +4039,43 @@
   arguments:
      - THTensor* self
 ]]
+
+[[
+  name: nDimensionI
+  variants:
+    - method
+  backends:
+    - SparseCPU
+    - SparseCUDA
+  return: int
+  cname: nDimensionI
+  arguments:
+     - THTensor* self
+]]
+
+[[
+  name: nDimensionV
+  variants:
+    - method
+  backends:
+    - SparseCPU
+    - SparseCUDA
+  return: int
+  cname: nDimensionI
+  arguments:
+     - THTensor* self
+]]
+
+[[
+  name: tensor
+  variants: [function]
+  backends:
+    - SparseCPU
+    - SparseCUDA
+  return: THTensor*
+  cname: newWithTensorAndSize
+  arguments:
+     - THDenseIndexTensor* indices
+     - THDenseTensor* values
+     - THSize* sizes
+]]
