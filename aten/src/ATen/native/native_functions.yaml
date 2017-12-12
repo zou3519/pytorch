@@ -80,6 +80,12 @@
 
 - func: det(Tensor self) -> Tensor
 
+- func: cat(TensorList tensors, int64_t dim=0) -> Tensor
+  variants: function
+
+- func: cat_out(Tensor & self, TensorList tensors, int64_t dim=0) -> Tensor &
+  variants: function
+
 - func: stack(TensorList tensors, int64_t dim=0) -> Tensor
   variants: function
 

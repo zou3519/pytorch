@@ -3985,7 +3985,7 @@
 ]]
 
 [[
-  name: cat
+  name: _dense_cat
   cname: catArray
   variants: [function]
   return: self

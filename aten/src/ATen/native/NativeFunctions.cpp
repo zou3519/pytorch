@@ -279,6 +279,83 @@ Tensor sparseUnsqueeze(const Tensor& self, int64_t dim) {
   return self.type().tensor(new_indices, self._values(), sizes);
 }
 
+Tensor sparseCat(TensorList tensors, int64_t dim) {
+  if (tensors.size() == 0) {
+    // Should return an empty sparse tensor but those don't really exist atm
+    throw new std::runtime_error("NYI: cat on an empty list of sparse tensors");
+  }
+  std::vector<int64_t> sizes(tensors[0].sizes());
+  std::vector<int64_t> cat_dim_sizes;
+  std::vector<Tensor> indices_list;
+  std::vector<Tensor> values_list;
+  int64_t result_cat_dim_size = 0;
+  int64_t nDimensionI = tensors[0].nDimensionI();
+
+  for (auto& tensor : tensors) {
+    indices_list.push_back(tensor._indices().clone());
+    values_list.push_back(tensor._values().clone());
+    cat_dim_sizes.push_back(tensor.size(dim));
+    result_cat_dim_size += tensor.size(dim);
+  }
+
+  /*
+   * Increment each indices tensor until the final index is correct,
+   * then cat all of the indices together.
+   */
+  if (dim < nDimensionI) {
+    int64_t current_size = 0;
+    for (size_t i = 0; i < indices_list.size(); i++) {
+      auto dim_indices = indices_list[i].select(0, dim);
+      dim_indices += current_size;
+      current_size += cat_dim_sizes[i];
+    }
+
+    sizes[dim] = current_size;
+    auto new_indices = at::cat(indices_list, 1);
+    auto new_values = at::cat(values_list, 0);
+    return tensors[0].type().tensor(new_indices, new_values, sizes);
+  }
+
+  /*
+   * Pad each values tensor with zero tensors and then cat all of
+   * them together.
+   */
+  int64_t before_padding_size = 0;
+  for (size_t i = 0; i < values_list.size(); i++) {
+    auto after_padding_size =
+        result_cat_dim_size - (before_padding_size + cat_dim_sizes[i]);
+    auto& values = values_list[i];
+    auto values_cat_dim = dim - nDimensionI + 1;
+
+    std::vector<int64_t> padding_sizes(values.sizes());
+    padding_sizes[values_cat_dim] = before_padding_size;
+    auto before_zeros = values.type().zeros(padding_sizes);
+
+    padding_sizes[values_cat_dim] = after_padding_size;
+    auto after_zeros = values.type().zeros(padding_sizes);
+
+    /*
+     * Hack: we don't yet support tensors with 0 size in certain dims,
+     * only dim-0 tensors. zeros({2, 0}) will give a tensor with size(2,).
+     */
+    std::vector<Tensor> to_cat;
+    if (before_padding_size != 0) {
+      to_cat.push_back(before_zeros);
+    }
+    to_cat.push_back(values);
+    if (after_padding_size != 0) {
+      to_cat.push_back(after_zeros);
+    }
+
+    values = at::cat(to_cat, values_cat_dim);
+    before_padding_size += cat_dim_sizes[i];
+  }
+  sizes[dim] = result_cat_dim_size;
+  auto new_indices = at::cat(indices_list, 1);
+  auto new_values = at::cat(values_list, 0);
+  return tensors[0].type().tensor(new_indices, new_values, sizes);
+}
+
 Tensor unsqueeze(const Tensor& self, int64_t dim) {
   dim = maybe_wrap_dim(dim, self.dim() + 1);
 
@@ -341,6 +418,18 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _det_with_svd(const Tensor& self) {
 
 Tensor det(const Tensor& self) {
   return std::get<0>(self._det_with_svd());
+}
+
+Tensor cat(TensorList tensors, int64_t dim) {
+  if (tensors.size() == 0 or not tensors[0].is_sparse()) {
+    return at::_dense_cat(tensors, dim);
+  }
+  maybe_wrap_dim(dim, tensors[0].dim());
+  return sparseCat(tensors, dim);
+}
+
+Tensor & cat_out(Tensor & self, TensorList tensors, int64_t dim) {
+  return at::_dense_cat_out(self, tensors, dim);
 }
 
 Tensor stack(TensorList tensors, int64_t dim) {
