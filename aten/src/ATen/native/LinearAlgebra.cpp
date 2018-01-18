@@ -4,6 +4,7 @@
 #include <functional>
 #include <numeric>
 #include <vector>
+#include <map>
 
 namespace at {
 namespace native {
@@ -64,6 +65,72 @@ static Tensor maybeSqueeze(const Tensor & tensor, int64_t dim_tensor1, int64_t d
   }
 }
 
+using SpMatMap = std::map<int64_t,std::map<int64_t,float>>;
+
+static Tensor sp_mm(const Tensor & tensor1, const Tensor & tensor2) {
+  int64_t nnz = tensor1._indices().size(1);
+  auto tensor1_indices = tensor1._indices().contiguous();
+  auto tensor2_indices = tensor2._indices().contiguous();
+
+  auto tensor1_data = (int64_t*)tensor1_indices.data_ptr();
+  auto tensor2_data = (int64_t*)tensor2_indices.data_ptr();
+
+  auto tensor1_values_data = (float*)tensor1._values().data_ptr();
+  auto tensor2_values_data = (float*)tensor2._values().data_ptr();
+
+  SpMatMap t1_map;
+  SpMatMap t2_map;
+
+  // the strides are nnz, 1
+  for (int64_t i = 0; i < nnz; i++) {
+    auto row = tensor1_data[0*nnz + i];
+    auto col = tensor1_data[1*nnz + i];
+    t1_map[row][col] = tensor1_values_data[i];
+
+    row = tensor2_data[0*nnz + i];
+    col = tensor2_data[1*nnz + i];
+    t2_map[col][row] = tensor2_values_data[i];
+  }
+  
+  int64_t out_nnz = t1_map.size() * t2_map.size();
+
+  auto result_indices = tensor1_indices.type().tensor({2, out_nnz});
+  auto result_values = tensor1._values().type().tensor({out_nnz});
+
+  auto result_indices_data = (int64_t*)result_indices.data_ptr();
+  auto result_values_data = (float*)result_values.data_ptr();
+  auto result_size = std::array<int64_t, 2>{{ tensor1.size(0), tensor2.size(1) }};
+
+  auto inner_dim_size = tensor1.size(1);
+  int64_t count = 0;
+  for (auto& it_t1map : t1_map) {
+    auto row = it_t1map.first;
+    auto t1_inner_map = it_t1map.second;
+    for (auto& it_t2map : t2_map) {
+      auto col = it_t2map.first;
+      auto t2_inner_map = it_t2map.second;
+
+      // we have t1's row vector and t2's col vector. time to take the dot product.
+      float sum = 0;
+      for (int64_t i = 0; i < inner_dim_size; i++) {
+        if (t1_inner_map.count(i) > 0 && t2_inner_map.count(i) > 0) {
+          sum += t1_inner_map[i] * t2_inner_map[i];
+        }
+      }
+      
+      if (sum != 0) {
+        result_indices_data[0*nnz + count] = row;
+        result_indices_data[1*nnz + count] = col;
+        result_values_data[count] = sum;
+        ++count;
+      }
+    }  
+  }
+  
+  // now, return new sparse tensor
+  tensor1.type().sparse_coo_tensor(result_indices, result_values, result_size);
+}
+
 /*
 Matrix product of two Tensors.
 The behavior depends on the dimensionality of the Tensors as follows:
@@ -94,6 +161,9 @@ Tensor matmul(const Tensor & tensor1, const Tensor & tensor2) {
   } else if (dim_tensor1 == 1 && dim_tensor2 == 2) {
     return tensor1.unsqueeze(0).mm(tensor2).squeeze_(0);
   } else if (dim_tensor1 == 2 && dim_tensor2 == 2) {
+    if (tensor1.is_sparse()) {
+      return sp_mm(tensor1, tensor2);
+    }
     return tensor1.mm(tensor2);
   } else if (dim_tensor1 >= 3 && (dim_tensor2 == 1 || dim_tensor2 == 2)) {
     // optimization: use mm instead of bmm by folding tensor1's batch into
