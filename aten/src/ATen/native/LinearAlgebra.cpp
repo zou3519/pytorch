@@ -81,10 +81,10 @@ static inline SpMatMap toSparseMatMap(const Tensor & sptensor, bool row_first) {
     auto row = indices_data[0 * nnz + i];
     auto col = indices_data[1 * nnz + i];
     if (row_first) {
-      result[row][col] = values_data[i];
+      result[row][col] += values_data[i];
       continue;
     }
-    result[col][row] = values_data[i];
+    result[col][row] += values_data[i];
   }
   return result;
 }
