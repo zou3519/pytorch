@@ -67,68 +67,86 @@ static Tensor maybeSqueeze(const Tensor & tensor, int64_t dim_tensor1, int64_t d
 
 using SpMatMap = std::map<int64_t,std::map<int64_t,float>>;
 
-static Tensor sp_mm(const Tensor & tensor1, const Tensor & tensor2) {
-  int64_t nnz = tensor1._indices().size(1);
-  auto tensor1_indices = tensor1._indices().contiguous();
-  auto tensor2_indices = tensor2._indices().contiguous();
-
-  auto tensor1_data = (int64_t*)tensor1_indices.data_ptr();
-  auto tensor2_data = (int64_t*)tensor2_indices.data_ptr();
-
-  auto tensor1_values_data = (float*)tensor1._values().data_ptr();
-  auto tensor2_values_data = (float*)tensor2._values().data_ptr();
-
-  SpMatMap t1_map;
-  SpMatMap t2_map;
-
-  // the strides are nnz, 1
+/*
+ * Changes a sparse tensor in COO format to the following format:
+ * result[row][col] = sparse_tensor.to_dense()[row][col]
+ */
+static inline SpMatMap toSparseMatMap(const Tensor & sptensor, bool row_first) {
+  SpMatMap result;
+  auto indices = sptensor._indices().contiguous();
+  auto indices_data = reinterpret_cast<int64_t*>(indices.data_ptr());
+  auto values_data = reinterpret_cast<float*>(sptensor._values().data_ptr());
+  auto nnz = indices.size(1);
   for (int64_t i = 0; i < nnz; i++) {
-    auto row = tensor1_data[0*nnz + i];
-    auto col = tensor1_data[1*nnz + i];
-    t1_map[row][col] = tensor1_values_data[i];
-
-    row = tensor2_data[0*nnz + i];
-    col = tensor2_data[1*nnz + i];
-    t2_map[col][row] = tensor2_values_data[i];
+    auto row = indices_data[0 * nnz + i];
+    auto col = indices_data[1 * nnz + i];
+    if (row_first) {
+      result[row][col] = values_data[i];
+      continue;
+    }
+    result[col][row] = values_data[i];
   }
-  
-  int64_t out_nnz = t1_map.size() * t2_map.size();
+  return result;
+}
 
-  auto result_indices = tensor1_indices.type().tensor({2, out_nnz});
-  auto result_values = tensor1._values().type().tensor({out_nnz});
+static Tensor sp_mm(const Tensor & tensor1, const Tensor & tensor2) {
+  if (tensor1._indices().dim() != 2 or
+      tensor2._indices().dim() != 2) {
+    runtime_error("Tensors cannot be hybrid sparse-dense");
+  }
+  auto t1_map = toSparseMatMap(tensor1, true);
+  auto t2_map = toSparseMatMap(tensor2, false);
 
-  auto result_indices_data = (int64_t*)result_indices.data_ptr();
-  auto result_values_data = (float*)result_values.data_ptr();
-  auto result_size = std::array<int64_t, 2>{{ tensor1.size(0), tensor2.size(1) }};
+  int64_t out_nnz = 0;
 
+  // Compute out_nnz by performing the multiplication
   auto inner_dim_size = tensor1.size(1);
-  int64_t count = 0;
   for (auto& it_t1map : t1_map) {
-    auto row = it_t1map.first;
-    auto t1_inner_map = it_t1map.second;
+    auto& t1_inner_map = it_t1map.second;
     for (auto& it_t2map : t2_map) {
-      auto col = it_t2map.first;
-      auto t2_inner_map = it_t2map.second;
-
-      // we have t1's row vector and t2's col vector. time to take the dot product.
+      auto& t2_inner_map = it_t2map.second;
       float sum = 0;
       for (int64_t i = 0; i < inner_dim_size; i++) {
         if (t1_inner_map.count(i) > 0 && t2_inner_map.count(i) > 0) {
           sum += t1_inner_map[i] * t2_inner_map[i];
         }
       }
-      
       if (sum != 0) {
-        result_indices_data[0*nnz + count] = row;
-        result_indices_data[1*nnz + count] = col;
+        ++out_nnz;
+      }
+    }
+  }
+
+  // Now, this time, record the data
+  auto result_indices = tensor1._indices().type().zeros({ 2, out_nnz });
+  auto result_values = tensor1._values().type().zeros({ out_nnz });
+  auto result_indices_data = reinterpret_cast<int64_t*>(result_indices.data_ptr());
+  auto result_values_data = reinterpret_cast<float*>(result_values.data_ptr());
+  auto result_size = std::array<int64_t, 2>{{ tensor1.size(0), tensor2.size(1) }};
+
+  int64_t count = 0;
+  for (auto& it_t1map : t1_map) {
+    auto row = it_t1map.first;
+    auto& t1_inner_map = it_t1map.second;
+    for (auto& it_t2map : t2_map) {
+      auto col = it_t2map.first;
+      auto& t2_inner_map = it_t2map.second;
+      float sum = 0;
+      for (int64_t i = 0; i < inner_dim_size; i++) {
+        if (t1_inner_map.count(i) > 0 && t2_inner_map.count(i) > 0) {
+          sum += t1_inner_map[i] * t2_inner_map[i];
+        }
+      }
+      if (sum != 0) {
+        result_indices_data[0*out_nnz + count] = row;
+        result_indices_data[1*out_nnz + count] = col;
         result_values_data[count] = sum;
         ++count;
       }
-    }  
+    }
   }
-  
-  // now, return new sparse tensor
-  tensor1.type().sparse_coo_tensor(result_indices, result_values, result_size);
+
+  return tensor1.type().sparse_coo_tensor(result_indices, result_values, result_size);
 }
 
 /*
