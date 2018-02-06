@@ -7,7 +7,7 @@ from code_template import CodeTemplate
 
 try:
     from typing import Any, Dict, List, Generic, Optional, Set, Tuple, \
-        Union, TypeVar
+        Union, TypeVar, NamedTuple
     from mypy_extensions import TypedDict
     TYPE_HINTS = True
 except ImportError:
@@ -429,6 +429,18 @@ if TYPE_HINTS:
         'native_type_method_dispatch': str,
     })
 
+    OutputDeclaration = NamedTuple('OutputDeclaration', [
+        ('name', str),
+        ('method_prefix_derived', str),
+        ('arguments', List[AtFormal]),
+        ('method_of', List[str]),
+        ('mode', str),
+        ('buffers', Optional[List[str]]),
+        ('returns', List[ReturnType]),
+        ('inplace', bool),
+        ('abstract', bool),
+    ])
+
 
 def is_real_argument_to_wrapper(argument):
     # type: (THFormal) -> bool
@@ -458,7 +470,7 @@ def to_return_type(arg, in_place):
 
 
 def create_generic(top_env, declarations):
-    # type: (TopEnvironment, List[FunctionOption]) -> List[OrderedDict]
+    # type: (TopEnvironment, List[FunctionOption]) -> List[OutputDeclaration]
     # translates defaults from cwrap types to C++ values
     def translate_default(argument, type_str, default):
         # type: (THFormal, str, Any) -> Any
@@ -656,7 +668,7 @@ def create_generic(top_env, declarations):
         return body
 
     def process_option(option, output_options):
-        # type: (FunctionOption, List[OrderedDict]) -> None
+        # type: (FunctionOption, List[OutputDeclaration]) -> None
         option['inplace'] = re.search(
             '(^__i|[^_]_$)', option['api_name']) is not None
 
@@ -748,18 +760,18 @@ def create_generic(top_env, declarations):
 
         buffer_names = [buffer['name'] for buffer in option.get('buffers', [])]
 
-        output_options.append(OrderedDict([
-            ('name', option['api_name']),
-            ('method_prefix_derived', option['method_prefix_derived']),
-            ('arguments', formals),
-            ('method_of', method_of),
-            ('mode', mode),
-            ('buffers', buffer_names),
-            ('returns', option['returns']),
-            ('inplace', option['inplace']),
+        output_options.append(OutputDeclaration(
+            name=option['api_name'],
+            method_prefix_derived=option['method_prefix_derived'],
+            arguments=formals,
+            method_of=method_of,
+            mode=mode,
+            buffers=buffer_names,
+            returns=option['returns'],
+            inplace=option['inplace'],
             # See Note [Abstract ATen methods]
-            ('abstract', abstract),
-        ]))
+            abstract=abstract,
+        ))
 
     def native_get_formals(option, include_constants=False):
         # type: (FunctionOption, bool) -> List[AtFormal]
@@ -842,7 +854,7 @@ def create_generic(top_env, declarations):
         return return_types
 
     def process_native(option, output_options):
-        # type: (FunctionOption, List[OrderedDict]) -> None
+        # type: (FunctionOption, List[OutputDeclaration]) -> None
         option['inplace'] = re.search(
             '(^__i|[^_]_$)', option['api_name']) is not None
 
@@ -931,21 +943,22 @@ def create_generic(top_env, declarations):
                 FUNCTION_DEFINITION.substitute(env))
             method_of.append('namespace')
 
-        output_options.append(OrderedDict([
-            ('name', option['api_name']),
-            ('method_prefix_derived', option['method_prefix_derived']),
-            ('arguments', formals),
-            ('method_of', method_of),
-            ('mode', option['mode']),
-            ('returns', option['returns']),
-            ('inplace', option['inplace']),
+        output_options.append(OutputDeclaration(
+            name=option['api_name'],
+            method_prefix_derived=option['method_prefix_derived'],
+            arguments=formals,
+            method_of=method_of,
+            mode=option['mode'],
+            buffers=None,
+            returns=option['returns'],
+            inplace=option['inplace'],
             # See Note [Abstract ATen methods]
-            ('abstract', abstract),
-        ]))
+            abstract=abstract,
+        ))
 
-    output_declarations = []  # type: List[OrderedDict]
+    output_declarations = []  # type: List[OutputDeclaration]
     for declaration in declarations:
-        output_options = []  # type: List[OrderedDict]
+        output_options = []  # type: List[OutputDeclaration]
         for option in declaration['options']:
             try:
                 if option['mode'] != 'native':
