@@ -59,6 +59,29 @@ void THPStorage_(writeFileRaw)(THStorage *self, int fd)
   }
 }
 
+static ssize_t THPStorage_(pyRead)(PyObject *bytesio, void* mem, size_t len) {
+  // PyMemoryView_FromMemory doesn't exist in Python 2.7, so we manually
+  // create a Py_buffer that describes the memory and create a memoryview from it.
+  Py_buffer buf;
+  buf.buf = mem;
+  buf.obj = nullptr;
+  buf.len = (Py_ssize_t)len;
+  buf.itemsize = 1;
+  buf.readonly = 0;
+  buf.ndim = 0;
+  buf.format = nullptr;
+  buf.shape = nullptr;
+  buf.strides = nullptr;
+  buf.suboffsets = nullptr;
+  buf.internal = nullptr;
+
+  THPObjectPtr pyMemoryView(PyMemoryView_FromBuffer(&buf));
+  if (!pyMemoryView) throw python_error();
+  THPObjectPtr r(PyObject_CallMethod(bytesio, "readinto", "O", pyMemoryView.get()));
+  if (!r) throw python_error();
+  return PyLong_AsSsize_t(r.get());
+}
+
 THStorage * THPStorage_(readFileRaw)(int fd, THStorage *_storage)
 {
   real *data;
