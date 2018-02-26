@@ -4,42 +4,6 @@
 
 #define SYSCHECK(call) { ssize_t __result = call; if (__result < 0) throw std::system_error((int) __result, std::system_category()); }
 
-// Only define the following once
-// #ifndef SERIALIZATION_CPP
-// #define SERIALIZATION_CPP
-
-template <>
-ssize_t THPStorage_(doRead)<int>(int fildes, void* buf, size_t nbyte) {
-  return read(fildes, buf, nbyte);
-}
-
-template <>
-ssize_t THPStorage_(doRead)<PyObject*>(PyObject* fildes, void* buf, size_t nbyte) {
-  // PyMemoryView_FromMemory doesn't exist in Python 2.7, so we manually
-  // create a Py_buffer that describes the memory and create a memoryview from it.
-  Py_buffer pyBuf;
-  pyBuf.buf = buf;
-  pyBuf.obj = nullptr;
-  pyBuf.len = (Py_ssize_t)nbyte;
-  pyBuf.itemsize = 1;
-  pyBuf.readonly = 0;
-  pyBuf.ndim = 0;
-  pyBuf.format = nullptr;
-  pyBuf.shape = nullptr;
-  pyBuf.strides = nullptr;
-  pyBuf.suboffsets = nullptr;
-  pyBuf.internal = nullptr;
-
-  THPObjectPtr pyMemoryView(PyMemoryView_FromBuffer(&pyBuf));
-  if (!pyMemoryView) throw python_error();
-  THPObjectPtr r(PyObject_CallMethod(fildes, "readinto", "O", pyMemoryView.get()));
-  if (!r) throw python_error();
-  return PyLong_AsSsize_t(r.get());
-}
-
-// #endif
-
-
 void THPStorage_(writeFileRaw)(THStorage *self, int fd)
 {
   real *data;
@@ -94,12 +58,14 @@ void THPStorage_(writeFileRaw)(THStorage *self, int fd)
   }
 }
 
-template <class T> // Added the template...
+template <class T>
 THStorage * THPStorage_(readFileRaw)(T fd, THStorage *_storage)
 {
   real *data;
   int64_t size;
-  ssize_t result = THPStorage_(doRead<T>)(fd, &size, sizeof(int64_t));
+  std::cout << "before read" << std::endl;
+  ssize_t result = doRead<T>(fd, &size, sizeof(int64_t));
+  std::cout << "after read" << std::endl;
   if (result == 0)
     throw std::runtime_error("unexpected EOF. The file might be corrupted.");
   if (result != sizeof(int64_t))
@@ -127,7 +93,7 @@ THStorage * THPStorage_(readFileRaw)(T fd, THStorage *_storage)
     int64_t remaining = sizeof(real) * storage->size;
     while (remaining > 0) {
       // we write and read in 1GB blocks to avoid bugs on some OSes
-      ssize_t result = THPStorage_(doRead)<T>(fd, bytes, THMin(remaining, 1073741824));
+      ssize_t result = doRead<T>(fd, bytes, THMin(remaining, 1073741824));
       if (result == 0) // 0 means EOF, which is also an error
         throw std::runtime_error("unexpected EOF. The file might be corrupted.");
       if (result < 0)
@@ -142,7 +108,7 @@ THStorage * THPStorage_(readFileRaw)(T fd, THStorage *_storage)
     std::unique_ptr<uint8_t[]> le_buffer(new uint8_t[buffer_size * sizeof(real)]);
     for (int64_t i = 0; i < size; i += buffer_size) {
       size_t to_convert = std::min(size - i, buffer_size);
-      SYSCHECK(THPStorage_(doRead<T>)(fd, le_buffer.get(), sizeof(real) * to_convert));
+      SYSCHECK(doRead<T>(fd, le_buffer.get(), sizeof(real) * to_convert));
       if (sizeof(real) == 2) {
         THP_decodeInt16Buffer((int16_t*)data + i,
             le_buffer.get(),
@@ -167,6 +133,10 @@ THStorage * THPStorage_(readFileRaw)(T fd, THStorage *_storage)
 #endif
   return storage.release();
 }
+
+// Instantiate templates so that they can be used from other places.
+template THStorage* THPStorage_(readFileRaw<int>)(int fd, THStorage* storage);
+template THStorage* THPStorage_(readFileRaw<PyObject*>)(PyObject* fd, THStorage* storage);
 
 #undef SYSCHECK
 

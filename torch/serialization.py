@@ -433,8 +433,14 @@ def _load(f, map_location, pickle_module):
 
     deserialized_storage_keys = pickle_module.load(f)
 
+    offset = f.tell()
     for key in deserialized_storage_keys:
         assert key in deserialized_objects
-        deserialized_objects[key]._set_from_file(f, None)
+        if not hasattr(f, 'fileno'):
+            offset = None
+        print(offset)
+        import pdb; pdb.set_trace()
+        deserialized_objects[key]._set_from_file(f, offset)
+        offset = None
 
     return result
