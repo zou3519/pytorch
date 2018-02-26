@@ -3,6 +3,17 @@
 #else
 
 void THPStorage_(writeFileRaw)(THStorage *self, int fd);
-THStorage * THPStorage_(readFileRaw)(int fd, THStorage *storage);
+
+template <class T>
+THStorage * THPStorage_(readFileRaw)(T fd, THStorage *storage);
+
+template <class T>
+ssize_t THPStorage_(doRead)(T fildes, void* buf, size_t nbytes);
+
+// Only define the following once
+#ifndef SERIALIZATION_H
+#define SERIALIZATION_H
+
+#endif
 
 #endif

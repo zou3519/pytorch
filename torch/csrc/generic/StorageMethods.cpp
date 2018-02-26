@@ -215,7 +215,8 @@ PyObject * THPStorage_(newWithFile)(PyObject *_unused, PyObject *file)
   int fd = PyObject_AsFileDescriptor(file);
   THPUtils_assert(fd != -1, "_new_with_file couldn't retrieve a file "
       "descriptor from given object");
-  THStorage *storage = THPStorage_(readFileRaw)(fd, nullptr);
+  THStorage *storage = THPStorage_(readFileRaw<int>)(fd, nullptr);
+  // THPStorage_(doRead<int>)(0, NULL, 0);
   if (storage == nullptr)
     return nullptr;
   PyObject *result = THPStorage_(New)(storage);
@@ -227,16 +228,26 @@ static PyObject *THPStorage_(setFromFile)(THPStorage *self, PyObject *args)
 {
   HANDLE_TH_ERRORS
   PyObject *file = PyTuple_GET_ITEM(args, 0);
+  PyObject *offset = PyTuple_GET_ITEM(args, 1);
   int fd = PyObject_AsFileDescriptor(file);
 
-  PyObject *offset = PyTuple_GET_ITEM(args, 1);
+  if (fd == -1) {
+    THPUtils_assert(offset == Py_None, "lseek NYI for file object");
+    THStorage *storage = THPStorage_(readFileRaw<PyObject*>)(file, self->cdata);
+    if (storage == nullptr) {
+      return nullptr;
+    }
+    Py_INCREF(self);
+    return (PyObject *) self;
+  }
+
   if (offset != Py_None) {
     lseek(fd, THPUtils_unpackLong(offset), SEEK_SET);
   }
 
   THPUtils_assert(fd != -1, "_set_from_file couldn't retrieve a file "
       "descriptor from given object");
-  THStorage *storage = THPStorage_(readFileRaw)(fd, self->cdata);
+  THStorage *storage = THPStorage_(readFileRaw<int>)(fd, self->cdata);
   if (storage == nullptr)
     return nullptr;
   Py_INCREF(self);
