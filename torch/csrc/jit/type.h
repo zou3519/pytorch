@@ -15,7 +15,9 @@ _(DynamicType) \
 _(TensorType) \
 _(HandleType) \
 _(TupleType) \
-_(ListType)
+_(ListType) \
+_(FloatType) \
+_(IntType)
 
 enum class TypeKind {
 #define DEFINE_TYPE(T) T,
@@ -94,6 +96,34 @@ struct DynamicType : public Type {
     return "Tensor";
   }
   static const TypeKind Kind = TypeKind::DynamicType;
+  // global singleton
+  static TypePtr get();
+};
+
+struct FloatType : public Type {
+  FloatType()
+  : Type(TypeKind::FloatType) {}
+  virtual bool operator==(const Type& rhs) const override {
+    return rhs.kind() == kind();
+  }
+  virtual std::string name() const override {
+    return "float";
+  }
+  static const TypeKind Kind = TypeKind::FloatType;
+  // global singleton
+  static TypePtr get();
+};
+
+struct IntType : public Type {
+  IntType()
+  : Type(TypeKind::IntType) {}
+  virtual bool operator==(const Type& rhs) const override {
+    return rhs.kind() == kind();
+  }
+  virtual std::string name() const override {
+    return "int";
+  }
+  static const TypeKind Kind = TypeKind::IntType;
   // global singleton
   static TypePtr get();
 };
@@ -223,7 +253,7 @@ struct ListType : public Type {
     return elem;
   }
   // common cast List[Tensor]
-  static TypePtr ofTensors();  
+  static TypePtr ofTensors();
 private:
   TypePtr elem;
 };

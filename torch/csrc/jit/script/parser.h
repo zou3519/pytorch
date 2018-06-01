@@ -49,6 +49,7 @@ struct Parser {
     TreeRef prefix;
     switch (L.cur().kind) {
       case TK_NUMBER: {
+        std::cout << "TK_NUMBER" << std::endl;
         prefix = parseConst();
       } break;
       case TK_TRUE:
@@ -72,6 +73,7 @@ struct Parser {
       case TK_LONG: {
         auto r = L.cur().range;
         auto type = c(L.next().kind, r, {});
+        std::cout << "type: " << type << std::endl;
         L.expect('(');
         auto exp = parseExp();
         L.expect(')');
@@ -183,6 +185,7 @@ struct Parser {
     return List<T>::create(r, elements);
   }
   Const parseConst() {
+    std::cout << "parseConst()" << std::endl;
     auto range = L.cur().range;
     auto t = L.expect(TK_NUMBER);
     return Const::create(t.range, t.text());

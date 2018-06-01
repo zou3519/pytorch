@@ -287,6 +287,10 @@ Value* createStack(Graph& g, const SourceRange& loc, at::ArrayRef<Value*> inputs
 }
 
 static bool isTensorSubtype(Value* v) {
+  // TODO(rzou): what to do with this...
+  if (v->type() == FloatType::get() || v->type() == IntType::get()) {
+    return true;
+  }
   return v->type()->isSubtypeOf(*DynamicType::get());
 }
 
@@ -372,6 +376,25 @@ void liftConstantAttributes(const FunctionSchema& schema, Node* node) {
   node->copyAttributes(attributes);
 }
 
+// void toTypeAs(Value* v, Value* w) {
+//   auto* node = v->node();
+//   auto type = w->type()->cast<torch::jit::TensorType>();
+//   assert(node->kind() == prim::Constant);
+//   auto& tensor = node->t(attr::value);
+//   auto new_tensor = tensor.toType(type->scalarType());
+//   if (tensor.type().is_cuda() && type->device() == -1) {
+//     new_tensor = new_tensor.toType(new_tensor.type().toBackend(at::kCPU));
+//   }
+//   if (!tensor.type().is_cuda() && type->device() >= 0) {
+//     // TODO: what is the right device?
+//     new_tensor = new_tensor.toType(new_tensor.type().toBackend(at::kCUDA));
+//   }
+//   std::cout << "new tensor!" << std::endl;
+//   std::cout << new_tensor << std::endl;
+//   node->t_(attr::value, new_tensor.clone());
+//   node->output()->inferTypeFrom(new_tensor);
+// }
+
 at::ArrayRef<Value*> createTupleUnpack(Value* v) {
   // small peephole optimization to ensure IntList attributes can still turn
   // into constants e.g. in x.expand([3, 4])
@@ -388,6 +411,7 @@ at::optional<std::vector<Value*>> tryMatchSchema(
   at::ArrayRef<NamedValue> inputs,
   at::ArrayRef<NamedValue> attributes,
   std::ostream& failure_messages) {
+    std::cout << "tryMatchSchema" << std::endl;
     auto err = [&]() -> std::ostream& {
       failure_messages << "\nfor operator " << schema << ":\n";
       return failure_messages;
@@ -431,10 +455,46 @@ at::optional<std::vector<Value*>> tryMatchSchema(
     }
 
     // check input types
+    std::cout << "check input types" << std::endl;
     std::vector<Value*> flat_inputs;
     for(size_t i = 0; i < schema.arguments.size(); ++i) {
       NamedValue v = *positional_inputs[i];
       const auto& arg = schema.arguments[i];
+
+      // if arg is a tensor and v is a float/int...
+      if(arg.type->isSubtypeOf(*DynamicType::get()) &&
+         (v.value->type() == FloatType::get() || v.value->type() == IntType::get())) {
+        // Find first Tensor that has a non-scalar value
+        for(size_t j = 0; j < schema.arguments.size(); ++j) {
+          NamedValue w = *positional_inputs[j];
+          if (w.value->type()->isSubtypeOf(*DynamicType::get())) {
+            std::cout << "found " << i << ", " << j << std::endl;
+            std::vector<Value*> cast_inputs({v.value, w.value});
+
+            // auto* implicit_cast_node = graph.create(aten::type_as, cast_inputs);
+            // v.value->replaceAllUsesWith(implicit_cast_node->output());
+            // graph.insertNode(implicit_cast_node);
+            // v.value->node()->insertAfter(implicit_cast_node);
+            // std::cout << "done inserting node" << std::endl;
+            // std::cout << graph << std::endl;
+            // break;
+
+            auto uses = v.value->uses();
+            auto* o = graph.insertNode(
+              graph.create(aten::type_as, cast_inputs)
+              ->setSourceLocation(std::make_shared<SourceRange>(loc)))->output();
+            // TODO(rzou): this is super hacky
+            for (auto& use : uses) {
+              v.value->replaceFirstUseWith(o);
+            }
+            o->node()->moveAfter(v.value->node());
+            v.value = o;
+            std::cout << "done inserting node" << std::endl;
+            std::cout << graph << std::endl;
+            break;
+          }
+        }
+      }
 
       // implicit conversion from List[Tensor] -> Tensor for when the argument
       // is an IntList in aten, for things like x.expand(sizes=[3,4,5])
@@ -474,6 +534,7 @@ static std::shared_ptr<SugaredValue> tryEmitBuiltin(
   at::ArrayRef<NamedValue> inputs,
   at::ArrayRef<NamedValue> attributes) {
 
+  std::cout << "tryEmitBuiltin" << std::endl;
   auto graph = method.graph();
   auto flat_inputs = tryMatchSchema(schema, loc, *graph, inputs, attributes, failure_messages);
   if(!flat_inputs)
@@ -1208,6 +1269,10 @@ private:
     }
   }
 
+  Value* emitAdd() {
+    return nullptr;
+  }
+
   Value* emitSimpleExpr(
       const TreeRef& tree) {
     switch (tree->kind()) {
@@ -1229,13 +1294,40 @@ private:
         auto kind = getNodeKind(tree->kind(), inputs.size());
         return emitNode(kind, tree->range(), getValues(inputs), 1)->output();
       } break;
-      case '+':
+      case '+': {
+        const auto& inputs =tree->trees();
+        auto kind = getNodeKind(tree->kind(), inputs.size());
+        auto* node = emitNode(kind, tree->range(), getValues(inputs), 1);
+        node->t_(Symbol::attr("alpha"), at::CPU(at::kFloat).scalarTensor(1.0));
+        matchSchemaAndLiftConstantAttributes(tree->range(), node, getValues(inputs), "add");
+
+        // if inputs were both literal...
+        auto result = node->output();
+        auto nodeInputs = node->inputs();
+        if (nodeInputs[0]->type() == FloatType::get() && nodeInputs[1]->type() == FloatType::get()) {
+          result->setType(FloatType::get());
+        }
+        if (nodeInputs[0]->type() == IntType::get() && nodeInputs[1]->type() == IntType::get()) {
+          result->setType(IntType::get());
+        }
+
+        return result;
+      }
       case '-': {
         const auto& inputs =tree->trees();
         auto kind = getNodeKind(tree->kind(), inputs.size());
         auto* node = emitNode(kind, tree->range(), getValues(inputs), 1);
         node->t_(Symbol::attr("alpha"), at::CPU(at::kFloat).scalarTensor(1.0));
-        return node->output();
+        auto result = node->output();
+
+        auto nodeInputs = node->inputs();
+        if (nodeInputs[0]->type() == FloatType::get() && nodeInputs[1]->type() == FloatType::get()) {
+          result->setType(FloatType::get());
+        }
+        if (nodeInputs[0]->type() == IntType::get() && nodeInputs[1]->type() == IntType::get()) {
+          result->setType(IntType::get());
+        }
+        return result;
       }
       case TK_STARRED: {
         throw ErrorReport(tree) << "Unexpected starred expansion. File a bug report.";
@@ -1279,6 +1371,7 @@ private:
   }
 
   Value* emitCast(Expr input, const ScalarType& type) {
+    std::cout << "emitCast " << type << std::endl;
     at::ScalarType t;
     switch (type.kind()) {
       case TK_INT:
@@ -1309,10 +1402,15 @@ private:
   }
 
   Value* emitConst(const Const& c) {
+    std::cout << "emitConst " << c << std::endl;
     if (c.isFloatingPoint()) {
-      return createConstant(*graph, c.range(), at::CPU(at::kFloat).scalarTensor(c.asFloatingPoint()));
+      auto result = createConstant(*graph, c.range(), at::CPU(at::kFloat).scalarTensor(c.asFloatingPoint()));
+      result->setType(FloatType::get());
+      return result;
     } else {
-      return createConstant(*graph, c.range(), at::CPU(at::kLong).scalarTensor(c.asIntegral()));
+      auto result = createConstant(*graph, c.range(), at::CPU(at::kLong).scalarTensor(c.asIntegral()));
+      result->setType(IntType::get());
+      return result;
     }
   }
 
@@ -1333,20 +1431,24 @@ private:
       Node* n,
       std::vector<Value*> input_vals,
       const std::string& name) {
+    std::cout << "matchSchemaAndLiftConstantAttributes" << std::endl;
     std::vector<NamedValue> named_input_vals;
     for (Value* inp : input_vals) {
       named_input_vals.push_back(NamedValue(loc, "", inp));
     }
 
     // Match schema and lift constant attributes
+    std::cout << "schema: " << name << std::endl;
     auto variants = getOperatorSchema(name);
     bool schema_valid = false;
     std::stringstream failure_messages;
     for (const FunctionSchema& schema : variants) {
+      std::cout << schema << std::endl;
       if (tryMatchSchema(
               schema, loc, *graph, named_input_vals, {}, failure_messages)) {
         schema_valid = true;
-        liftConstantAttributes(schema, n);
+        // TODO(rzou): uncomment
+        // liftConstantAttributes(schema, n);
         break;
       }
     }

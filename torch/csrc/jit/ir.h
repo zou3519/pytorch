@@ -953,6 +953,7 @@ public:
     auto n = create(prim::Constant);
     n->t_(attr::value, ref.clone());
     n->output()->inferTypeFrom(ref);
+    std::cout << "Constant node: " << n << std::endl;
     return n;
   }
   Node * createFusionGroup(int device) {
