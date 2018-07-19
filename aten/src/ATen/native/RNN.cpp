@@ -10,8 +10,19 @@ std::tuple<Tensor, Tensor, Tensor> lstm_fusion_cpu(
     const Tensor& w_ih,
     const Tensor& w_hh,
     const Tensor& b_ih,
-    const Tensor& b_hh) {
+    const Tensor& b_hh,
+    int64_t choice) {
   throw std::runtime_error("Not Implemented");
+}
+
+std::tuple<Tensor,Tensor> lstm_chunk_pw_fused_cpu(
+    const Tensor& self,
+    const Tensor& hgates,
+    const Tensor& ibias,
+    const Tensor& hbias,
+    const Tensor& c_in)
+{
+  throw std::runtime_error("NOT implemented");
 }
 
 static std::tuple<Tensor,Tensor> lstm_cell(
@@ -117,5 +128,51 @@ std::tuple<Tensor,Tensor,Tensor> lstm_aten(
   return std::tuple<Tensor,Tensor,Tensor>(t128, t133, t138);
 }
 
+
+std::tuple<Tensor, Tensor, Tensor> lstm_fusion_no_prealloc_native(
+    const Tensor& self,
+    const Tensor& hx,
+    const Tensor& cx,
+    const Tensor& w_ih,
+    const Tensor& w_hh,
+    const Tensor& b_ih,
+    const Tensor& b_hh) {
+  auto seq_len = self.size(0);
+
+  auto w_ih_t = w_ih.t().contiguous();
+  auto w_hh_t = w_hh.t().contiguous();
+
+  auto hy = hx.select(0, 0);
+  auto cy = cx.select(0, 0);
+
+  std::vector<Tensor> outputs(seq_len);
+
+  for (int64_t i = 0; i < seq_len; i++) {
+    auto input_ = self.select(0, i);
+
+    auto igate = at::mm(input_, w_ih_t);
+    auto hgate = at::mm(hy, w_hh_t);
+    std::tie(hy, cy) = lstm_chunk_pw_fused(igate, hgate, b_ih, b_hh, cy);
+
+    outputs[i] = hy;
+  }
+
+  auto output = at::stack(outputs, 0);
+
+  return std::tuple<Tensor,Tensor,Tensor>(
+      output, hy.unsqueeze(0), cy.unsqueeze(0));
+}
+
+std::tuple<Tensor, Tensor, Tensor> lstm_native(
+    const Tensor& self,
+    const Tensor& hx,
+    const Tensor& cx,
+    const Tensor& w_ih,
+    const Tensor& w_hh,
+    const Tensor& b_ih,
+    const Tensor& b_hh) {
+  return lstm_fusion_no_prealloc_native(
+      self, hx, cx, w_ih, w_hh, b_ih, b_hh);
+}
 
 }}

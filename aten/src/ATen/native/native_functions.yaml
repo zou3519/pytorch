@@ -81,11 +81,20 @@
 - func: lstm_aten(Tensor self, Tensor hx, Tensor cx, Tensor w_ih, Tensor w_hh, Tensor b_ih, Tensor b_hh) -> (Tensor, Tensor, Tensor)
   variants: function
 
-- func: lstm_fusion(Tensor self, Tensor hx, Tensor cx, Tensor w_ih, Tensor w_hh, Tensor b_ih, Tensor b_hh) -> (Tensor, Tensor, Tensor)
+- func: lstm_native(Tensor self, Tensor hx, Tensor cx, Tensor w_ih, Tensor w_hh, Tensor b_ih, Tensor b_hh) -> (Tensor, Tensor, Tensor)
+  variants: function
+
+- func: lstm_fusion(Tensor self, Tensor hx, Tensor cx, Tensor w_ih, Tensor w_hh, Tensor b_ih, Tensor b_hh, int64_t choice=0) -> (Tensor, Tensor, Tensor)
   variants: function
   dispatch:
     CPU: lstm_fusion_cpu
     CUDA: lstm_fusion_cuda
+
+- func: lstm_chunk_pw_fused(Tensor self, Tensor hgates, Tensor ibias, Tensor hbias, Tensor c_in) -> (Tensor, Tensor)
+  variants: function
+  dispatch:
+    CPU: lstm_chunk_pw_fused_cpu
+    CUDA: lstm_chunk_pw_fused_cuda
 
 - func: adaptive_avg_pool1d(Tensor self, IntList[1] output_size) -> Tensor
   variants: function
