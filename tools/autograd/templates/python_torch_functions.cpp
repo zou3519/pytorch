@@ -326,6 +326,33 @@ static PyTypeObject THPVariableFunctions = {
   0                                      /* tp_new */
 };
 
+static PyMethodDef torch_functions2[] = {
+  {"arange", (PyCFunction)THPVariable_arange, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"as_tensor", (PyCFunction)THPVariable_as_tensor, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"clamp", (PyCFunction)THPVariable_clamp, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"dsmm", (PyCFunction)THPVariable_mm, METH_VARARGS | METH_KEYWORDS, NULL},
+  // TODO(rzou): don't forget about this
+  // {"from_numpy", (PyCFunction)THPVariable_from_numpy, METH_STATIC | METH_O, NULL},
+  {"hsmm", (PyCFunction)THPVariable_hspmm, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"_promote_types", (PyCFunction)THPVariable__promote_types, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"range", (PyCFunction)THPVariable_range, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"saddmm", (PyCFunction)THPVariable_sspaddmm, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"sparse_coo_tensor", (PyCFunction)THPVariable_sparse_coo_tensor, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"spmm", (PyCFunction)THPVariable_mm, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"tensor", (PyCFunction)THPVariable_tensor, METH_VARARGS | METH_KEYWORDS, NULL},
+  // ${py_method_defs}
+  {NULL}
+};
+
+static struct PyModuleDef VariableFunctions = {
+  PyModuleDef_HEAD_INIT,
+  "torch._C._VariableFunctions2",   /* name of module */
+  NULL, /* module documentation, may be NULL */
+  -1,   /* size of per-interpreter state of the module,
+           or -1 if the module keeps state in global variables. */
+  torch_functions2,
+};
+
 void initTorchFunctions(PyObject* module) {
   if (PyType_Ready(&THPVariableFunctions) < 0) {
     throw python_error();
@@ -334,6 +361,23 @@ void initTorchFunctions(PyObject* module) {
   if (PyModule_AddObject(module, "_VariableFunctions", (PyObject*)&THPVariableFunctions) < 0) {
     throw python_error();
   }
+  PyObject* submodule;
+  if(submodule = PyModule_Create(&VariableFunctions)) {
+    if (PyModule_AddObject(module, "_VariableFunctions2", (PyObject*)submodule) < 0) {
+      throw python_error();
+    }
+  }
+  //   throw std::runtime_error("yikes!")  ;
+  // };
 }
 
 }} // namespace torch::autograd
+
+// PyMODINIT_FUNC PyInit__VariableFunctions2()
+// {
+//   PyObject* module;
+//   if(module = PyModule_Create(&torch::autograd::VariableFunctions)) {
+//     return module;
+//   };
+//   throw std::runtime_error("yikes!")  ;
+// }
