@@ -1,3 +1,4 @@
+from __future__ import division
 import torch
 import torch.jit
 import torch.nn as nn
@@ -1951,7 +1952,7 @@ class TestBatched(TestCase):
                 else:
                     idx_t_tmp = idx_t
                 new_y = torch.fmod(idx_t_tmp, vocab_size)
-                pre_y = idx_t_tmp.div(vocab_size)
+                pre_y = idx_t_tmp / vocab_size
                 x = embed.index_select(1, new_y)
                 h = h_t.index_select(1, pre_y)
                 c = c_t.index_select(1, pre_y)
@@ -4633,6 +4634,22 @@ a")
                 for _ in range(100):
                     x = x + x
                 return x
+
+        mte = ModuleToExport()
+        outputs = mte(torch.zeros(1, 2, 3))
+        self.assertExpected(torch.onnx.export_to_pretty_string(
+            mte, (torch.zeros(1, 2, 3),), None, verbose=False,
+            example_outputs=outputs))
+
+    def test_onnx_export_script_truediv(self):
+        class ModuleToExport(torch.jit.ScriptModule):
+            def __init__(self):
+                super(ModuleToExport, self).__init__()
+
+            @torch.jit.script_method
+            def forward(self, x):
+                z = x.size(0) / 2
+                return x + z
 
         mte = ModuleToExport()
         outputs = mte(torch.zeros(1, 2, 3))
