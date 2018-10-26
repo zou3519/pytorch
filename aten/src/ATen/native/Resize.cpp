@@ -3,9 +3,16 @@
 
 namespace at { namespace native {
 
-Tensor& resize_cpu_(Tensor& self, IntList size) {
+Tensor& resize_(Tensor& self, IntList size) {
   auto* self_ = self.unsafeGetTensorImpl();
-  resize_impl_cpu_(self_, size, /*strides=*/c10::nullopt);
+  auto tid = self_->type_id();
+  if (tid == CPUTensorId()) {
+    resizeTensorImpl<Backend::CPU>(self_, size, /*strides=*/c10::nullopt);
+  } else if (tid == CUDATensorId()) {
+    resizeTensorImpl<Backend::CUDA>(self_, size, /*strides=*/c10::nullopt);
+  } else {
+    AT_ASSERT(false);
+  }
   self_->maybe_zero_dim(size.size() == 0);
   return self;
 }

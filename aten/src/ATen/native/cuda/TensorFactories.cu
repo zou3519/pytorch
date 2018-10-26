@@ -3,6 +3,7 @@
 #include "ATen/NativeFunctions.h"
 #include "ATen/cuda/CUDAContext.h"
 #include "c10/util/Exception.h"
+#include "ATen/native/Resize.h"
 
 #include <THC/THCGeneral.h>
 #include <THC/THCThrustAllocator.cuh>
@@ -46,7 +47,9 @@ Tensor empty_cuda(IntList size, const TensorOptions& options) {
     scalarTypeToTypeMeta(options.dtype()), 0, cuda::getCUDADeviceAllocator(), true);
 
   auto tensor = detail::make_tensor<TensorImpl>(storage_impl, CUDATensorId(), false);
-  resize_cuda_(tensor, size); // avoid dispatch overhead
+  // avoid dispatch to resize_. Also, empty(...) already uses a device_guard.
+  resizeTensorImpl<Backend::CUDA,/*device_guard=*/false>(
+      tensor.unsafeGetTensorImpl(), size, c10::nullopt);
   return tensor;
 }
 

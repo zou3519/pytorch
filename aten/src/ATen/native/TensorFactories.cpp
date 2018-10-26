@@ -14,6 +14,7 @@
 #include "ATen/core/TensorOptions.h"
 #include "TH/THRandom.h"
 #include "c10/util/Exception.h"
+#include "ATen/native/Resize.h"
 
 #include <algorithm>
 #include <cmath>
@@ -110,7 +111,8 @@ Tensor empty_cpu(IntList size, const TensorOptions& options) {
     scalarTypeToTypeMeta(options.dtype()), 0, at::getCPUAllocator(), true);
 
   auto tensor = detail::make_tensor<TensorImpl>(storage_impl, at::CPUTensorId(), false);
-  resize_cpu_(tensor, size);  // avoid dispatch overhead
+  // avoid dispatch to resize_
+  resizeTensorImpl<Backend::CPU>(tensor.unsafeGetTensorImpl(), size, c10::nullopt);
   return tensor;
 }
 

@@ -9,7 +9,7 @@
 
 #include "THCTensorInfo.cuh"
 
-#include "ATen/native/cuda/Resize.cuh"
+#include "ATen/native/Resize.h"
 
 int THCTensor_nDimension(THCState *state, const THCTensor *self) {
   return THTensor_nDimension(self);
@@ -105,7 +105,8 @@ void THCTensor_resizeNd(THCState *state, THCTensor *self, int nDimension, const 
   if (stride) {
     strides = at::IntList(stride, nDimension);
   }
-  at::native::resize_impl_cuda_(self, sizes, strides, /*device_guard=*/false);
+  at::native::resizeTensorImpl<at::Backend::CUDA,/*device_guard=*/false>(
+      self, sizes, strides);
 }
 
 void THCTensor_set(THCState *state, THCTensor *self, THCTensor *src)

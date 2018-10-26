@@ -81,7 +81,7 @@ void THTensor_resizeNd(THTensor *self, int nDimension, const int64_t *size, cons
   if (stride) {
     strides = at::IntList(stride, nDimension);
   }
-  at::native::resize_impl_cpu_(self, sizes, strides);
+  at::native::resizeTensorImpl<at::Backend::CPU>(self, sizes, strides);
 }
 
 // On a high level,
