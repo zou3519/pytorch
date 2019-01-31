@@ -1,7 +1,7 @@
 #include "torch/csrc/jit/operator.h"
 #include "torch/csrc/jit/custom_operator.h"
 
-#include "torch/csrc/autograd/profiler.h"
+#include "ATen/profiler.h"
 
 #include "torch/csrc/utils/functional.h"
 #include "torch/csrc/autograd/generated/variable_factories.h"
@@ -63,7 +63,7 @@ RegisterOperators reg({
   Operator(
   "aten::get_device(Tensor self) -> int",
   [](Stack & stack) {
-      autograd::profiler::RecordFunction record("get_device");
+      at::profiler::RecordFunction record("get_device");
       auto result = at::get_device(
           (std::move(peek(stack, 0, 1))).toTensor()
       );
@@ -75,7 +75,7 @@ RegisterOperators reg({
   Operator(
       "aten::storage_offset(Tensor self) -> int",
       [](Stack & stack) {
-          autograd::profiler::RecordFunction record("storage_offset");
+          at::profiler::RecordFunction record("storage_offset");
           auto result = ((std::move(peek(stack, 0, 1))).toTensor()).storage_offset();
           drop(stack, 1);
           pack(stack, std::move(result));

@@ -1,7 +1,7 @@
 #include <torch/csrc/autograd/edge.h>
 #include <torch/csrc/autograd/function.h>
 #include <torch/csrc/autograd/generated/variable_factories.h>
-#include <torch/csrc/autograd/profiler.h>
+#include <ATen/profiler.h>
 #include <torch/csrc/autograd/variable.h>
 #include <torch/csrc/jit/custom_operator.h>
 #include <torch/csrc/jit/fuser/interface.h>
@@ -111,7 +111,7 @@ RegisterOperators reg({
         [](const Node* node) {
           const auto key = registerFusion(node);
           return [key](Stack& stack) {
-            autograd::profiler::RecordFunction record("FusionGroup");
+          at::profiler::RecordFunction record("FusionGroup");
             runFusion(key, stack);
             return 0;
           };
@@ -659,7 +659,7 @@ RegisterOperators reg({
             return v->uses().size() > 0;
           });
           return [=](Stack& stack) {
-            autograd::profiler::RecordFunction record("chunk");
+          at::profiler::RecordFunction record("chunk");
             at::Tensor t;
             pop(stack, t);
             auto result = at::chunk(t, chunks, dim);

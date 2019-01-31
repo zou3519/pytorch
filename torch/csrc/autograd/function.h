@@ -3,7 +3,7 @@
 #include <torch/csrc/autograd/edge.h>
 #include <torch/csrc/autograd/grad_mode.h>
 #include <torch/csrc/autograd/anomaly_mode.h>
-#include <torch/csrc/autograd/profiler.h>
+#include <ATen/profiler.h>
 #include <torch/csrc/autograd/saved_variable.h>
 #include <torch/csrc/autograd/input_metadata.h>
 #include <torch/csrc/autograd/variable.h>
@@ -112,7 +112,7 @@ struct TORCH_API Function : std::enable_shared_from_this<Function> {
   /// Evaluates the function on the given inputs and returns the result of the
   /// function call.
   variable_list operator()(variable_list&& inputs) {
-    profiler::RecordFunction rec(this);
+    // at::profiler::RecordFunction rec(this);
     return apply(std::move(inputs));
   }
 

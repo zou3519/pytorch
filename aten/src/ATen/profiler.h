@@ -12,20 +12,22 @@
 #include <forward_list>
 #include <tuple>
 #include <ATen/ATen.h>
-#include <torch/csrc/WindowsTorchApiMacro.h>
+
+
+// #include <torch/csrc/WindowsTorchApiMacro.h>
 #ifndef _WIN32
 #include <ctime>
 #endif
 
 typedef struct CUevent_st* CUDAEventStub;
 
-namespace torch { namespace autograd {
+namespace at {
 
 struct Function;
 
 namespace profiler {
 
-struct TORCH_API CUDAStubs {
+struct CAFFE2_API CUDAStubs {
   virtual void record(int* device, CUDAEventStub* event, int64_t* cpu_ns) {
     fail();
   }
@@ -59,7 +61,7 @@ private:
   }
 };
 
-TORCH_API void registerCUDAMethods(CUDAStubs* stubs);
+CAFFE2_API void registerCUDAMethods(CUDAStubs* stubs);
 
 constexpr inline size_t ceilToMultiple(size_t a, size_t b) {
   return ((a + b - 1) / b) * b;
@@ -94,7 +96,7 @@ enum class EventKind : uint16_t {
   PopRange
 };
 
-struct TORCH_API Event final {
+struct CAFFE2_API Event final {
   Event(EventKind kind, std::string name, uint16_t thread_id, bool record_cuda)
   : owned_name_(new std::string(std::move(name)))
   , name_ptr_(owned_name_->c_str())
@@ -196,13 +198,13 @@ enum class ProfilerState {
     NVTX,  // only emit NVTX markers
 };
 
-TORCH_API RangeEventList& getEventList();
-TORCH_API void mark(std::string name, bool include_cuda = true);
-TORCH_API void pushRange(std::string name);
-TORCH_API void popRange();
+CAFFE2_API RangeEventList& getEventList();
+CAFFE2_API void mark(std::string name, bool include_cuda = true);
+CAFFE2_API void pushRange(std::string name);
+CAFFE2_API void popRange();
 
-struct TORCH_API RecordFunction {
-  explicit RecordFunction(Function* fn);
+struct CAFFE2_API RecordFunction {
+  // explicit RecordFunction(Function* fn);
 
   explicit RecordFunction(std::string name);
 
@@ -218,8 +220,7 @@ struct TORCH_API RecordFunction {
 using thread_event_lists = std::vector<std::vector<Event>>;
 // NOTE: changing profiler modes is **NOT THREAD SAFE**. You should ensure that
 // there no autograd functions are being executed when these function are used.
-TORCH_API void enableProfiler(ProfilerState new_state);
-TORCH_API thread_event_lists disableProfiler();
+CAFFE2_API void enableProfiler(ProfilerState new_state);
+CAFFE2_API thread_event_lists disableProfiler();
 
-} // namespace profiler
 }} // namespace torch::autograd

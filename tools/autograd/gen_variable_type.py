@@ -146,7 +146,7 @@ if (${cond}) {
 """)
 
 RECORD_FUNCTION = CodeTemplate("""\
-profiler::RecordFunction profiler("${name}", Function::peek_at_next_sequence_nr());""")
+        at::profiler::RecordFunction profiler("${name}", Function::peek_at_next_sequence_nr());""")
 
 SELECT = CodeTemplate("""\
 if (${cond}) {

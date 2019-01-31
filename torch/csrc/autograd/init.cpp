@@ -3,7 +3,7 @@
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/autograd/grad_mode.h>
-#include <torch/csrc/autograd/profiler.h>
+#include <ATen/profiler.h>
 #include <torch/csrc/autograd/python_function.h>
 #include <torch/csrc/autograd/function.h>
 
@@ -25,30 +25,30 @@ PyObject * THPAutograd_initExtension(PyObject *_unused)
 
   auto m = py::handle(autograd_module).cast<py::module>();
 
-  py::class_<torch::autograd::profiler::Event>(m, "ProfilerEvent")
-      .def("kind", &torch::autograd::profiler::Event::kind)
+  py::class_<at::profiler::Event>(m, "ProfilerEvent")
+      .def("kind", &at::profiler::Event::kind)
       .def(
           "name",
-          [](const torch::autograd::profiler::Event& e) { return e.name(); })
-      .def("thread_id", &torch::autograd::profiler::Event::thread_id)
-      .def("device", &torch::autograd::profiler::Event::device)
-      .def("cpu_elapsed_us", &torch::autograd::profiler::Event::cpu_elapsed_us)
+          [](const at::profiler::Event& e) { return e.name(); })
+      .def("thread_id", &at::profiler::Event::thread_id)
+      .def("device", &at::profiler::Event::device)
+      .def("cpu_elapsed_us", &at::profiler::Event::cpu_elapsed_us)
       .def(
-          "cuda_elapsed_us", &torch::autograd::profiler::Event::cuda_elapsed_us)
-      .def("has_cuda", &torch::autograd::profiler::Event::has_cuda);
-  py::enum_<torch::autograd::profiler::ProfilerState>(m,"ProfilerState")
-  .value("Disabled", torch::autograd::profiler::ProfilerState::Disabled)
-  .value("CPU", torch::autograd::profiler::ProfilerState::CPU)
-  .value("CUDA", torch::autograd::profiler::ProfilerState::CUDA)
-  .value("NVTX", torch::autograd::profiler::ProfilerState::NVTX);
+          "cuda_elapsed_us", &at::profiler::Event::cuda_elapsed_us)
+      .def("has_cuda", &at::profiler::Event::has_cuda);
+  py::enum_<at::profiler::ProfilerState>(m,"ProfilerState")
+  .value("Disabled", at::profiler::ProfilerState::Disabled)
+  .value("CPU", at::profiler::ProfilerState::CPU)
+  .value("CUDA", at::profiler::ProfilerState::CUDA)
+  .value("NVTX", at::profiler::ProfilerState::NVTX);
 
-  m.def("_enable_profiler", torch::autograd::profiler::enableProfiler);
-  m.def("_disable_profiler", torch::autograd::profiler::disableProfiler);
+  m.def("_enable_profiler", at::profiler::enableProfiler);
+  m.def("_disable_profiler", at::profiler::disableProfiler);
 
   m.def("_push_range", [](std::string name) {
-    torch::autograd::profiler::pushRange(std::move(name));
+      at::profiler::pushRange(std::move(name));
   });
-  m.def("_pop_range", []() { torch::autograd::profiler::popRange(); });
+  m.def("_pop_range", []() { at::profiler::popRange(); });
 
   Py_RETURN_TRUE;
 }

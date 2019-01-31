@@ -4,7 +4,7 @@
 #include <torch/csrc/autograd/function.h>
 #include <torch/csrc/autograd/generated/variable_factories.h>
 #include <torch/csrc/autograd/grad_mode.h>
-#include <torch/csrc/autograd/profiler.h>
+#include <ATen/profiler.h>
 #include <torch/csrc/autograd/variable.h>
 #include <c10/util/Exception.h>
 #include <torch/csrc/jit/constants.h>

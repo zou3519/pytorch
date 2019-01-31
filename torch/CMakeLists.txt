@@ -139,7 +139,6 @@ set(TORCH_SRCS
   ${TORCH_SRC_DIR}/csrc/autograd/generated/VariableType_4.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/grad_mode.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/input_buffer.cpp
-  ${TORCH_SRC_DIR}/csrc/autograd/profiler.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/saved_variable.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/variable.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/VariableTypeManual.cpp

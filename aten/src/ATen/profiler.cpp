@@ -1,9 +1,9 @@
-#include <torch/csrc/autograd/profiler.h>
-#include <torch/csrc/autograd/function.h>
+#include <ATen/profiler.h>
+// #include <torch/csrc/autograd/function.h>
 
 #include <sstream>
 
-namespace torch { namespace autograd { namespace profiler {
+namespace at { namespace profiler {
 
 CUDAStubs default_stubs;
 constexpr CUDAStubs* default_stubs_addr = &default_stubs;
@@ -11,7 +11,7 @@ constexpr CUDAStubs* default_stubs_addr = &default_stubs;
 // static initialization calls which may invoke registerCUDAMethods
 static CUDAStubs* cuda_stubs = default_stubs_addr;
 
-TORCH_API void registerCUDAMethods(CUDAStubs* stubs) {
+CAFFE2_API void registerCUDAMethods(CUDAStubs* stubs) {
   cuda_stubs = stubs;
 }
 
@@ -92,15 +92,15 @@ void popRange() {
   }
 }
 
-RecordFunction::RecordFunction(Function* fn) {
-  // typeid(*fn).name() would avoid an additional string allocation.
-  // However, typeid(*fn).name() would cause nvtx annotations for all user-defined
-  // (Python-side) custom autograd function backward() methods to have the same name,
-  // because they route through the same C++ side class.
-  // fn->name() ensures that nvtx annotations for custom function backward() methods
-  // receive a relevant, demangled name.
-  pushRangeImpl(fn->name(), ", stashed seq=", fn->sequence_nr());
-}
+// RecordFunction::RecordFunction(Function* fn) {
+//   // typeid(*fn).name() would avoid an additional string allocation.
+//   // However, typeid(*fn).name() would cause nvtx annotations for all user-defined
+//   // (Python-side) custom autograd function backward() methods to have the same name,
+//   // because they route through the same C++ side class.
+//   // fn->name() ensures that nvtx annotations for custom function backward() methods
+//   // receive a relevant, demangled name.
+//   pushRangeImpl(fn->name(), ", stashed seq=", fn->sequence_nr());
+// }
 
 RecordFunction::RecordFunction(std::string name) {
   pushRangeImpl(std::move(name));
@@ -192,4 +192,4 @@ double Event::cuda_elapsed_us(const Event & e) {
 
 CUDAStubs::~CUDAStubs() = default;
 
-}}}
+}}

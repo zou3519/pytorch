@@ -1,4 +1,4 @@
-#include <torch/csrc/autograd/profiler.h>
+#include <ATen/profiler.h>
 #include <torch/csrc/jit/custom_operator.h>
 #include <torch/csrc/jit/operator.h>
 #include <torch/csrc/api/include/torch/utils.h>
@@ -140,7 +140,7 @@ RegisterOperators reg({
     Operator(
         "aten::split(Tensor self, int[] split_sizes, int dim=0) -> Tensor[]",
         [](Stack& stack) {
-          autograd::profiler::RecordFunction record("split_with_sizes");
+        at::profiler::RecordFunction record("split_with_sizes");
           auto result = at::split_with_sizes(
               (std::move(peek(stack, 0, 3))).toTensor(),
               (std::move(peek(stack, 1, 3))).toIntList()->elements(),
@@ -155,7 +155,7 @@ RegisterOperators reg({
     Operator(
         "aten::size(Tensor self) -> int[]",
         [](Stack& stack) {
-          autograd::profiler::RecordFunction record("sizes");
+        at::profiler::RecordFunction record("sizes");
           auto t = std::move(pop(stack)).toTensor();
           pack(stack, t.sizes().vec());
           return 0;
@@ -163,7 +163,7 @@ RegisterOperators reg({
     Operator(
         "aten::list_with_default(int[] list, int[] defaults) -> int[]",
         [](Stack& stack) {
-          autograd::profiler::RecordFunction record("sizes");
+        at::profiler::RecordFunction record("sizes");
           auto list = peek(stack, 0, 2).toIntListRef();
           auto defaults = peek(stack, 1, 2).toIntListRef();
           drop(stack, 2);
