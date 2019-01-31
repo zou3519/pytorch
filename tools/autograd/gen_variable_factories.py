@@ -10,6 +10,7 @@ from .gen_variable_type import format_trace
 
 FUNCTION_TEMPLATE = CodeTemplate("""\
 inline at::Tensor ${name}(${formals}) {
+  at::profiler::RecordFunction record("torch::${name}");
   ${pre_record_trace}
   at::Tensor tensor = at::${name}(${actuals});
   at::Tensor result =

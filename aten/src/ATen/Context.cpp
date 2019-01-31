@@ -1,6 +1,7 @@
 #include <ATen/Config.h>
 
 #include <ATen/Context.h>
+#include <ATen/profiler.h>
 
 #include <c10/core/TensorOptions.h>
 
@@ -97,6 +98,7 @@ bool Context::setFlushDenormal(bool on) {
 }
 
 TypeExtendedInterface& getType(TensorOptions options) {
+  at::profiler::RecordFunction record("at::getType(TensorOptions)");
   return globalContext().getType(
             options.backend(), typeMetaToScalarType(options.dtype()), options.is_variable());
 }
@@ -105,21 +107,25 @@ TypeExtendedInterface& getType(TensorOptions options) {
 // return non-Variable type in this function.
 // See NOTE [ Treating Variables as non-Variables in type dispatch ]
 TypeExtendedInterface& getType(const TensorImpl* impl) {
+  at::profiler::RecordFunction record("at::getType(TensorImpl*)");
   Backend backend = tensorTypeIdToBackend(impl->type_id());
   return globalContext().getType(
             backend, typeMetaToScalarType(impl->dtype()), impl->is_variable() && !at::NonVariableTypeMode::is_enabled());
 }
 
 TypeExtendedInterface& getType(const Tensor& t) {
+  at::profiler::RecordFunction record("at::getType(Tensor)");
   return getType(t.unsafeGetTensorImpl());
 }
 
 LegacyTHDispatcher& getLegacyTHDispatcher(TensorOptions options) {
+  at::profiler::RecordFunction record("at::getLegacyTHDispatcher");
   return globalContext().getLegacyTHDispatcher(
             options.backend(), typeMetaToScalarType(options.dtype()));
 }
 
 LegacyTHDispatcher& getLegacyTHDispatcher(const TensorImpl* impl) {
+  at::profiler::RecordFunction record("at::getLegacyTHDispatcher");
   Backend backend = tensorTypeIdToBackend(impl->type_id());
   return globalContext().getLegacyTHDispatcher(
             backend, typeMetaToScalarType(impl->dtype()));

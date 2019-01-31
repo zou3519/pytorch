@@ -8,6 +8,7 @@
 #include <torch/csrc/autograd/variable_version.h>
 
 #include <ATen/ATen.h>
+#include <ATen/profiler.h>
 #include <c10/util/Exception.h>
 
 #include <list>
@@ -562,6 +563,7 @@ inline Variable make_variable(
     at::Tensor data,
     bool requires_grad = false,
     bool allow_tensor_metadata_change = true) {
+  at::profiler::RecordFunction record("torch::make_variable");
   AT_CHECK(
       !data.is_variable(),
       "Must not create a new variable from a variable, use its .data()");

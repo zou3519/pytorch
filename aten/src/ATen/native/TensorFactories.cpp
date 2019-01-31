@@ -19,6 +19,7 @@
 #include <TH/THRandom.h>
 #include <TH/THGenerator.hpp>
 #include <c10/util/Exception.h>
+#include <ATen/profiler.h>
 
 #include <algorithm>
 #include <cmath>
@@ -87,8 +88,9 @@ Tensor _dim_arange(const Tensor& like, int64_t dim) {
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Tensor empty_cpu(IntList size, const TensorOptions& options) {
+  at::profiler::RecordFunction record("at::empty_cpu");
+
   AT_ASSERT(options.backend() == Backend::CPU);
   AT_ASSERT(!options.is_variable());  // is_variable should have been 'unpacked'  // TODO: remove this when Variable and Tensor are merged
 
