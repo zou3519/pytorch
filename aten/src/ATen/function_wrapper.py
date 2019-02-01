@@ -94,6 +94,7 @@ ${return_type} ${method_prefix_derived}${api_name}(${type_method_formals}) const
 # 5. add override definition to TypeDerived.cpp
 TYPE_DERIVED_DEFINITION = CodeTemplate("""\
 ${return_type} ${Type}::${method_prefix_derived}${api_name}(${type_method_formals}) const {
+    at::profiler::RecordFunction record("${Type}::${method_prefix_derived}${api_name}");
     ${device_guard_declaration}
     ${type_definition_body}
 }
@@ -103,6 +104,7 @@ ${return_type} ${Type}::${method_prefix_derived}${api_name}(${type_method_formal
 # the superclass.  But it doesn't seem to be harmful.
 TYPE_DERIVED_DEFINITION_NATIVE = CodeTemplate("""\
 ${return_type} ${Type}::${api_name}(${type_method_formals}) const {
+    at::profiler::RecordFunction record("${Type}::${api_name}");
     ${device_guard_declaration}
     ${return_call} at::native::${native_type_method_dispatch}(/* actuals */ ${actuals});
 }
@@ -137,6 +139,7 @@ AT_DEPRECATED(static inline ${return_type} ${api_name}(${formals_with_defaults})
 # add method definition in Functions.h
 FUNCTION_DEFINITION = CodeTemplate("""\
 static inline ${return_type} ${api_name}(${formals}) {
+    at::profiler::RecordFunction record("at::${api_name}");
     return ${inferred_type}.${api_name}(${type_method_actuals});
 }
 """)
@@ -148,6 +151,7 @@ CAFFE2_API ${return_type} ${native_type_method_dispatch}(${formals_with_defaults
 # special method definition for factory functions in Functions.h
 FACTORY_DEFINITION = CodeTemplate("""\
 static inline ${return_type} ${api_name}(${formals}) {
+    at::profiler::RecordFunction record("at::${api_name}");
     const DeviceGuard guard(options.device());
     return at::native::${api_name}(${type_method_actuals});
 }

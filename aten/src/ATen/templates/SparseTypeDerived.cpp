@@ -23,6 +23,7 @@
 #include <utility>
 
 #include <ATen/Config.h>
+#include <ATen/profiler.h>
 $extra_cuda_headers
 
 namespace at {

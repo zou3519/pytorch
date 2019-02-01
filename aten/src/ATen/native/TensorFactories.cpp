@@ -89,7 +89,7 @@ Tensor _dim_arange(const Tensor& like, int64_t dim) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Tensor empty_cpu(IntList size, const TensorOptions& options) {
-  at::profiler::RecordFunction record("at::empty_cpu");
+  at::profiler::RecordFunction record("at::native::empty_cpu");
 
   AT_ASSERT(options.backend() == Backend::CPU);
   AT_ASSERT(!options.is_variable());  // is_variable should have been 'unpacked'  // TODO: remove this when Variable and Tensor are merged
@@ -97,16 +97,24 @@ Tensor empty_cpu(IntList size, const TensorOptions& options) {
   auto* allocator = at::getCPUAllocator();
   int64_t nelements = prod_intlist(size);
   auto dtype = options.dtype();
-  auto storage_impl = c10::make_intrusive<StorageImpl>(
+  auto storage_impl = [&]() {
+    at::profiler::RecordFunction record("c10::make_intrusive<StorageImpl>(...)");
+    return c10::make_intrusive<StorageImpl>(
     dtype,
     nelements,
     allocator->allocate(nelements * dtype.itemsize()),
     allocator,
     /*resizeable=*/true);
+  }();
 
-  auto tensor = detail::make_tensor<TensorImpl>(storage_impl, at::CPUTensorId(), false);
+  auto tensor = [&]() {
+    at::profiler::RecordFunction record("detail::make_tensor<TensorImpl>(...)");
+    return detail::make_tensor<TensorImpl>(storage_impl, at::CPUTensorId(), false);
+  }();
+
   // Default TensorImpl has size [0]
   if (size.size() != 1 || size[0] != 0) {
+    at::profiler::RecordFunction record("tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);");
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
   }
   return tensor;

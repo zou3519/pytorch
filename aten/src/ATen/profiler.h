@@ -11,7 +11,9 @@
 #include <sstream>
 #include <forward_list>
 #include <tuple>
-#include <ATen/ATen.h>
+// #include <ATen/ATen.h>
+#include <c10/macros/Export.h>
+#include <c10/util/Exception.h>
 
 
 // #include <torch/csrc/WindowsTorchApiMacro.h>
