@@ -230,7 +230,6 @@ endif ()
 
 if (USE_CUDA)
   list(APPEND TORCH_SRCS
-    ${TORCH_SRC_DIR}/csrc/autograd/profiler_cuda.cpp
     ${TORCH_SRC_DIR}/csrc/autograd/functions/comm.cpp
     ${TORCH_SRC_DIR}/csrc/cuda/comm.cpp
   )
