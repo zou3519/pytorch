@@ -11,6 +11,7 @@ on an NVIDIA GPU with compute capability >= 3.0.
 import os
 import sys
 import platform
+from functools import wraps
 from ._utils import _import_dotted_name
 from ._utils_internal import get_file_path, prepare_multiprocessing_environment
 from .version import __version__
@@ -270,7 +271,18 @@ del manager_path
 for name in dir(_C._VariableFunctions):
     if name.startswith('__'):
         continue
-    globals()[name] = getattr(_C._VariableFunctions, name)
+
+    def fn(name):
+        base = getattr(_C._VariableFunctions, name)
+        def fn2(*args, **kwargs):
+            # avoid circular dependencies...
+            from _nt import _prepare, _wrap
+            _prepare(name, *args, **kwargs)
+            output = base(*args, **kwargs)
+            return _wrap(name, output)
+        return fn2
+
+    globals()[name] = fn(name)
 
 ################################################################################
 # Import interface functions defined in Python
@@ -317,8 +329,8 @@ import torch.backends.openmp
 _C._init_names(list(torch._storage_classes))
 
 # attach docstrings to torch and tensor functions
-from . import _torch_docs, _tensor_docs, _storage_docs
-del _torch_docs, _tensor_docs, _storage_docs
+# from . import _torch_docs, _tensor_docs, _storage_docs
+# del _torch_docs, _tensor_docs, _storage_docs
 
 
 def compiled_with_cxx11_abi():

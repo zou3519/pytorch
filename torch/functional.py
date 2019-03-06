@@ -32,6 +32,11 @@ __all__ = [
 ]
 
 
+# TODO(rzou): docstrings don't work
+def _add_docstr(*args, **kwargs):
+    pass
+
+
 def broadcast_tensors(*tensors):
     r"""broadcast_tensors(*tensors) -> List of Tensors
 

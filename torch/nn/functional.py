@@ -17,6 +17,11 @@ from . import _VF
 from .._jit_internal import weak_script, List
 
 
+# TODO(rzou): docstrings don't work
+def _add_docstr(*args, **kwargs):
+    pass
+
+
 conv1d = _add_docstr(torch.conv1d, r"""
 conv1d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1) -> Tensor
 
