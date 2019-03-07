@@ -274,12 +274,15 @@ for name in dir(_C._VariableFunctions):
 
     def fn(name):
         base = getattr(_C._VariableFunctions, name)
+
+        @wraps(base)
         def fn2(*args, **kwargs):
             # avoid circular dependencies...
-            from _nt import _prepare, _wrap
-            _prepare(name, *args, **kwargs)
+            from torch.named import get_context, _prepare, _wrap
+            ctx = get_context(name)
+            args, kwargs = _prepare(ctx, args, kwargs)
             output = base(*args, **kwargs)
-            return _wrap(name, output)
+            return _wrap(ctx, output)
         return fn2
 
     globals()[name] = fn(name)
