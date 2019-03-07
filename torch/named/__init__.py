@@ -1,5 +1,6 @@
 import torch
 import itertools
+from typing import TypeVar
 from collections.abc import Iterable
 import warnings
 
@@ -15,6 +16,8 @@ def get_context(funcname):
         return PointwiseUnaryContext()
     if funcname in pw_binary:
         return PointwiseBinaryContext()
+    if funcname == 'mm':
+        return MMContext()
     return Context(funcname)
 
 
@@ -30,6 +33,39 @@ def _wrap(ctx, arg):
 
 def default_names(tensor):
     return (None,) * tensor.dim()
+
+
+class NameCheck:
+    def __init__(self):
+        self.typevars = {}
+
+    def match(self, tensor, *names):
+        for name, annotated in zip(tensor.names, names):
+            if name is None or annotated is None:
+                continue
+            if isinstance(annotated, TypeVar):
+                typ = str(annotated)[1:]
+                if typ in self.typevars.keys():
+                    if name != self.typevars[typ]:
+                        raise RuntimeError(
+                            ('Name mismatch: {} was previously matched with \'{}\' ' +
+                             'but is now also matched with \'{}\'').format(
+                                 typ, self.typevars[typ], name))
+                else:
+                    self.typevars[typ] = name
+            elif name != annotated:
+                raise RuntimeError('Name mismatch: {} and {}'.format(name, annotated))
+        return self
+
+    def lookup(self, *names):
+        result = []
+        for name in names:
+            if isinstance(name, TypeVar):
+                typ = str(name)[1:]
+                result.append(self.typevars[typ])
+            else:
+                result.append(name)
+        return tuple(result)
 
 
 class BaseTensor:
@@ -193,3 +229,19 @@ class PointwiseBinaryContext:
 
     def wrap(self, out):
         return BaseTensor(out, self.names)
+
+
+A = TypeVar('A')
+B = TypeVar('B')
+C = TypeVar('C')
+
+
+class MMContext:
+    def prepare(self, tensor, other):
+        nc = NameCheck()
+        nc.match(tensor, A, B).match(other, B, C)
+        self.outnames = nc.lookup(A, C)
+        return [lower(tensor), lower(other)], {}
+
+    def wrap(self, out):
+        return BaseTensor(out, self.outnames)
