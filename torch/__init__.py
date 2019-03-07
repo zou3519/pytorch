@@ -280,7 +280,7 @@ for name in dir(_C._VariableFunctions):
             # avoid circular dependencies...
             from torch.named import get_context, _prepare, _wrap
             ctx = get_context(name)
-            args, kwargs = _prepare(ctx, args, kwargs)
+            args, kwargs = _prepare(ctx, *args, **kwargs)
             output = base(*args, **kwargs)
             return _wrap(ctx, output)
         return fn2

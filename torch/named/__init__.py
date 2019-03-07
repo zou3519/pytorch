@@ -1,16 +1,24 @@
 import torch
+import itertools
 from collections.abc import Iterable
+import warnings
 
 factories = {'randn', 'rand', 'zeros', 'ones', 'tensor'}
+pw_unary = {'relu'}
+pw_binary = {'add', 'sub', 'div', 'truediv', 'mul', 'rdiv', 'rsub', 'rtruediv'}
 
 
 def get_context(funcname):
     if funcname in factories:
         return FactoryContext()
+    if funcname in pw_unary:
+        return PointwiseUnaryContext()
+    if funcname in pw_binary:
+        return PointwiseBinaryContext()
     return Context(funcname)
 
 
-def _prepare(ctx, args, kwargs):
+def _prepare(ctx, *args, **kwargs):
     # print("_prepare({})".format(ctx.name))
     return ctx.prepare(*args, **kwargs)
 
@@ -32,18 +40,14 @@ class BaseTensor:
         self.names = names
 
     def __repr__(self):
-        out = self.tensor.__repr__()
-        return '{},\n       names={}'.format(out, self.names)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            out = self.tensor.__repr__()
+            return '{},\n       names={}'.format(out, self.names)
 
     def is_callable(self, attr):
         fn = getattr(self.tensor, attr)
         return hasattr(fn, '__call__'), fn
-
-    def __getitem__(self, *args, **kwargs):
-        return lift(self.tensor.__getitem__(*args, **kwargs))
-
-    def __format__(self, spec):
-        return self.tensor.__format__(spec)
 
     def __getattr__(self, attr):
         funcname = attr
@@ -53,12 +57,35 @@ class BaseTensor:
 
         def fn(*args, **kwargs):
             ctx = get_context(funcname)
-            args, kwargs = _prepare(ctx, args, kwargs)
-            out = attr(*args, **kwargs)
+            args, kwargs = _prepare(ctx, self, *args, **kwargs)
+            out = attr(*args[1:], **kwargs)
             out = _wrap(ctx, out)
             return out
 
         return fn
+
+    # XXX: should really be attribute-only
+    def namedshape(self):
+        return tuple(zip(tensor.size(), self.names))
+
+    def set_names(self, *names, **kwargs):
+        if names is None:
+            self.names = default_names(self.tensor)
+
+        if kwargs is None:
+            assert len(names) == len(self.names)
+            self.names = names
+        else:
+            assert len(names) == 0
+            for k, v in kwargs.items():
+                assert k in self.names
+                self.names[self.names.index(k)] = v
+
+    def __getitem__(self, *args, **kwargs):
+        return lift(self.tensor.__getitem__(*args, **kwargs))
+
+    def __format__(self, spec):
+        return self.tensor.__format__(spec)
 
     def __add__(self, other):
         return torch.add(self, other)
@@ -114,11 +141,13 @@ def lower_all(*args, **kwargs):
 class Context:
     def __init__(self, name):
         self.name = name
+        warnings.warn('{}: name inference NYI'.format(name))
 
     def prepare(self, *args, **kwargs):
         return lower_all(*args, **kwargs)
 
     def wrap(self, outputs):
+        # raise RuntimeError('NYI: {}'.format(self.name))
         return lift(outputs)
 
 
@@ -130,4 +159,37 @@ class FactoryContext:
     def wrap(self, out):
         if self.names is None:
             self.names = default_names(out)
+        return BaseTensor(out, self.names)
+
+
+class PointwiseUnaryContext:
+    def prepare(self, tensor):
+        self.names = tensor.names
+        return [lower(tensor)], {}
+
+    def wrap(self, out):
+        return BaseTensor(out, self.names)
+
+
+class PointwiseBinaryContext:
+    def prepare(self, tensor, other):
+        outnames = []
+        for n1, n2 in itertools.zip_longest(reversed(tensor.names), reversed(other.names)):
+            if n1 is None:
+                outnames.append(n2)
+                continue
+            if n2 is None:
+                outnames.append(n1)
+                continue
+            if n1 != n2:
+                raise RuntimeError(
+                    'Names {}, {} do not match when adding Tensor{}, Tensor{}'.format(
+                        n1, n2, tensor.names, other.names))
+            outnames.append(n1)
+        self.names = tuple(reversed(outnames))
+        if len(other.names) > len(tensor.names):
+            self.names = other.names
+        return [lower(tensor), lower(other)], {}
+
+    def wrap(self, out):
         return BaseTensor(out, self.names)
