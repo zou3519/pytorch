@@ -1,8 +1,12 @@
 import torch
 from collections.abc import Iterable
 
+factories = {'randn', 'rand', 'zeros', 'ones', 'tensor'}
+
 
 def get_context(funcname):
+    if funcname in factories:
+        return FactoryContext()
     return Context(funcname)
 
 
@@ -28,7 +32,8 @@ class BaseTensor:
         self.names = names
 
     def __repr__(self):
-        return self.tensor.__repr__()
+        out = self.tensor.__repr__()
+        return '{},\n       names={}'.format(out, self.names)
 
     def is_callable(self, attr):
         fn = getattr(self.tensor, attr)
@@ -117,7 +122,7 @@ class Context:
         return lift(outputs)
 
 
-class CtorContext:
+class FactoryContext:
     def prepare(self, *args, names=None, **kwargs):
         self.names = names
         return lower_all(*args, **kwargs)
