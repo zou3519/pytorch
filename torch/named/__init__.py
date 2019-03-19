@@ -5,29 +5,30 @@ from collections.abc import Iterable
 import warnings
 
 factories = {'randn', 'rand', 'zeros', 'ones', 'tensor'}
-pw_unary = {'relu'}
-pw_binary = {'add', 'sub', 'div', 'truediv', 'mul', 'rdiv', 'rsub', 'rtruediv'}
+pw_unary = {'abs', 'acos', 'asin', 'atan', 'atan2', 'ceil', 'clamp', 'cos',
+            'cosh', 'digamma', 'erf', 'erfc', 'erfinv', 'exp', 'expm1',
+            'floor', 'log10', 'log2', 'mvlgamma', 'neg', 'reciprocal', 'round', 'relu'}
+pw_binary = {'add', 'sub', 'div', 'truediv', 'mul',
+             'rdiv', 'rsub', 'rtruediv', 'ne', 'eq', 'ge', 'le', 'gt', 'lt'}
 
 
 def get_context(funcname):
     if funcname in factories:
-        return FactoryContext()
+        return FactoryContext(funcname)
     if funcname in pw_unary:
-        return PointwiseUnaryContext()
+        return PointwiseUnaryContext(funcname)
     if funcname in pw_binary:
-        return PointwiseBinaryContext()
+        return PointwiseBinaryContext(funcname)
     if funcname == 'mm':
-        return MMContext()
+        return MMContext(funcname)
     return Context(funcname)
 
 
 def _prepare(ctx, *args, **kwargs):
-    # print("_prepare({})".format(ctx.name))
     return ctx.prepare(*args, **kwargs)
 
 
 def _wrap(ctx, arg):
-    # print("_wrap({})".format(ctx.name))
     return ctx.wrap(arg)
 
 
@@ -35,33 +36,49 @@ def default_names(tensor):
     return (None,) * tensor.dim()
 
 
+def typevar_name(typevar):
+    return str(typevar)[1:]
+
+
 class NameCheck:
-    def __init__(self):
+    def __init__(self, weak=False):
         self.typevars = {}
+        self.weak = weak
 
     def match(self, tensor, *names):
         for name, annotated in zip(tensor.names, names):
             if name is None or annotated is None:
                 continue
-            if isinstance(annotated, TypeVar):
-                typ = str(annotated)[1:]
-                if typ in self.typevars.keys():
-                    if name != self.typevars[typ]:
-                        raise RuntimeError(
-                            ('Name mismatch: {} was previously matched with \'{}\' ' +
-                             'but is now also matched with \'{}\'').format(
-                                 typ, self.typevars[typ], name))
-                else:
-                    self.typevars[typ] = name
-            elif name != annotated:
-                raise RuntimeError('Name mismatch: {} and {}'.format(name, annotated))
+            if isinstance(annotated, str):
+                if not self.weak and name != annotated:
+                    raise RuntimeError('Name mismatch: {} and {}'.format(name, annotated))
+                continue
+
+            assert isinstance(annotated, TypeVar)
+            typ = typevar_name(annotated)
+            if typ not in self.typevars.keys():
+                self.typevars[typ] = name
+                continue
+
+            if name == self.typevars[typ]:
+                continue
+
+            if weak:
+                self.typevars[typ] = float('NaN')
+                continue
+
+            raise RuntimeError(
+                ('Name mismatch: {} was previously matched with \'{}\' ' +
+                 'but is now also matched with \'{}\'').format(
+                     typ, self.typevars[typ], name))
+
         return self
 
     def lookup(self, *names):
         result = []
         for name in names:
             if isinstance(name, TypeVar):
-                typ = str(name)[1:]
+                typ = typevar_name(name)
                 result.append(self.typevars[typ])
             else:
                 result.append(name)
@@ -69,11 +86,12 @@ class NameCheck:
 
 
 class BaseTensor:
-    def __init__(self, tensor, names=None):
+    def __init__(self, tensor, names=None, weaknames=False):
         self.tensor = tensor
         if names is None:
             names = default_names(tensor)
         self.names = names
+        self.weaknames = weaknames
 
     def __repr__(self):
         with warnings.catch_warnings():
@@ -135,14 +153,32 @@ class BaseTensor:
     def __truediv__(self, other):
         return torch.div(self, other)
 
+    def __rtruediv__(self, other):
+        return torch.mul(self.reciprocal(), other)
+
+    def __div__(self, other):
+        return torch.div(self, other)
+
+    def __rdiv__(self, other):
+        return torch.mul(self.reciprocal(), other)
+
     def __rsub__(self, other):
         return torch.rsub(self, other)
 
-    def __rdiv__(self, other):
-        return torch.rdiv(self, other)
+    def __ne__(self, other):
+        return torch.ne(self, other)
+
+    def __eq__(self, other):
+        return torch.ne(self, other)
 
     def __ge__(self, other):
         return torch.ge(self, other)
+
+    def __le__(self, other):
+        return torch.ge(self, other)
+
+    def __lt__(self, other):
+        return torch.lt(self, other)
 
     def __gt__(self, other):
         return torch.gt(self, other)
@@ -183,11 +219,13 @@ class Context:
         return lower_all(*args, **kwargs)
 
     def wrap(self, outputs):
-        # raise RuntimeError('NYI: {}'.format(self.name))
         return lift(outputs)
 
 
 class FactoryContext:
+    def __init__(self, name):
+        self.name = name
+
     def prepare(self, *args, names=None, **kwargs):
         self.names = names
         return lower_all(*args, **kwargs)
@@ -199,6 +237,9 @@ class FactoryContext:
 
 
 class PointwiseUnaryContext:
+    def __init__(self, name):
+        self.name = name
+
     def prepare(self, tensor):
         self.names = tensor.names
         return [lower(tensor)], {}
@@ -208,7 +249,14 @@ class PointwiseUnaryContext:
 
 
 class PointwiseBinaryContext:
+    def __init__(self, name):
+        self.name = name
+
     def prepare(self, tensor, other):
+        if not isinstance(other, torch.Tensor):
+            self.names = tensor.names
+            return [lower(tensor), lower(other)], {}
+
         outnames = []
         for n1, n2 in itertools.zip_longest(reversed(tensor.names), reversed(other.names)):
             if n1 is None:
@@ -237,9 +285,11 @@ C = TypeVar('C')
 
 
 class MMContext:
+    def __init__(self, name):
+        self.name = name
+
     def prepare(self, tensor, other):
-        nc = NameCheck()
-        nc.match(tensor, A, B).match(other, B, C)
+        nc = NameCheck().match(tensor, A, B).match(other, B, C)
         self.outnames = nc.lookup(A, C)
         return [lower(tensor), lower(other)], {}
 
