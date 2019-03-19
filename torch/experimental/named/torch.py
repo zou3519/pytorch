@@ -22,19 +22,37 @@ def tensor_ctor(op):
     return fn
 
 
+def safe_get_names(tensor):
+    if not hasattr(tensor, 'names'):
+        tensor.names = (None,) * tensor.dim()
+    return tensor.names
+
+
 def pointwise_unary_op(op):
     def fn(tensor):
         output = op(tensor)
-        output.names = tensor.names
+        output.names = safe_get_names(tensor)
         return output
     fn.__name__ = op.__name__
     return fn
 
 
-torch_registry = Registry(torch)
+TORCH = torch
+torch_registry = Registry(TORCH)
 
-torch_registry.register(tensor_ctor(torch.randn))
-torch_registry.register(tensor_ctor(torch.tensor))
-torch_registry.register(tensor_ctor(torch.rand))
+torch_registry.register(TORCH.get_default_dtype)
+torch_registry.register(TORCH.no_grad)
+torch_registry.register(TORCH.is_grad_enabled)
+torch_registry.register(TORCH.set_grad_enabled)
 
-torch_registry.register(pointwise_unary_op(torch.neg))
+torch_registry.register(tensor_ctor(TORCH.randn))
+torch_registry.register(tensor_ctor(TORCH.tensor))
+torch_registry.register(tensor_ctor(TORCH.rand))
+
+torch_registry.register(pointwise_unary_op(TORCH.abs))
+torch_registry.register(pointwise_unary_op(TORCH.ceil))
+torch_registry.register(pointwise_unary_op(TORCH.isfinite))
+torch_registry.register(pointwise_unary_op(TORCH.neg))
+
+# TODO: needs names
+torch_registry.register(TORCH.masked_select)
