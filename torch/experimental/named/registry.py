@@ -4,21 +4,12 @@ def get_fake_impl(name):
     return fake_impl
 
 blacklisted_attrs = {
-#    # Tensor
-#    '__name__',
+    # Tensor
     '__class__',
-#    '__dict__',
     '__getattribute__',
     '__setattr__',
-#    'is_sparse',
-#    'is_cuda',
-#    'dtype',
-#    'device',
-#    'layout',
-#
-#    # torch
-#    '_tensor_str',
-#    '_C',
+
+    # torch
     'Tensor',
 }
 
@@ -35,7 +26,8 @@ class Registry(object):
     def register(self, fn, name=None):
         if name is None:
             name = fn.__name__
-        assert name not in self.ntorch_functions.keys()
+        if name in self.ntorch_functions.keys():
+            raise RuntimeError('Attempted to register \'{}\' twice'.format(name))
         self.ntorch_functions[name] = fn
 
     def set_fns(self, fn_dict, fill_in_missing_fns=False):
@@ -50,6 +42,11 @@ class Registry(object):
                 setattr(self.obj, fn, get_fake_impl(fn))
             else:
                 setattr(self.obj, fn, fn_dict[fn])
+
+        # Add in the new things
+        for name, fn in self.ntorch_functions.items():
+            if name not in dir(self.obj):
+                setattr(self.obj, name, fn)
 
     def monkey_patch(self):
         self.set_fns(self.ntorch_functions, fill_in_missing_fns=True)
