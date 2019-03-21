@@ -1,4 +1,5 @@
 import torch
+import itertools
 from typing import TypeVar
 import warnings
 from .checker import NameCheck
@@ -116,6 +117,8 @@ def pointwise_binary_op(op):
 
 
 def lookup_dim(tensor, dim):
+    if isinstance(dim, int):
+        return dim
     try:
         return tensor.names.index(dim)
     except ValueError:
@@ -205,7 +208,7 @@ def softmax(tensor, dim, *args, **kwargs):
 
 def annotate_names(tensor, *names):
     NameCheck().match(tensor, *names)
-    return set_names_(tensor, *names)
+    return set_names_(tensor, names)
 
 
 def assert_all_named(tensor):
@@ -229,7 +232,7 @@ def mm(tensor, other):
     safe_get_names(other)
     L, M, N = TypeVar('L'), TypeVar('M'), TypeVar('N')
     outnames = NameCheck().match(tensor, L, M) \
-                          .match(tensor, M, N) \
+                          .match(other, M, N) \
                           .lookup(L, N)
     return old_mm(tensor, other).set_names_(outnames)
 
@@ -241,8 +244,31 @@ def match(name1, name2):
         return name1
     if name1 == name2:
         return name1
-    raise RuntimeError('Name mismatch: {}, {}', name1, name2)
+    raise RuntimeError('Name mismatch: {}, {}'.format(name1, name2))
 
+
+old_matmul = torch.matmul
+
+
+def matmul(tensor, other):
+    safe_get_names(tensor)
+    safe_get_names(other)
+
+    def check_matmul_names(tensor, other):
+        result = []
+        for n1, n2 in itertools.zip_longest(reversed(tensor.names[:-2]),
+                                            reversed(other.names[:-2])):
+            result.append(match(n1, n2))
+        result.reverse()
+        match(tensor.names[-1], other.names[-2])
+        result.extend([tensor.names[-2], other.names[-1]])
+        return result
+
+    if tensor.dim() <= 2 and other.dim() <= 2:
+        return mm(tensor, other)
+
+    outnames = check_matmul_names(tensor, other)
+    return old_matmul(tensor, other).set_names_(outnames)
 
 old_bmm = torch.bmm
 
@@ -250,25 +276,11 @@ old_bmm = torch.bmm
 def bmm(tensor, other):
     safe_get_names(tensor)
     safe_get_names(other)
-
-    def check_bmm_names(tensor, other):
-        result = []
-        for n1, n2 in zip(reversed(tensor.names[:-2]), reversed(other.names[:-2])):
-            result.append(match(n1, n2))
-        result.reverse()
-        match(tensor.names[-1], other.names[-2])
-        result.extend([tensor.names[-2], other.names[-1]])
-        return result
-
-    outnames = check_bmm_names(tensor, other)
+    L, M, N = TypeVar('K'), TypeVar('L'), TypeVar('M'), TypeVar('N')
+    outnames = NameCheck().match(tensor, K, L, M) \
+                          .match(tensor, K, M, N) \
+                          .lookup(K, L, N)
     return old_bmm(tensor, other).set_names_(outnames)
-
-
-def matmul(tensor, other):
-    if tensor.dim() <= 2 and other.dim() <= 2:
-        return mm(tensor, other)
-    return bmm(tensor, other)
-
 
 old_transpose = torch.transpose
 
@@ -285,6 +297,131 @@ def transpose(tensor, dim0, dim1):
     return set_names_(old_transpose(tensor, dim0b, dim1b), outnames)
 
 
+old_masked_fill_ = torch.Tensor.masked_fill_
+
+
+def masked_fill_(tensor, mask, value):
+    def check_names(tensor, mask):
+        result = []
+        for n1, n2 in zip(reversed(tensor.names), reversed(mask.names)):
+            result.append(match(n1, n2))
+        return result
+
+    safe_get_names(tensor)
+    safe_get_names(mask)
+
+    assert mask.dim() <= tensor.dim()
+    outnames = check_names(tensor, mask)
+    return old_masked_fill_(tensor, mask, value)
+
+old_clone = torch.clone
+
+
+def masked_fill(tensor, mask, mask_value):
+    return masked_fill_(tensor.clone(), mask, mask_value)
+
+
+def verify_exists_in_order(some_names, all_names):
+    assert len(some_names) <= len(all_names)
+    all_names_set = set(all_names)
+    last_idx = -1
+    for name in some_names:
+        if name not in all_names_set:
+            raise RuntimeError('Names {} do not exist in order in {}'
+                               .format(some_names, all_names))
+        idx = all_names.index(name)
+        if idx < last_idx:
+            raise RuntimeError('Names {} do not exist in order in {}'
+                               .format(some_names, all_names))
+        last_idx = idx
+
+
+def assert_subsequence(tensor, names):
+    verify_exists_in_order(names, tensor.names)
+
+
+def split(lst, indices):
+    offset = 0
+    result = []
+    for index in indices:
+        result.append(lst[offset:index])
+        offset = index + 1
+    result.append(lst[offset:])
+    return result
+
+
+# XXX: This can probably be more efficient
+def common_names(names1, names2):
+    nameset1 = set(names1)
+    nameset2 = set(names2)
+    common_names = nameset1.intersection(nameset2)
+    result = [(name, names1.index(name), names2.index(name)) for name in common_names]
+    result.sort(key=lambda k: k[1])
+    return result
+
+
+def align(tensor, other):
+    ns1 = list(zip(tensor.names, tensor.shape))
+    ns2 = list(zip(other.names, other.shape))
+
+    names, idx1, idx2 = list(zip(*common_names(tensor.names, other.names)))
+    verify_exists_in_order(names, other.names)
+
+    groups1 = split(ns1, idx1)
+    groups2 = split(ns2, idx2)
+
+    errmsg = 'Cannot unambiguously align {}, {}'.format(tensor.names, other.names)
+
+    outnames = []
+    outshape1 = []
+    outshape2 = []
+
+    for group1, group2, name in itertools.zip_longest(groups1, groups2, names):
+        if len(group1) > 0 and len(group2) > 0:
+            raise RuntimeError(errmsg)
+        if len(group1) > 0:
+            n, s = list(zip(*group1))
+            outnames.extend(n)
+            outshape1.extend(s)
+            outshape2.extend([1 for i in range(len(s))])
+        if len(group2) > 0:
+            n, s = list(zip(*group2))
+            outnames.extend(n)
+            outshape1.extend([1 for i in range(len(s))])
+            outshape2.extend(s)
+        if name is not None:
+            outnames.append(name)
+            outshape1.append(tensor.size(name))
+            outshape2.append(other.size(name))
+
+    return (set_names_(tensor.view(outshape1), outnames),
+            set_names_(other.view(outshape2), outnames))
+
+
+old_matmul = torch.matmul
+
+
+def dot(tensor, other, tensor_dims, other_dims):
+    assert len(tensor_dims) is 2
+    assert len(other_dims) is 2
+    assert tensor_dims[1] == other_dims[0]
+
+    assert_subsequence(tensor, tensor_dims)
+    assert_subsequence(other, other_dims)
+
+    t = tensor.rename(**{tensor_dims[0]: '_0', tensor_dims[1]: '_1'})
+    o = other.rename(**{other_dims[0]: '_0', other_dims[1]: '_1'})
+    tp, op = align(t, o)
+
+    start = t.names.index('_0')
+    end = t.names.index('_1')
+
+    tp.rename_(_0=tensor_dims[0], _1=tensor_dims[1])
+    op.rename_(_0=other_dims[0], _1=other_dims[1])
+
+    return matmul(tp.transpose(start, end - 1), op.transpose(start, end - 1)).transpose(start, end - 1)
+
+
 TORCH = torch
 torch_registry = Registry(TORCH)
 
@@ -292,16 +429,24 @@ torch_registry.register(TORCH.get_default_dtype)
 torch_registry.register(TORCH.no_grad)
 torch_registry.register(TORCH.is_grad_enabled)
 torch_registry.register(TORCH.set_grad_enabled)
+torch_registry.register(assert_subsequence)
 
 torch_registry.register(tensor_ctor(TORCH.randn))
+torch_registry.register(tensor_ctor(TORCH.zeros))
+torch_registry.register(tensor_ctor(TORCH.empty))
+torch_registry.register(tensor_ctor(TORCH.ones))
 torch_registry.register(tensor_ctor(TORCH.tensor))
 torch_registry.register(tensor_ctor(TORCH.rand))
 
 torch_registry.register(pointwise_unary_op(TORCH.abs))
+torch_registry.register(pointwise_unary_op(TORCH.dropout))
+torch_registry.register(pointwise_unary_op(TORCH.clone))
 torch_registry.register(pointwise_unary_op(TORCH.ceil))
 torch_registry.register(pointwise_unary_op(TORCH.isfinite))
 torch_registry.register(pointwise_unary_op(TORCH.neg))
 torch_registry.register(softmax)
+torch_registry.register(align)
+torch_registry.register(dot)
 
 torch_registry.register(min_or_max_op(TORCH.min))
 torch_registry.register(min_or_max_op(TORCH.max))
@@ -312,11 +457,13 @@ torch_registry.register(reduction_op(TORCH.std))
 torch_registry.register(reduction_op(TORCH.var))
 
 torch_registry.register(fixme_unsafe_op(TORCH.masked_select))
+torch_registry.register(fixme_unsafe_op(TORCH.cat))
+torch_registry.register(fixme_unsafe_op(TORCH.stack))
 
 torch_registry.register(annotate_names)
 torch_registry.register(transpose)
 
-# FIXME: The following probably dont work
 torch_registry.register(bmm)
 torch_registry.register(mm)
 torch_registry.register(matmul)
+torch_registry.register(masked_fill)

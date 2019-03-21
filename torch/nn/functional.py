@@ -821,9 +821,9 @@ def dropout(input, p=0.5, training=True, inplace=False):
     if p < 0. or p > 1.:
         raise ValueError("dropout probability has to be between 0 and 1, "
                          "but got {}".format(p))
-    return (_VF.dropout_(input, p, training)
+    return (torch.dropout_(input, p, training)
             if inplace
-            else _VF.dropout(input, p, training))
+            else torch.dropout(input, p, training))
 
 
 @weak_script
@@ -1397,7 +1397,7 @@ def linear(input, weight, bias=None):
         - Bias: :math:`(out\_features)`
         - Output: :math:`(N, *, out\_features)`
     """
-    if input.dim() == 2 and bias is not None:
+    if False and input.dim() == 2 and bias is not None:
         # fused op is marginally faster
         ret = torch.addmm(bias, input, weight.t())
     else:
@@ -1405,6 +1405,8 @@ def linear(input, weight, bias=None):
         if bias is not None:
             output += bias
         ret = output
+    if hasattr(torch, 'annotate_names'):
+        torch.annotate_names(ret, *input.names)
     return ret
 
 

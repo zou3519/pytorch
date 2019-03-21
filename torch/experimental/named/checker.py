@@ -30,7 +30,7 @@ class NameCheck:
             if name == self.typevars[typ]:
                 continue
 
-            if weak:
+            if self.weak:
                 self.typevars[typ] = float('NaN')
                 continue
 

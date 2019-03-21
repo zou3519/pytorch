@@ -8,6 +8,9 @@ blacklisted_attrs = {
     '__class__',
     '__getattribute__',
     '__setattr__',
+    '__new__',
+    '__init__',
+    '_make_subclass',
 
     # torch
     'Tensor',
