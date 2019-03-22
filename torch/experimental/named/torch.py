@@ -276,7 +276,7 @@ old_bmm = torch.bmm
 def bmm(tensor, other):
     safe_get_names(tensor)
     safe_get_names(other)
-    L, M, N = TypeVar('K'), TypeVar('L'), TypeVar('M'), TypeVar('N')
+    K, L, M, N = TypeVar('K'), TypeVar('L'), TypeVar('M'), TypeVar('N')
     outnames = NameCheck().match(tensor, K, L, M) \
                           .match(tensor, K, M, N) \
                           .lookup(K, L, N)
@@ -422,6 +422,16 @@ def dot(tensor, other, tensor_dims, other_dims):
     return matmul(tp.transpose(start, end - 1), op.transpose(start, end - 1)).transpose(start, end - 1)
 
 
+old_unsqueeze = torch.unsqueeze
+
+
+def unsqueeze(tensor, dim, outname=None):
+    safe_get_names(tensor)
+    outnames = list(tensor.names)
+    outnames.insert(dim, outname)
+    return set_names_(old_unsqueeze(tensor, dim), outnames)
+
+
 TORCH = torch
 torch_registry = Registry(TORCH)
 
@@ -447,6 +457,7 @@ torch_registry.register(pointwise_unary_op(TORCH.neg))
 torch_registry.register(softmax)
 torch_registry.register(align)
 torch_registry.register(dot)
+torch_registry.register(unsqueeze)
 
 torch_registry.register(min_or_max_op(TORCH.min))
 torch_registry.register(min_or_max_op(TORCH.max))

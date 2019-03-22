@@ -33,7 +33,9 @@ def rename(tensor, **kwargs):
 old_size = TENSOR.size
 
 
-def size(tensor, dim):
+def size(tensor, dim=None):
+    if dim is None:
+        return old_size(tensor)
     if isinstance(dim, str):
         newdim = lookup_dim(tensor, dim)
     else:
@@ -170,10 +172,13 @@ tensor_registry.register(set_names)
 tensor_registry.register(set_names_)
 tensor_registry.register(rename_)
 tensor_registry.register(rename)
+tensor_registry.register(annotate_names, 'check')
+tensor_registry.register(unsqueeze)
 
 # Ignores names
 tensor_registry.register(TENSOR.reshape)
 tensor_registry.register(TENSOR.view)
+tensor_registry.register(TENSOR.expand)
 
 tensor_registry.register(pointwise_unary_op(TENSOR.double))
 tensor_registry.register(pointwise_unary_op(TENSOR.float))
@@ -183,6 +188,8 @@ tensor_registry.register(pointwise_unary_op(TENSOR.ceil))
 tensor_registry.register(pointwise_unary_op(TENSOR.contiguous))
 tensor_registry.register(pointwise_unary_op(TENSOR.clone))
 tensor_registry.register(pointwise_unary_op(TENSOR.uniform_))
+tensor_registry.register(pointwise_unary_op(TENSOR.normal_))
+tensor_registry.register(pointwise_unary_op(TENSOR.repeat))
 tensor_registry.register(softmax)
 
 tensor_registry.register(pointwise_binary_op(TENSOR.__and__), '__and__')
