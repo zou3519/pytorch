@@ -1,16 +1,13 @@
 import torch
 from .torch import *
 from .registry import Registry
-from .checker import NameCheck
-
-TENSOR = torch.Tensor  # old torch.Tensor
 
 
 def append_names(string_fn):
+    @wraps(string_fn)
     def fn(self, *args, **kwargs):
         string = string_fn(self, *args, **kwargs)
         return '{}\n       names={}'.format(string, self.names)
-    fn.__name__ == string_fn.__name__
     return fn
 
 
@@ -30,7 +27,7 @@ def rename(tensor, **kwargs):
     return rename_(set_names_(tensor[:], tensor.names), **kwargs)
 
 
-old_size = TENSOR.size
+old_size = torch.Tensor.size
 
 
 def size(tensor, dim=None):
@@ -130,7 +127,7 @@ old_permute = torch.Tensor.permute
 
 
 def shift(tensor, old_dims, new_dims):
-    safe_get_names(tensor)
+    lift_unnamed(tensor)
     check_is_permutation(old_dims, new_dims)
     verify_exists_in_order(old_dims, tensor.names)
 
@@ -146,26 +143,26 @@ def shift(tensor, old_dims, new_dims):
     return set_names_(old_permute(tensor, permutation), outnames)
 
 
-tensor_registry = Registry(TENSOR)
-tensor_registry.register(TENSOR.dim)
+tensor_registry = Registry(torch.Tensor)
+tensor_registry.register(torch.Tensor.dim)
 tensor_registry.register(align_as)
-tensor_registry.register(TENSOR.__len__)
-tensor_registry.register(TENSOR.ndimension)
-tensor_registry.register(TENSOR.__str__)
-tensor_registry.register(append_names(TENSOR.__repr__), '__repr__')
-tensor_registry.register(TENSOR.__bool__)
-tensor_registry.register(TENSOR.__format__)
-tensor_registry.register(TENSOR._nnz)
-tensor_registry.register(TENSOR.numel)
-tensor_registry.register(TENSOR.is_floating_point)
+tensor_registry.register(torch.Tensor.__len__)
+tensor_registry.register(torch.Tensor.ndimension)
+tensor_registry.register(torch.Tensor.__str__)
+tensor_registry.register(append_names(torch.Tensor.__repr__), '__repr__')
+tensor_registry.register(torch.Tensor.__bool__)
+tensor_registry.register(torch.Tensor.__format__)
+tensor_registry.register(torch.Tensor._nnz)
+tensor_registry.register(torch.Tensor.numel)
+tensor_registry.register(torch.Tensor.is_floating_point)
 tensor_registry.register(size)
 tensor_registry.register(shift)
 tensor_registry.register(split_dim)
 tensor_registry.register(join_dims)
-tensor_registry.register(TENSOR.item)
-tensor_registry.register(TENSOR.tolist)
-tensor_registry.register(TENSOR.t)
-tensor_registry.register(TENSOR.__iter__, '__iter__')
+tensor_registry.register(torch.Tensor.item)
+tensor_registry.register(torch.Tensor.tolist)
+tensor_registry.register(torch.Tensor.t)
+tensor_registry.register(torch.Tensor.__iter__, '__iter__')
 
 # Tensor methods
 tensor_registry.register(set_names)
@@ -176,66 +173,66 @@ tensor_registry.register(annotate_names, 'check')
 tensor_registry.register(unsqueeze)
 
 # Ignores names
-tensor_registry.register(TENSOR.reshape)
-tensor_registry.register(TENSOR.view)
-tensor_registry.register(TENSOR.expand)
+tensor_registry.register(torch.Tensor.reshape)
+tensor_registry.register(torch.Tensor.view)
+tensor_registry.register(torch.Tensor.expand)
 
-tensor_registry.register(pointwise_unary_op(TENSOR.double))
-tensor_registry.register(pointwise_unary_op(TENSOR.float))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.double))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.float))
 
-tensor_registry.register(pointwise_unary_op(TENSOR.abs))
-tensor_registry.register(pointwise_unary_op(TENSOR.ceil))
-tensor_registry.register(pointwise_unary_op(TENSOR.contiguous))
-tensor_registry.register(pointwise_unary_op(TENSOR.clone))
-tensor_registry.register(pointwise_unary_op(TENSOR.uniform_))
-tensor_registry.register(pointwise_unary_op(TENSOR.normal_))
-tensor_registry.register(pointwise_unary_op(TENSOR.repeat))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.abs))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.ceil))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.contiguous))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.clone))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.uniform_))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.normal_))
+tensor_registry.register(pointwise_unary_op(torch.Tensor.repeat))
 tensor_registry.register(softmax)
 
-tensor_registry.register(pointwise_binary_op(TENSOR.__and__), '__and__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__iand__), '__iand__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__or__), '__or__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__ior__), '__ior__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__xor__), '__xor__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__ixor__), '__ixor__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__lshift__), '__lshift__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__ilshift__), '__ilshift__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__rshift__), '__rshift__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__irshift__), '__irshift__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__eq__), '__eq__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__eq__), 'equal')
-tensor_registry.register(pointwise_binary_op(TENSOR.__eq__), 'eq')
-tensor_registry.register(pointwise_binary_op(TENSOR.__ne__), '__ne__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__ne__), 'ne')
-tensor_registry.register(pointwise_binary_op(TENSOR.__gt__), '__gt__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__gt__), 'gt')
-tensor_registry.register(pointwise_binary_op(TENSOR.__ge__), '__ge__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__ge__), 'ge')
-tensor_registry.register(pointwise_binary_op(TENSOR.__lt__), '__lt__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__lt__), 'lt')
-tensor_registry.register(pointwise_binary_op(TENSOR.__le__), '__le__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__le__), 'le')
-tensor_registry.register(pointwise_binary_op(TENSOR.__rtruediv__), '__rtruediv__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__truediv__), '__truediv__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__rdiv__), '__rdiv__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__div__), '__div__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__add__), '__add__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__iadd__), '__iadd__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__mul__), '__mul__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__imul__), '__imul__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__sub__), '__sub__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__isub__), '__isub__')
-tensor_registry.register(pointwise_binary_op(TENSOR.__rsub__), '__rsub__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__and__), '__and__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__iand__), '__iand__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__or__), '__or__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__ior__), '__ior__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__xor__), '__xor__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__ixor__), '__ixor__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__lshift__), '__lshift__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__ilshift__), '__ilshift__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__rshift__), '__rshift__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__irshift__), '__irshift__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__eq__), '__eq__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__eq__), 'equal')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__eq__), 'eq')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__ne__), '__ne__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__ne__), 'ne')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__gt__), '__gt__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__gt__), 'gt')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__ge__), '__ge__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__ge__), 'ge')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__lt__), '__lt__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__lt__), 'lt')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__le__), '__le__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__le__), 'le')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__rtruediv__), '__rtruediv__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__truediv__), '__truediv__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__rdiv__), '__rdiv__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__div__), '__div__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__add__), '__add__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__iadd__), '__iadd__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__mul__), '__mul__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__imul__), '__imul__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__sub__), '__sub__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__isub__), '__isub__')
+tensor_registry.register(pointwise_binary_op(torch.Tensor.__rsub__), '__rsub__')
 
-tensor_registry.register(min_or_max_op(TENSOR.min))
-tensor_registry.register(min_or_max_op(TENSOR.max))
+tensor_registry.register(min_or_max_op(torch.Tensor.min))
+tensor_registry.register(min_or_max_op(torch.Tensor.max))
 
-tensor_registry.register(reduction_op(TENSOR.sum))
-tensor_registry.register(reduction_op(TENSOR.mean))
-tensor_registry.register(reduction_op(TENSOR.std))
-tensor_registry.register(reduction_op(TENSOR.var))
+tensor_registry.register(reduction_op(torch.Tensor.sum))
+tensor_registry.register(reduction_op(torch.Tensor.mean))
+tensor_registry.register(reduction_op(torch.Tensor.std))
+tensor_registry.register(reduction_op(torch.Tensor.var))
 
-tensor_registry.register(fixme_unsafe_op(TENSOR.__getitem__))
+tensor_registry.register(fixme_unsafe_op(torch.Tensor.__getitem__))
 
 tensor_registry.register(transpose)
 
