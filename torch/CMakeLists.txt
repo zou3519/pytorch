@@ -103,6 +103,7 @@ add_custom_command(
 set(TORCH_SRCS
   ${TORCH_SRC_DIR}/csrc/autograd/anomaly_mode.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/engine.cpp
+  ${TORCH_SRC_DIR}/csrc/autograd/named.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/function.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/function_hook.cpp
   ${TORCH_SRC_DIR}/csrc/autograd/functions/accumulate_grad.cpp
@@ -519,6 +520,7 @@ if (BUILD_PYTHON)
     ${TORCH_SRC_DIR}/csrc/autograd/generated/python_nn_functions.cpp
     ${TORCH_SRC_DIR}/csrc/autograd/generated/python_torch_functions.cpp
     ${TORCH_SRC_DIR}/csrc/autograd/generated/python_variable_methods.cpp
+    ${TORCH_SRC_DIR}/csrc/autograd/python_named.cpp
     ${TORCH_SRC_DIR}/csrc/autograd/init.cpp
     ${TORCH_SRC_DIR}/csrc/autograd/python_anomaly_mode.cpp
     ${TORCH_SRC_DIR}/csrc/autograd/python_cpp_function.cpp

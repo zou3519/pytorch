@@ -30,6 +30,7 @@
 #include <test/cpp/jit/test_qualified_name.h>
 #include <test/cpp/jit/test_subgraph_matcher.h>
 #include <test/cpp/jit/test_subgraph_utils.h>
+#include <test/cpp/jit/test_named.h>
 
 using namespace torch::jit::script;
 using namespace torch::jit::test;
@@ -58,6 +59,8 @@ namespace jit {
   _(SchemaParser)                  \
   _(TopologicalIndex)              \
   _(TopologicalMove)               \
+  _(Named_valid_names)               \
+  _(Named_unify)               \
   _(SubgraphUtils)                 \
   _(AliasAnalysis)                 \
   _(ContainerAliasing)             \
