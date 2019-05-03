@@ -2,9 +2,6 @@
 
 // ${generated_comment}
 
-#include "torch/csrc/utils/auto_gil.h"
-#include "torch/csrc/autograd/generated/python_variable_methods_named.h"
-
 #include <ATen/ATen.h>
 
 // Contains inline wrappers around ATen functions that release the GIL and
@@ -20,6 +17,6 @@ using at::Generator;
 using at::SparseTensorRef;
 using at::Storage;
 
-${py_method_dispatch}
+${py_method_named_defs}
 
 }} // namespace torch::autograd

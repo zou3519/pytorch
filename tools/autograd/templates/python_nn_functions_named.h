@@ -3,7 +3,6 @@
 // ${generated_comment}
 
 #include "torch/csrc/utils/auto_gil.h"
-#include "torch/csrc/autograd/generated/python_variable_methods_named.h"
 
 #include <ATen/ATen.h>
 
@@ -12,14 +11,9 @@
 
 namespace torch { namespace autograd {
 
-using at::Tensor;
-using at::Scalar;
-using at::TensorList;
-using at::IntArrayRef;
+using namespace at;
 using at::Generator;
-using at::SparseTensorRef;
-using at::Storage;
 
-${py_method_dispatch}
+${py_method_named_defs}
 
 }} // namespace torch::autograd

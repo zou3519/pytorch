@@ -2,8 +2,11 @@
 
 // ${generated_comment}
 
+#include "torch/csrc/autograd/generated/VariableType.h"
+#include "torch/csrc/autograd/generated/variable_factories.h"
+#include "torch/csrc/tensor/python_tensor.h"
 #include "torch/csrc/utils/auto_gil.h"
-#include "torch/csrc/autograd/generated/python_variable_methods_named.h"
+#include "torch/csrc/utils/cuda_lazy_init.h"
 
 #include <ATen/ATen.h>
 
@@ -14,12 +17,14 @@ namespace torch { namespace autograd {
 
 using at::Tensor;
 using at::Scalar;
+using at::ScalarType;
 using at::TensorList;
 using at::IntArrayRef;
 using at::Generator;
 using at::SparseTensorRef;
 using at::Storage;
+using at::TensorOptions;
 
-${py_method_dispatch}
+${py_method_named_defs}
 
 }} // namespace torch::autograd

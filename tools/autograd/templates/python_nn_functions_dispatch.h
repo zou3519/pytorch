@@ -3,6 +3,7 @@
 // ${generated_comment}
 
 #include "torch/csrc/utils/auto_gil.h"
+#include "torch/csrc/autograd/generated/python_nn_functions_named.h"
 
 #include <ATen/ATen.h>
 

@@ -4,6 +4,7 @@
 
 #include "torch/csrc/autograd/generated/VariableType.h"
 #include "torch/csrc/autograd/generated/variable_factories.h"
+#include "torch/csrc/autograd/generated/python_torch_functions_named.h"
 #include "torch/csrc/tensor/python_tensor.h"
 #include "torch/csrc/utils/auto_gil.h"
 #include "torch/csrc/utils/cuda_lazy_init.h"

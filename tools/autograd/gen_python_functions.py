@@ -15,6 +15,8 @@ except ImportError:
     from tools.shared.module_loader import import_module
     CodeTemplate = import_module('code_template', 'aten/src/ATen/code_template.py').CodeTemplate
 
+USE_NAMED = True
+
 # These functions require manual Python bindings or are not exposed to Python
 SKIP_PYTHON_BINDINGS = [
     'alias', 'contiguous', 'is_cuda', 'is_sparse', 'size', 'stride',
@@ -108,6 +110,12 @@ inline ${simple_return_type} ${dispatch_name}(${formal_args}) {
   ${initialize_cuda}
   ${AutoNoGIL}
   return ${dispatch_call}(${dispatch_args});
+}
+""")
+
+PY_VARIABLE_NAMED = CodeTemplate("""\
+inline ${base_op_return_type} ${named_name}(${formal_args}) {
+  return ${base_op_call}(${base_op_args});
 }
 """)
 
@@ -209,6 +217,10 @@ def gen_py_variable_methods(out, declarations, template_path):
     write(out, 'python_variable_methods.cpp', PY_VARIABLE_METHODS_CPP, env)
     write(out, 'python_variable_methods_dispatch.h', PY_VARIABLE_DISPATCH_H, env)
 
+    if USE_NAMED:
+        PY_VARIABLE_NAMED_H = CodeTemplate.from_file(template_path + '/python_variable_methods_named.h')
+        write(out, 'python_variable_methods_named.h', PY_VARIABLE_NAMED_H, env)
+
 
 def get_py_nn_functions(declarations):
     """
@@ -234,6 +246,10 @@ def gen_py_nn_functions(out, declarations, template_path):
     write(out, 'python_nn_functions.h', PY_NN_FUNCTIONS_H, env)
     write(out, 'python_nn_functions_dispatch.h', PY_NN_DISPATCH_H, env)
 
+    if USE_NAMED:
+        PY_NN_NAMED_H = CodeTemplate.from_file(template_path + '/python_nn_functions_named.h')
+        write(out, 'python_nn_functions_named.h', PY_NN_NAMED_H, env)
+
 
 def get_py_torch_functions(declarations):
     """
@@ -258,6 +274,10 @@ def gen_py_torch_functions(out, declarations, template_path):
     env = create_python_bindings(py_torch_functions, has_self=False)
     write(out, 'python_torch_functions.cpp', PY_TORCH_FUNCTIONS_CPP, env)
     write(out, 'python_torch_functions_dispatch.h', PY_TORCH_DISPATCH_H, env)
+
+    if USE_NAMED:
+        PY_TORCH_NAMED_H = CodeTemplate.from_file(template_path + '/python_torch_functions_named.h')
+        write(out, 'python_torch_functions_named.h', PY_TORCH_NAMED_H, env)
 
 
 def group_declarations_by_name(declarations, should_bind_fn):
@@ -287,6 +307,7 @@ def create_python_bindings(python_functions, has_self, is_module=False):
     py_methods = []
     py_method_defs = []
     py_method_dispatch = []
+    py_method_named_defs = []
 
     unpack_methods = {
         'const Tensor &': 'tensor',
@@ -524,6 +545,18 @@ def create_python_bindings(python_functions, has_self, is_module=False):
         # variable itself.)
         env['simple_return_type'] = simple_return_type
 
+        def last_word(string):
+            return string.split(' ')[-1]
+
+        if USE_NAMED:
+            env['base_op_call'] = env['dispatch_call']
+            env['dispatch_call'] = base_env['named_name']
+
+            env['base_op_args'] = env['dispatch_args']
+            env['dispatch_args'] = [last_word(formal) for formal in env['formal_args']]
+
+            env['base_op_return_type'] = declaration['return_type']
+
         env = nested_dict(env, nested_dict(base_env, declaration))
         call_dispatch = PY_VARIABLE_CALL_DISPATCH.substitute(env)
         if requires_grad and not has_tensor_options:
@@ -534,7 +567,10 @@ def create_python_bindings(python_functions, has_self, is_module=False):
             body.append('Py_RETURN_NONE;')
         else:
             body.append(PY_VARIABLE_WRAP.substitute(env, call_dispatch=call_dispatch))
+
         py_method_dispatch.append(PY_VARIABLE_DISPATCH.substitute(env))
+        if USE_NAMED:
+            py_method_named_defs.append(PY_VARIABLE_NAMED.substitute(env))
         return body
 
     def emit_dispatch(i, dictionary, base_env):
@@ -678,6 +714,7 @@ def create_python_bindings(python_functions, has_self, is_module=False):
         env = {
             'name': name,
             'dispatch_name': 'dispatch_{}'.format(name),
+            'named_name': 'named_{}'.format(name),
             'pycname': 'THPVariable_{}'.format(name),
             'signatures': [],
             'max_args': max(len(o['arguments']) + len(o['python_binding_arguments']) for o in declarations),
@@ -737,6 +774,7 @@ def create_python_bindings(python_functions, has_self, is_module=False):
         'py_methods': py_methods,
         'py_method_defs': py_method_defs,
         'py_method_dispatch': py_method_dispatch,
+        'py_method_named_defs': py_method_named_defs,
     }
 
 
