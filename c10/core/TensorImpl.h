@@ -956,7 +956,7 @@ struct C10_API TensorImpl : public c10::intrusive_ptr_target {
   }
 
   bool is_named() const {
-    return named_meta_ || named_meta_->is_named();
+    return named_meta_ != nullptr && named_meta_->is_named();
   }
 
  private:

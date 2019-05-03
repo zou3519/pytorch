@@ -115,7 +115,10 @@ inline ${simple_return_type} ${dispatch_name}(${formal_args}) {
 
 PY_VARIABLE_NAMED = CodeTemplate("""\
 inline ${base_op_return_type} ${named_name}(${formal_args}) {
-  return ${base_op_call}(${base_op_args});
+  if (${all_unnamed_check}) {
+    return ${base_op_call}(${base_op_args});
+  }
+  AT_ERROR("NYI: ${named_name}");
 }
 """)
 
@@ -548,6 +551,34 @@ def create_python_bindings(python_functions, has_self, is_module=False):
         def last_word(string):
             return string.split(' ')[-1]
 
+        def split_into_type_and_name(formal):
+            idx = formal.rfind(' ')
+            typ = formal[:idx]
+            name = formal[idx + 1:]
+            return typ, name
+
+        def create_all_unnamed_check(formal_args):
+            checks = []
+            # TODO: There's probably a nicer way to do this without parsing the string
+            formals_type_and_names = [split_into_type_and_name(f) for f in env['formal_args']]
+            for typ, name in formals_type_and_names:
+                if typ == 'Tensor' or typ == 'Tensor &' or typ == 'const Tensor &':
+                    checks.append('!{}.is_named()'.format(name))
+                elif typ == 'SparseTensorRef':
+                    checks.append('!{}.tref.is_named()'.format(name))
+                elif typ == 'TensorList':
+                    checks.append('torch::autograd::named::all_unnamed({})'.format(name))
+                else:
+                    if 'TensorOptions' in typ:
+                        continue
+                    # Check to see that we don't have any more tensor types
+                    if 'Tensor' in typ:
+                        print(typ)
+                    assert 'Tensor' not in typ
+            if len(checks) == 0:
+                return 'true'
+            return ' && '.join(checks)
+
         if USE_NAMED:
             env['base_op_call'] = env['dispatch_call']
             env['dispatch_call'] = base_env['named_name']
@@ -556,6 +587,7 @@ def create_python_bindings(python_functions, has_self, is_module=False):
             env['dispatch_args'] = [last_word(formal) for formal in env['formal_args']]
 
             env['base_op_return_type'] = declaration['return_type']
+            env['all_unnamed_check'] = create_all_unnamed_check(env['formal_args'])
 
         env = nested_dict(env, nested_dict(base_env, declaration))
         call_dispatch = PY_VARIABLE_CALL_DISPATCH.substitute(env)

@@ -3,6 +3,7 @@
 // ${generated_comment}
 
 #include <ATen/ATen.h>
+#include "torch/csrc/autograd/named.h"
 
 // Contains inline wrappers around ATen functions that release the GIL and
 // switch to the correct CUDA device.

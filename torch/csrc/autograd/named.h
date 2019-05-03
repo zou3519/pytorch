@@ -7,6 +7,8 @@
 #include <c10/util/Optional.h>
 #include <c10/core/TensorImpl.h>
 
+#include <ATen/ATen.h>
+
 namespace torch { namespace autograd { namespace named {
 
 using InternedName = uint64_t;
@@ -50,5 +52,7 @@ struct NamedMeta : public c10::NamedMetaInterface {
         names.begin(), names.end(), [](const DimName& n) { return n.is_wildcard(); });
   }
 };
+
+bool all_unnamed(at::TensorList tensors);
 
 }}}

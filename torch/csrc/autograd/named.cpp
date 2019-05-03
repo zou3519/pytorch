@@ -60,4 +60,9 @@ bool match(DimName dimname, DimName other) {
   return unify(dimname, other).has_value();
 }
 
+bool all_unnamed(at::TensorList tensors) {
+  return std::all_of(
+      tensors.begin(), tensors.end(), [](const at::Tensor& t) { return !t.is_named(); });
+}
+
 }}}
