@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <c10/util/Optional.h>
+#include <c10/core/TensorImpl.h>
 
 namespace torch { namespace autograd { namespace named {
 
@@ -40,5 +41,14 @@ check_valid_name(const std::string& name);
 
 c10::optional<DimName> unify(DimName name, DimName other);
 bool match(DimName name, DimName other);
+
+struct NamedMeta : public c10::NamedMetaInterface {
+  std::vector<DimName> names;
+
+  bool is_named() const override {
+    return !std::all_of(
+        names.begin(), names.end(), [](const DimName& n) { return n.is_wildcard(); });
+  }
+};
 
 }}}

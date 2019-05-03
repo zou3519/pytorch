@@ -138,6 +138,10 @@ struct C10_API AutogradMetaInterface {
   virtual ~AutogradMetaInterface();
 };
 
+struct C10_API NamedMetaInterface {
+  virtual bool is_named() const = 0;
+};
+
 // NOTE [ Version Counter Sharing ]
 //
 // Every Tensor has a version counter. Version counters are incremented whenever the
@@ -951,6 +955,10 @@ struct C10_API TensorImpl : public c10::intrusive_ptr_target {
     return pyobj_;
   }
 
+  bool is_named() const {
+    return named_meta_ || named_meta_->is_named();
+  }
+
  private:
   // See NOTE [c10::optional operator usage in CUDA]
   // We probably don't want to expose this publically until
@@ -1465,6 +1473,8 @@ protected:
   // at a time).
   std::unique_ptr<c10::AutogradMetaInterface> autograd_meta_ = nullptr;
 
+  std::unique_ptr<c10::NamedMetaInterface> named_meta_ = nullptr;
+
   c10::VariableVersion version_counter_;
 
   PyObject* pyobj_ = nullptr; // weak reference
@@ -1579,7 +1589,7 @@ protected:
 //    miscellaneous bitfield
 //
 static_assert(sizeof(void*) != sizeof(int64_t) || // if 64-bit...
-              sizeof(TensorImpl) == sizeof(int64_t) * 29,
+              sizeof(TensorImpl) == sizeof(int64_t) * 30,
               "You changed the size of TensorImpl on 64-bit arch."
               "See Note [TensorImpl size constraints] on how to proceed.");
 

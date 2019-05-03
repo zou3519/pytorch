@@ -130,6 +130,10 @@ inline bool is_quantized(Tensor self) {
   return self.is_quantized();
 }
 
+inline bool Tensor::is_named() const {
+  return impl_->is_named();
+}
+
 #define DEFINE_CAST(T, name, _)                  \
   template <>                                    \
   inline T* Tensor::data() const {               \

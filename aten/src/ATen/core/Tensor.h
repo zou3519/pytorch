@@ -247,6 +247,9 @@ class CAFFE2_API Tensor {
   /// Returns if a `Tensor` has quantized backend.
   bool is_quantized() const;
 
+  /// Returns if a `Tensor` has at least one non-wildcard dimension
+  bool is_named() const;
+
   /// Returns the `TensorOptions` corresponding to this `Tensor`. Defined in
   /// TensorOptions.h.
   TensorOptions options() const;
