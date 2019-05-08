@@ -96,6 +96,8 @@ def load_aten_declarations(path):
     for declaration in declarations:
         if declaration.get('deprecated'):
             continue
+        if declaration.get('namedtensor_only'):
+            continue
 
         for arg in declaration['arguments']:
             arg['simple_type'] = get_simple_type(arg)

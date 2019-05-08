@@ -485,6 +485,10 @@ def cmpfiles_with_eol_normalization(a, b, names):
     return results
 
 
+def remove_named_declarations(declarations):
+    return [d for d in declarations if not d.get('namedtensor_only', False)]
+
+
 def generate_outputs():
     cwrap_files = filter_by_extension(options.files, '.cwrap')
     nn_files = filter_by_extension(options.files, 'nn.yaml', '.h')
@@ -509,6 +513,8 @@ def generate_outputs():
     output_declarations = function_wrapper.create_generic(top_env, declarations)
     output_declarations = postprocess_output_declarations(output_declarations)
     file_manager.write("Declarations.yaml", format_yaml(output_declarations))
+
+    declarations = remove_named_declarations(declarations)
 
     for backend, density in iterate_types():
         generate_storage_type_and_tensor(backend, density, declarations)

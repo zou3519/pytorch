@@ -395,6 +395,7 @@ def run(paths):
                 declaration['arguments'] = func.get('arguments', arguments)
                 declaration['type_method_definition_dispatch'] = func.get('dispatch', declaration['name'])
                 declaration['python_module'] = func.get('python_module', '')
+                declaration['namedtensor_only'] = func.get('namedtensor_only', False)
                 declarations.append(declaration)
             except Exception as e:
                 msg = '''Exception raised in processing function:

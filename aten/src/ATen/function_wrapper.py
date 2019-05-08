@@ -588,6 +588,7 @@ OutputDeclaration = NamedTuple('OutputDeclaration', [
     ('device_guard', bool),
     ('with_gil', bool),
     ('deprecated', bool),
+    ('namedtensor_only', bool),
 ])
 
 
@@ -976,7 +977,8 @@ def create_generic(top_env, declarations):
             requires_tensor=option.get('requires_tensor', False),
             device_guard=option.get('device_guard', True),
             with_gil=option.get('with_gil', False),
-            deprecated=option.get('deprecated', False)
+            deprecated=option.get('deprecated', False),
+            namedtensor_only=False,
         ))
 
     def native_get_formals(option, include_constants=False):
@@ -1134,13 +1136,27 @@ def create_generic(top_env, declarations):
             raise Exception("broadcasting is not yet supported for native functions, "
                             "but specified for function {}", option['name'])
 
+        # Note [Named-only ops]
+        # ~~~~~~~~~~~~~~~~~~~~~
+        # A named-only op does not exist in ATen. Instead, it is implemented
+        # in torch::named and lives in a named layer in between python bindings
+        # and VariableType. The code generation for these ops happens later.
+        is_named_only = option.get('namedtensor_only', False)
+
+        def add_code_to(category, code):
+            # See Note [Named-only ops]: Named code isn't generated into ATen
+            if is_named_only:
+                return
+            top_env[category].append(code)
+
         if option['extended_method']:
-            top_env['pure_virtual_extended_type_method_declarations'].append(
-                PURE_VIRTUAL_TYPE_METHOD_DECLARATION.substitute(env))
+            add_code_to('pure_virtual_extended_type_method_declarations',
+                        PURE_VIRTUAL_TYPE_METHOD_DECLARATION.substitute(env))
         else:
-            top_env['pure_virtual_type_method_declarations'].append(
-                PURE_VIRTUAL_TYPE_METHOD_DECLARATION.substitute(env))
-        top_env['type_method_declarations'].append(TYPE_METHOD_DECLARATION_CONCRETE.substitute(env))
+            add_code_to('pure_virtual_type_method_declarations',
+                        PURE_VIRTUAL_TYPE_METHOD_DECLARATION.substitute(env))
+        add_code_to('type_method_declarations',
+                    TYPE_METHOD_DECLARATION_CONCRETE.substitute(env))
         option['native_type_method_dispatch'] = type_method_dispatch
 
         # Note [Abstract ATen methods]
@@ -1154,13 +1170,13 @@ def create_generic(top_env, declarations):
         abstract = False
         if isinstance(type_method_dispatch, dict):
             abstract = True
-            top_env['type_method_definitions'].append(
-                TYPE_METHOD_DEFINITION_ABSTRACT.substitute(env))
+            add_code_to('type_method_definitions',
+                        TYPE_METHOD_DEFINITION_ABSTRACT.substitute(env))
         else:
             body = TYPE_DEFINITION_BODY_NATIVE.substitute(env)
-            top_env['type_method_definitions'].append(
-                TYPE_METHOD_DEFINITION_CONCRETE.substitute(
-                    env, type_definition_body=body))
+            add_code_to('type_method_definitions',
+                        TYPE_METHOD_DEFINITION_CONCRETE.substitute(
+                            env, type_definition_body=body))
 
         # generate the at::native function declarations (i.e. what the user will implement)
         if isinstance(type_method_dispatch, dict):
@@ -1169,19 +1185,19 @@ def create_generic(top_env, declarations):
                 value = type_method_dispatch[key]
                 if value not in generated_native_functions:
                     option['native_type_method_dispatch'] = value
-                    top_env['native_function_declarations'].append(
-                        NATIVE_DECLARATION.substitute(env))
+                    add_code_to('native_function_declarations',
+                                NATIVE_DECLARATION.substitute(env))
                     generated_native_functions.append(value)
         else:
-            top_env['native_function_declarations'].append(
-                NATIVE_DECLARATION.substitute(env))
+            add_code_to('native_function_declarations',
+                        NATIVE_DECLARATION.substitute(env))
 
         method_of = ['Type']
         if is_method:
-            top_env['tensor_method_declarations'].append(
-                TENSOR_METHOD_DECLARATION.substitute(env))
-            top_env['tensor_method_definitions'].append(
-                TENSOR_METHOD_DEFINITION.substitute(env))
+            add_code_to('tensor_method_declarations',
+                        TENSOR_METHOD_DECLARATION.substitute(env))
+            add_code_to('tensor_method_definitions',
+                        TENSOR_METHOD_DEFINITION.substitute(env))
             method_of.append('Tensor')
 
         if is_namespace_function:
@@ -1193,8 +1209,8 @@ def create_generic(top_env, declarations):
                 # doesn't depend on a specific type, use undefined float
                 option['inferred_type'] = 'at::getNonVariableType(at::Backend::Undefined, at::ScalarType::Float)'
             declaration = DEPRECATED_FUNCTION_DECLARATION if option['deprecated'] else FUNCTION_DECLARATION
-            top_env['function_declarations'].append(declaration.substitute(env))
-            top_env['function_definitions'].append(FUNCTION_DEFINITION.substitute(env))
+            add_code_to('function_declarations', declaration.substitute(env))
+            add_code_to('function_definitions', FUNCTION_DEFINITION.substitute(env))
             method_of.append('namespace')
 
         output_options.append(OutputDeclaration(
@@ -1216,6 +1232,7 @@ def create_generic(top_env, declarations):
             device_guard=option.get('device_guard', True),
             with_gil=option.get('with_gil', False),
             deprecated=option['deprecated'],
+            namedtensor_only=option.get('namedtensor_only', False),
         ))
 
     output_declarations = []  # type: List[OutputDeclaration]

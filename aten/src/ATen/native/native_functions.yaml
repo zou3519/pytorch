@@ -1612,6 +1612,10 @@
   variants: function, method
   device_guard: False
 
+- func: set_names_(Tensor(a!) self, DimNameList) -> Tensor(a!)
+  variants: method
+  namedtensor_only: True
+
 - func: selu(Tensor self) -> Tensor
 
 - func: selu_(Tensor(a!) self) -> Tensor(a!)
