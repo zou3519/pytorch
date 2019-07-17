@@ -1383,6 +1383,7 @@
     SparseCPU: mul
     SparseCUDA: mul
     MkldnnCPU: mkldnn_mul
+  named_guard: False
 
 
 - func: mul_(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -2999,6 +3000,7 @@
     CPU: legacy::cpu::_th_view
     CUDA: legacy::cuda::_th_view
     MkldnnCPU: mkldnn_view
+  named_guard: False
 
 - func: put_(Tensor(a!) self, Tensor index, Tensor source, bool accumulate=False) -> Tensor(a!)
   variants: method

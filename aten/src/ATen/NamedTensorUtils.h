@@ -30,11 +30,24 @@ CAFFE2_API int64_t dimname_to_position(const Tensor& tensor, Dimname dim);
 CAFFE2_API optional<std::vector<Dimname>>
 unify_from_right(optional<DimnameList> names, optional<DimnameList> other);
 
+// Aligns the names in first and second according to the following rules:
+// 1) Check that None names are matched with None names, positionally from the right.
+// 2) Check that the shorter name is a subsequence of the longer name.
+CAFFE2_API DimnameList infer_alignment(DimnameList first, DimnameList second);
+
+// Aligns a tensor to names. Two invariants:
+// 1) `tensor.names` must be a subsequence of `names`.
+// 2) the alignment cannot change the position of a 'None'-named dimension.
+CAFFE2_API Tensor align_to(const Tensor& tensor, DimnameList names);
+
 namespace namedinference {
 
 optional<std::vector<Dimname>> erase_name(optional<DimnameList> self_names, int64_t dim);
 void propagate_names(Tensor& result, const Tensor& src);
 void propagate_names(TensorImpl* result, /*const */TensorImpl* src);
+
+std::tuple<Tensor,Tensor,optional<DimnameList>>
+align_names(const Tensor& tensor, const Tensor& other);
 
 } // namespace namedinference
 

@@ -5,6 +5,9 @@
 #include <ATen/MemoryOverlap.h>
 #include <ATen/NativeFunctions.h>
 #include <ATen/native/TensorIterator.h>
+#ifdef BUILD_NAMEDTENSOR
+#include <ATen/NamedTensorUtils.h>
+#endif
 
 namespace at {
 namespace native {
@@ -91,9 +94,19 @@ Tensor mul(const Tensor& self, const Tensor& other) {
     result = at::empty({0}, self.options());
     return native::mul_out(result, self, other);
   }
-  auto iter = TensorIterator::binary_op(result, self, other);
+  Tensor self_ = self;
+  Tensor other_ = other;
+#ifdef BUILD_NAMEDTENSOR
+  optional<DimnameList> outnames;
+  std::tie(self_, other_, outnames) = namedinference::align_names(self, other);
+#endif
+  auto iter = TensorIterator::binary_op(result, self_, other_);
   mul_stub(iter->device_type(), *iter);
-  return iter->output();
+  result = iter->output();
+#ifdef BUILD_NAMEDTENSOR
+  at::internal_set_names_inplace(result, outnames);
+#endif
+  return result;
 }
 
 Tensor& mul_(Tensor& self, const Tensor& other) {
