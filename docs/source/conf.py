@@ -61,6 +61,20 @@ extensions = [
 # duplicated section names that are in different documents.
 autosectionlabel_prefix_document = True
 
+# The following files have multiple headings with the same name. This is a
+# autosectionlabel warning (i.e., WARNING: duplicate label
+# quantization:linearrelu) because it can lead to ambiguous hyperlinks.
+# However, we don't care about this particular warning for the following files.
+# Requires Sphinx >= 2.1.
+suppress_warnings = [
+    'autosectionlabel.quantization',
+    'autosectionlabel.jit',
+    # FIXME: The org/pytorch/Tensor warnings look legit. We should try to fix them.
+    'autosectionlabel.org/pytorch/Tensor',
+    'autosectionlabel.org/pytorch/TensorImageUtils',
+    'autosectionlabel.org/pytorch/IValue',
+]
+
 # katex options
 #
 #
