@@ -1,10 +1,150 @@
 #include <ATen/core/EnableNamedTensor.h>
 #include <ATen/TensorNames.h>
 #include <ATen/WrapDimUtils.h>
+#include <cstring>
 
 namespace at { namespace namedinference {
 
 #ifdef BUILD_NAMEDTENSOR
+
+namespace {
+
+// While broadcasting dims:
+//   [ batch: 3, channel: 4, height: 4, width: 5]
+//   [                        batch: 3, width: 5]
+//                           ^^^^^^^^^
+// Expected the names of these dimensions to match but they do not. 
+
+// Helper struct to store a (name, size) tuple.
+struct DimMeta {
+  DimMeta(Dimname name, int64_t size) : name(name), size(size) {};
+  Dimname name;
+  int64_t size;
+};
+
+int64_t printlen(Dimname arg) {
+  if (arg.isWildcard()) return 0;
+  return strlen(arg.symbol().toUnqualString());
+}
+
+// Returns number of chars written
+int64_t dumpDim(
+    std::ostream& os,
+    const DimMeta& dim,
+    int64_t dimname_padding = 0,
+    int64_t size_padding = 0) {
+  // Add an extra space
+  dimname_padding++;
+  size_padding++;
+
+  std::stringstream ss;
+  if (dim.name.isWildcard()) {
+    ss << std::string(dimname_padding, ' ') << /*to match ":" below*/" "
+       << std::string(size_padding, ' ') << dim.size;
+  } else {
+    ss << std::string(dimname_padding, ' ') << dim.name.symbol().toUnqualString() << ":"
+       << std::string(size_padding, ' ') << dim.size;
+  }
+  auto str = ss.str();
+  os << str;
+  return str.length();
+}
+
+std::tuple<int64_t,int64_t> computePadding(Dimname first, Dimname second) {
+  int64_t first_len = printlen(first);
+  int64_t second_len = printlen(second);
+  int64_t max = std::max(first_len, second_len);
+  return {max - first_len, max - second_len};
+}
+
+std::tuple<int64_t,int64_t> computePadding(int64_t first, int64_t second) {
+  int64_t ndigits_first = floor(log10(first));
+  int64_t ndigits_second = floor(log10(second));
+  int64_t max = std::max(ndigits_first, ndigits_second);
+  return {max - ndigits_first, max - ndigits_second};
+}
+
+void formatDim(
+    std::ostream& first_line,
+    optional<DimMeta> first_dim,
+    std::ostream& second_line,
+    optional<DimMeta> second_dim,
+    std::ostream& third_line,
+    bool show_err_marker) {
+  int64_t chars_written = 0;
+  if (first_dim && second_dim) {
+    auto dimname_padding = computePadding(first_dim->name, second_dim->name);
+    auto size_padding = computePadding(first_dim->size, second_dim->size);
+    chars_written = dumpDim(
+        first_line, *first_dim, std::get<0>(dimname_padding), std::get<0>(size_padding));
+    dumpDim(
+        second_line, *second_dim, std::get<1>(dimname_padding), std::get<1>(size_padding));
+  } else if (first_dim && !second_dim) {
+    chars_written = dumpDim(first_line, *first_dim);
+    std::cout << "chars_written: " << chars_written << std::endl;
+    second_line << std::string(chars_written, ' ');
+  } else if (!first_dim && second_dim) {
+    chars_written = dumpDim(second_line, *second_dim);
+    first_line << std::string(chars_written, ' ');
+  }
+  if (show_err_marker) {
+    third_line << std::string(chars_written, '^');
+  } else {
+    third_line << std::string(chars_written, ' ');
+  }
+}
+
+}
+
+// wrong_idx should be negative...
+std::string unifyErrorMessage(
+    DimnameList names1,
+    IntArrayRef sizes1,
+    DimnameList names2,
+    IntArrayRef sizes2,
+    int64_t wrong_idx) {
+  std::stringstream tensor1_line;
+  std::stringstream tensor2_line;
+  std::stringstream error_line;
+
+  tensor1_line << "[";
+  tensor2_line << "[";
+  error_line << " ";
+
+  int64_t max_dim = std::max(names1.size(), names2.size());
+  int64_t tensor1_offset = max_dim - names1.size();
+  int64_t tensor2_offset = max_dim - names2.size();
+  for (int64_t idx = 0; idx < max_dim; idx++) {
+      int64_t tensor1_idx = idx - tensor1_offset;
+      int64_t tensor2_idx = idx - tensor2_offset;
+      if (tensor1_idx > 0 && tensor2_idx > 0) {
+        tensor1_line << ",";
+        tensor2_line << ",";
+      } else if (tensor1_idx > 0 && tensor2_idx <= 0) {
+        tensor1_line << ",";
+        tensor2_line << " ";
+      } else if (tensor1_idx <= 0 && tensor2_idx > 0) {
+        tensor2_line << " ";
+        tensor1_line << ",";
+      }
+      error_line << " ";
+      std::cout << "tensor1_idx, tensor2_idx " << tensor1_idx << ", " << tensor2_idx << std::endl;
+      formatDim(
+          tensor1_line,
+          tensor1_idx >= 0 ? make_optional(DimMeta(names1[tensor1_idx], sizes1[tensor1_idx]))
+                           : nullopt,
+          tensor2_line,
+          tensor2_idx >= 0 ? make_optional(DimMeta(names2[tensor2_idx], sizes2[tensor2_idx]))
+                           : nullopt,
+          error_line,
+          max_dim + wrong_idx == idx);
+  }
+  std::cout << "first: " << tensor1_line.str() << std::endl;
+  std::cout << "second: " << tensor2_line.str() << std::endl;
+  std::cout << "third: " << error_line.str() << std::endl;
+  return "While broadcasting tensors with shapes:\n" + tensor1_line.str() + "]\n" + tensor2_line.str() + "]\n" + error_line.str();
+}
+
 
 Dimname TensorName::toDimname() const {
   return name_;

@@ -4,6 +4,7 @@
 #include <ATen/ExpandUtils.h>
 #include <ATen/Parallel.h>
 #include <ATen/core/EnableNamedTensor.h>
+#include <ATen/TensorNames.h>
 #include <ATen/native/TypeProperties.h>
 
 namespace at {
@@ -350,7 +351,22 @@ void TensorIterator::compute_names() {
     if (names_.empty()) {
       names_ = op.tensor.names();
     } else {
-      names_ = NameVector(unify_from_right(names_, op.tensor.names()));
+      try {
+        names_ = NameVector(unify_from_right(names_, op.tensor.names()));
+      } catch (c10::Error e) {
+        // throw a nicer error message in the case of binary ops
+        if (ninputs() == 2) {
+          e.AppendMessage("some additional context");
+            //e.AppendMessage(namedinference::unifyErrorMessage(
+            //  input(0).names(),
+            //  input(0).sizes(),
+            //  input(1).names(),
+            //  input(1).sizes(),
+            //  -1)); // how do we figure this out?
+            //std::cout << e.msg_without_backtrace() << std::endl; 
+        }
+        throw;
+      }
     }
   }
 }

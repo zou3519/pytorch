@@ -72,6 +72,13 @@ struct CAFFE2_API TensorNames {
   TensorNameVec names_;
 };
 
+std::string unifyErrorMessage(
+    DimnameList names1,
+    IntArrayRef sizes1,
+    DimnameList names2,
+    IntArrayRef sizes2,
+    int64_t wrong_idx);
+
 #endif
 
 }} // namespace at::namedinference
