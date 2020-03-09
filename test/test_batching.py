@@ -3,12 +3,22 @@ import torch
 from torch import vmap, Tensor
 
 
+def move_bdim(tensor, from_dim, to_dim):
+    return torch.stack(tensor.unbind(from_dim), to_dim)
+
+
 class TestBatching(TestCase):
 
     def test_batched_batched(self):
         x23 = torch.randn(2, 3)
         output = vmap(torch.add, [0, 0])(x23, x23)
         self.assertEqual(output, x23 + x23)
+
+    def test_add_0_2(self):
+        x2357 = torch.randn(2, 3, 5, 7)
+        y3527 = torch.randn(3, 5, 2, 7)
+        output = vmap(torch.add, [0, 2])(x2357, y3527)
+        self.assertEqual(output, x2357 + move_bdim(y3527, 2, 0))
 
     def test_batched_unbatched(self):
         x3 = torch.randn(3)

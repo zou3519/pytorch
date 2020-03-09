@@ -1,6 +1,6 @@
 #include <ATen/Batching.h>
 #include <ATen/core/op_registration/op_registration.h>
-#include <torch/csrc/jit/operator.h>
+#include <torch/csrc/jit/runtime/operator.h>
 #include <ATen/WrapDimUtils.h>
 
 #include <torch/jit.h>
@@ -54,7 +54,7 @@ Tensor broadcastTo(const Tensor& tensor, int64_t ndim) {
   int64_t diff = ndim - old_sizes.size();
   Tensor result = tensor;
   for (int64_t i = 0; i < diff; ++i) {
-    result = result.unsqueeze(0);  
+    result = result.unsqueeze(0);
   }
   return result;
 }
@@ -69,11 +69,22 @@ Tensor moveBatchDimToFront(
   auto bdim = *batch_dim;
   auto extra_dims = result_dim - tensor.dim();
   auto result = broadcastTo(tensor, result_dim);
-  auto transpose_dim = bdim + extra_dims;
-  if (transpose_dim == 0) {
+  auto actual_bdim = bdim + extra_dims;
+  if (actual_bdim == 0) {
     return result;
   }
-  return result.transpose(0, bdim + extra_dims);
+  // should be an op...
+  std::vector<int64_t> permutation(result_dim);
+  permutation[0] = actual_bdim;
+  for (int64_t i = 1; i < result_dim; i++) {
+    if (i <= actual_bdim) {
+      permutation[i] = i - 1;
+    } else {
+      permutation[i] = i;
+    }
+  }
+  result = result.permute(permutation);
+  return result;
 }
 
 int64_t actualDim(int64_t dim, optional<int64_t> maybe_batch_dim) {
