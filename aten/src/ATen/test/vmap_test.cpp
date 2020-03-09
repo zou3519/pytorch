@@ -3,7 +3,7 @@
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
 #include <ATen/core/op_registration/op_registration.h>
-#include <torch/csrc/jit/operator.h>
+#include <torch/csrc/jit/runtime/operator.h>
 #include <torch/torch.h>
 #include <ATen/Batching.h>
 
@@ -56,10 +56,10 @@ TEST(VmapTest, TestBatchedTensor) {
     // Send a BatchTensor in to autograd (mul backward)
     auto grad_output = makeBatched(torch::eye(3), 0, 1);
 
-    Variable x = torch::randn({3}, torch::requires_grad());
-    Variable y = torch::randn({3});
+    auto x = torch::randn({3}, torch::requires_grad());
+    auto y = torch::randn({3});
     auto res = x * y;
-    backward({res}, {grad_output});
+    torch::autograd::backward({res}, {grad_output});
     auto grad = unwrapBatched(x.grad(), 1);
 
     ASSERT_TRUE(torch::allclose(grad, torch::diagflat(y)));
