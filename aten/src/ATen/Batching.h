@@ -23,35 +23,21 @@ struct BatchTensorImpl : public c10::TensorImpl {
     {
       TORCH_INTERNAL_ASSERT(!batch_dim.has_value() || *batch_dim >= 0);
       TORCH_INTERNAL_ASSERT(level >= 0);
+      TORCH_INTERNAL_ASSERT(rep_.defined());
 
-      // TODO: Ugh, are there operations that change the size in-place?
-      if (rep_.defined()) {
-        owned_sizes_ = rep_.sizes().vec();
-        if (batch_dim_) {
-          owned_sizes_.erase(owned_sizes_.begin() + *batch_dim_);
-        }
+      sizes_ = rep_.sizes().vec();
+      strides_ = rep_.strides().vec();
+      if (batch_dim) {
+        sizes_.erase(sizes_.begin() + *batch_dim_);
+        strides_.erase(strides_.begin() + *batch_dim_);
       }
     }
 
-  IntArrayRef sizes() const {
-    return owned_sizes_;
-  }
-
-  // TODO: Do we have to inherit this??
-  int64_t dim() const {
-    return owned_sizes_.size();
-  }
-
-  optional<int64_t> batch_size() const {
-    if (!batch_dim_) return nullopt;
-    return rep_.sizes()[*batch_dim_];
-  }
+  optional<int64_t> batch_size() const;
 
   at::Tensor rep_;
   optional<int64_t> batch_dim_;
   int64_t level_;
-
-  std::vector<int64_t> owned_sizes_;
   // TODO: Doesn't TensorImpl have 10000 fields that we don't want to inherit here?
 };
 
