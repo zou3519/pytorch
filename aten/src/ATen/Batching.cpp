@@ -9,6 +9,12 @@
 
 namespace at {
 
+optional<int64_t> BatchTensorImpl::batch_size() const {
+  if (!batch_dim_) return nullopt;
+  return rep_.sizes()[*batch_dim_];
+}
+
+
 bool isBatchTensor(const Tensor& tensor) {
   return tensor.unsafeGetTensorImpl()->key_set().has(BatchTensorKey);
 }
