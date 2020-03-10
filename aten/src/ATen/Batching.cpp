@@ -9,9 +9,8 @@
 
 namespace at {
 
-optional<int64_t> BatchTensorImpl::batch_size() const {
-  if (!batch_dim_) return nullopt;
-  return rep_.sizes()[*batch_dim_];
+int64_t BatchTensorImpl::batch_size() const {
+  return rep_.sizes()[batch_dim_];
 }
 
 
@@ -100,10 +99,10 @@ int64_t actualDim(int64_t dim, optional<int64_t> maybe_batch_dim) {
   return dim;
 }
 
-std::tuple<optional<int64_t>,int64_t>
+std::tuple<int64_t,int64_t>
 discoverBatchSizeAndLevel(torch::jit::Stack* stack) {
   int64_t max_level = -1;
-  optional<int64_t> batch_size;
+  int64_t batch_size = -1;
   for (auto& ivalue : *stack) {
     if (!ivalue.isTensor()) continue;
     auto tensor = ivalue.toTensor();
@@ -115,6 +114,7 @@ discoverBatchSizeAndLevel(torch::jit::Stack* stack) {
       batch_size = batched->batch_size();
     }
   }
+  TORCH_INTERNAL_ASSERT(batch_size != -1);
   TORCH_INTERNAL_ASSERT(max_level != -1);
   return { batch_size, max_level };
 }
@@ -175,39 +175,20 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
   // Unwrap all arguments
   auto args = torch::jit::pop(*stack, num_arguments);
 
-  optional<int64_t> batch_size;
+  int64_t batch_size;
   int64_t level;
   std::tie(batch_size, level) = discoverBatchSizeAndLevel(&args);
 
-  if (!batch_size) {
-    // No batched tensors at this level so we just call the operator once
-    for (auto i = 0; i < args.size(); ++i) {
-      auto ivalue = args[i];
-      if (!ivalue.isTensor()) continue;
-      auto tensor = ivalue.toTensor();
-      if (!isBatched(tensor)) continue;
-      auto* batched = getBatched(tensor);
-      if (batched->level_ != level) continue;
-      // unwrap
-      args[i] = batched->rep_;
-    }
-    callBoxedWorkaround(op, &args);
-    for (size_t i = 0; i < num_returns; i++) {
-      torch::jit::push(*stack, args[i]);
-    }
-    return;
-  }
-
-  std::vector<torch::jit::Stack> unbatched_stacks(*batch_size);
+  std::vector<torch::jit::Stack> unbatched_stacks(batch_size);
   for (auto& ivalue : args) {
     if (ivalue.isTensor()) {
-      auto tensor = ivalue.toTensor();
+      const auto& tensor = ivalue.toTensor();
       if (isBatched(tensor)) {
         auto* batched = getBatched(tensor);
-        if (batched->level_ == level && batched->batch_dim_) {
-          auto tensors = batched->rep_.unbind(*batched->batch_dim_);
-          TORCH_INTERNAL_ASSERT(tensors.size() == *batch_size);
-          for (auto i = 0; i < *batch_size; i++) {
+        if (batched->level_ == level) {
+          const auto tensors = batched->rep_.unbind(batched->batch_dim_);
+          TORCH_INTERNAL_ASSERT(tensors.size() == batch_size);
+          for (auto i = 0; i < batch_size; i++) {
             torch::jit::push(unbatched_stacks[i], tensors[i]);
           }
           continue;

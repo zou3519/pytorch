@@ -54,7 +54,7 @@ def _make_batched(args, dims, level):
         batch_size = batch_sizes[0]
         assert all([size == batch_size for size in batch_sizes])
     return [torch._make_batched(arg, dim, level)
-            if isinstance(arg, Tensor) else arg
+            if isinstance(arg, Tensor) and dim is not None else arg
             for arg, dim in zip(args, dims)], batch_size
 
 
