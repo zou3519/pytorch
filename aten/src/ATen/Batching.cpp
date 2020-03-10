@@ -214,13 +214,14 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
 
   // Only support num_returns == 1 for now. Also assume Tensor returns
   TORCH_INTERNAL_ASSERT(num_returns == 1);
-  std::vector<Tensor> tensors;
-  for (const auto& stack : unbatched_stacks) {
-    tensors.push_back(stack[0].toTensor());
+  for (int64_t return_idx = 0; return_idx < num_returns; return_idx++) {
+    std::vector<Tensor> output_shards;
+    for (const auto& stack : unbatched_stacks) {
+      output_shards.push_back(stack[return_idx].toTensor());
+    }
+    auto output = makeBatched(at::stack(output_shards), 0, level);
+    torch::jit::push(*stack, std::move(output));
   }
-  auto stacked = at::stack(tensors);
-  auto batched = makeBatched(stacked, 0, level);
-  torch::jit::push(*stack, batched);
 }
 
 typedef std::pair<Tensor,optional<int64_t>> TensorAndBdim;
