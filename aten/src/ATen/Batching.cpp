@@ -179,29 +179,39 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
   int64_t level;
   std::tie(batch_size, level) = discoverBatchSizeAndLevel(&args);
 
+  // Set up batch_size stacks, one for each unbatched computation.
   std::vector<torch::jit::Stack> unbatched_stacks(batch_size);
-  for (auto& ivalue : args) {
-    if (ivalue.isTensor()) {
-      const auto& tensor = ivalue.toTensor();
-      if (isBatched(tensor)) {
-        auto* batched = getBatched(tensor);
-        if (batched->level_ == level) {
-          const auto tensors = batched->rep_.unbind(batched->batch_dim_);
-          TORCH_INTERNAL_ASSERT(tensors.size() == batch_size);
-          for (auto i = 0; i < batch_size; i++) {
-            torch::jit::push(unbatched_stacks[i], tensors[i]);
-          }
-          continue;
-        }
-      }
-    }
+  auto pushToEachStack = [&](const auto& ivalue) {
     for (auto& stack : unbatched_stacks) {
       torch::jit::push(stack, ivalue);
     }
+  };
+  for (const auto& ivalue : args) {
+    if (!ivalue.isTensor()) {
+      pushToEachStack(ivalue);
+      continue;
+    }
+    const auto& tensor = ivalue.toTensor();
+    if (!isBatched(tensor)) {
+      pushToEachStack(tensor);
+      continue;
+    }
+    const auto* batched = getBatched(tensor);
+    if (batched->level_ != level) {
+      pushToEachStack(ivalue);
+      continue;
+    }
+    const auto tensors = batched->rep_.unbind(batched->batch_dim_);
+    for (auto stack_idx = 0; stack_idx < batch_size; stack_idx++) {
+      torch::jit::push(unbatched_stacks[stack_idx], tensors[stack_idx]);
+    }
   }
+
+  // Call the op on each stack.
   for (auto& stack : unbatched_stacks) {
     callBoxedWorkaround(op, &stack);
   }
+
   // Only support num_returns == 1 for now. Also assume Tensor returns
   TORCH_INTERNAL_ASSERT(num_returns == 1);
   std::vector<Tensor> tensors;
