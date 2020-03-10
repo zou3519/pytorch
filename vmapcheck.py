@@ -9,6 +9,7 @@ OperatorMetadata = namedtuple('OperatorMetadata', [
     'dim_indices',
     'is_view',
     'is_inplace',
+    # If is_inplace, specifies which inputs to return.
     'inplace_returns',
 ])
 
@@ -40,10 +41,10 @@ def find_batch_size(inputs, dims):
 
 
 def vmap_reference(func, in_dims, inputs, opmeta):
-    # if in_dims[0] == 0 and in_dims[1] == 2:
-    #     import pdb; pdb.set_trace()
     if all(dim is None for dim in in_dims):
         return func(*inputs)
+
+    # TODO: process dimensions
 
     batch_size = find_batch_size(inputs, in_dims)
     exploded_args = [unbind_bdim(inp, dim, batch_size) for inp, dim in zip(inputs, in_dims)]
