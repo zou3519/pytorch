@@ -37,6 +37,8 @@
   use_c10_dispatcher: full
   variants: function
 
+- func: _make_nested(Tensor[] tensors) -> Tensor
+
 - func: _make_batched(Tensor self, int? batch_dim, int level) -> Tensor
   use_c10_dispatcher: full
 

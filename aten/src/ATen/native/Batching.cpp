@@ -1,4 +1,5 @@
 #include <ATen/Batching.h>
+#include <ATen/NestedTensor.h>
 
 namespace at { namespace native {
 
@@ -24,6 +25,10 @@ int64_t _batch_dim(const Tensor& self) {
 
 bool _is_batched(const Tensor& self) {
   return isBatched(self);
+}
+
+Tensor _make_nested(TensorList repr) {
+  return at::detail::make_tensor<NestedTensorImpl>(repr);
 }
 
 }}

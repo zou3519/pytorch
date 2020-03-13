@@ -96,6 +96,7 @@ enum class DispatchKey : uint8_t {
   PrivateUse2_TensorId,
   PrivateUse3_TensorId,
 
+
   // In some situations, it is not immediately obvious what the correct
   // backend for function is, because the function in question doesn't
   // have any "tensor" arguments.  In this case, a BackendSelect function
@@ -154,6 +155,7 @@ enum class DispatchKey : uint8_t {
   // for a usage example
   TESTING_ONLY_GenericModeTensorId,
 
+  NestedTensorId,
   BatchedTensorId,
 
   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
