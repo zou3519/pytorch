@@ -1,0 +1,68 @@
+ab2ec4d835  # Fix inexistent parameter in document (#24335)
+dcd9f49809  # Specify ordering on singular values and eigenvalues output from torch… (#30389)
+4eff2f2007  # Fix missing closing quotes in docs
+106ab487eb  # fix typo in doc
+19b7d49fac  # Add TOC to CONTRIBUTING.md (#29671)
+4d4d8e0dce  # Update persons_of_interest.rst (#30647)
+d6ca93b353  # add doc for F.softplus
+ec7bb9de1c  # format tri[lu]_indices doc better
+a68b790293  # fix ref to nonexistent torch.repeat
+1189595875  # Fix Tensor.argsort -> torch.argsort documentation link
+d0af07ca4c  # Fix capitalization inconsistency in optim.rst
+0051467118  # Update CITATION from Workshop paper to Conference paper (#30872)
+394d2f7037  # Fix the rendering of the doc of max. (#30779)
+0414463007  # doc fix for max method: a warning about different behaviour on CPU and GPU (#31115)
+c63f8e5ebe  # Fix typo in data.rst docs
+49fe7a7401  # Updated documentation for NLLLoss to explain what x, y and w refer to (#31488)
+e67064a96f  # Exclude generated source docs from Google (#31484)
+3b7916fccd  # Modify the order of arguments position of torch.std and torch.std_mean in doc (#31677)
+22d84204f7  # Expose torch.poisson in documentation (#31667)
+9e9bfbfd8d  # Update old scheduler example usage (#31358)
+f56c59ead6  # clarify when to use `as_tuple` in `torch.nonzero`
+3f0b330736  # corrected keyword argument name in docs for Tensor.scatter (#31617)
+c888473b57  # Restructure docs organization and naming (#31849)
+8c59d48281  # Add doc previewing instructions (#31905)
+09a22f3301  # Remove C++ docs contributing page (#31908)
+bc68a8745f  # Spelling fix in transformer docs
+638e4ad8b9  # Updated function definition for torch.mode and torch.median in torch docs (#32003)
+77c2c78e01  # Fix typographical error in torch.triu docstring (#32067)
+695c4f1bab  # Fix a typo in function name: liner -> linear
+77c78b7d28  # remove .data from torch/nn doc
+05088da8e9  # [pytorch][PR] Fixed error in sample code of documentation (#31682)
+8abaa322da  # fix torch.eq() doc entry (#32399)
+90a259e1e2  # Add warning regarding pickle insecurity on torch.load documentation (#32593)
+666e5430f8  # Clean up mvlgamma doc (including a weird way to link to reference) (#32667)
+e085c55e53  # Fix `\\` warnings/errors when building optim documentation (#32911)
+3fa907c145  # [docs] Fix argument type of torch.masked_select (#30385)
+00c6b90327  # Fix in documentation of convolutional modules (#30079)
+48eff08256  # Fix the level of headers in pytorch/CONTRIBUTING.md (#28412)
+3cac9900ca  # Clarify when softplus is reverted to linear. (#32945)
+aa3c871739  # Adds TestViewOps, updates documentation (#32512)
+67706187fb  # Fix a broken link in contribution_guide.rst
+478356aeec  # Fix broken links in governance.rst
+7314f1c281  # [torch/multiprocessing] Update documentation indicating that start_method is ignored for mp.spawn() (#33070)
+04829e924a  # Update CPU threading doc (#33083)
+139afd0ea7  # Fix link to py-spy content in contribution guide TOC (#31760)
+c6e0360812  # Minor change of docstring example of WeightedRandomSampler (#30846)
+3cfea39968  # Document how BCELoss avoids infinite results (#33160)
+1d9fcf8bd2  # Correct documentation for torch.unsqueeze (#33478)
+a9e4448dff  # Update documentation on why _cudnn_init_dropout_state looks the way it is. (#33347)
+293fa5fc44  # [Documentation] Fix minor typo in torch.serialization (#33549)
+ca8e025cdf  # improve the doc of enforce_sorted in pack_padded_sequence (#33617)
+9278196d89  # scatter_add uses src, not other (#32307)
+d6ea4be153  # Fix minor problems in index_put_ docs (#33689)
+5bac7febad  # removed padding and dilation from LPPool2d Doc (#33714)
+9a5ea71380  # pad_packed_sequence: doc improvement (#33768)
+b8f0acf50f  # Fix examples with updated pruning naming convention (#33144)
+edd5c009f7  # fix docs mistakes in lr_scheduler.MultiplicativeLR (#33805)
+746e5218e7  # Mistake in MSELoss documentation (#33836)
+69d2741480  # Add list of view ops to public doc. (#32560)
+6631c2a627  # [doc] Add grad context manager doc to toplevel torch module. (#33877)
+384a4feab6  # Fix bad math typesetting (#34027)
+a57a7b4c29  # Change input value in examples of `BCEWithLogitsLoss` (#34053)
+a23e8099dd  # Fix typo (#34008)
+6d78882158  # Add layout.html to template for stable docs (#33770)
+516a587438  # Enhance reproducibility documentation (#33795)
+34688d2c48  # Add brand guidelines link (#34503)
+2de4f245c6  # Fix typo in documentation (#34581)
+b039bca4db  # Fix typo in data.rst (#34624)

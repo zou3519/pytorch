@@ -1,0 +1,10 @@
+ce5f1a1b25  # Turn off scalar_checks for _th_multinomial_alias_draw. (#29946)
+b0871f211b  # Make all optimizers consistent so that they don't change gradients inplace
+50625798df  # Fix scalar check of MultiLabelMarginLoss. (#30768)
+60714dfb64  # change index_select scalar_check to retain dimensionality of input. (#30790)
+377131b0eb  # MultiMarginCriterion: fix scalar_check in the case where reduction == None. (#30826)
+45818a3de4  # Remove some Half support in some binary CPU kernels (#33021)
+e5218e3e12  # Add missing error messages for container modules (#29991)
+7cda964e20  # Remove deprecated codepath for old-style autograd.Function (#30696) (#33956)
+6e2bb1c054  # End of the .data removal in torch/optim (#34211)
+6a97777f72  # Remove use of `.data` from optimizers (#33640)

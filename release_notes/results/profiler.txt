@@ -1,0 +1,7 @@
+59151d3e43  # autograd/profiler: support merging FunctionEventAvg (#30677)
+a26238da57  # Enable using `torch.autograd.profiler.record_function` as decorator (#30861)
+1e80ff7a67  # autograd/profiler: make record_function more threadsafe (#31346)
+cc2d5ca37f  # add enabled API to autograd profiler (#31380)
+cfdfdf70d7  # remove JSON dumping dependency (#30724)
+d82093e665  # [profiler] remove redundant assert in record_function_ops (#33225)
+c93b1d427c  # [profiler] fix chrome tracing for profiler run with cuda (#33987)
