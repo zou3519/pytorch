@@ -1,0 +1,60 @@
+aa1e99e983  # Fix two links in RPC API doc
+4609c626c5  # Enable test_call_method_on_rref in rpc_test (#30261)
+f41422121e  # default construct rpc agent options based on the backend type (#30201)
+c478a92b93  # Add local shutdown to process group agent (#30020)
+6a00191fc2  # Add RpcAgent::getWorkerInfos() (#30241)
+5c6705e62c  # add default arg for init_method (#30208)
+efe1859ad9  # By default ignore RRef leaks during shutdown (#30217)
+1350b99de4  # Add local shutdown to process group agent (#30330)
+f4e7e9039d  # Improve process_group_agent() serialization speed (#29785)
+ec5e471647  # Reorganize rpc API doc and add introduction (#30491)
+30d70d5378  # Make doc source format consistent in rpc/init.cpp
+dd52f50fc8  # Add examples to RRef doc
+1111a6b810  # Use pybind11::gil_scoped_* functions instead of AutoGIL/AutoNoGIL (#30274)
+4dab29a2bd  # Fix serialization memory lifetime issue. (#30603)
+f9f54201d3  # Remove deprecated fromIvalue in RRefForkData
+5a484245d9  # Change test_invalid_names test to only test constructor of WorkerInfo (#30620)
+fef4360536  # remove default constructor in futureInfo (#30197)
+6dda241ab8  # Add RRef.__str__() API
+63a1542ed2  # Adding Debug Info for RRef Context
+ef95a72690  # modify test_local_shutdown_with_rpc to not be flaky (#30837)
+d32aec5ad6  # Add get_metrics and get_debug_info to rpc agent (#30833)
+b0cba8ceae  # Replace deprecated AT_ERROR with TORCH_CHECK to reduce warnings in rpc
+5e6c3fb23b  # Add more details to explain rpc_backend_options arg in init_rpc
+642469b706  # Fix examples in API doc
+26c51468c5  # Fix examples in RRef API doc
+a38c9b1ade  # Adding debugging metrics to process group agent
+e9ca13d7f5  # Add glue code to collect debug info from all components
+fa6661422f  # Disable flaky test_rref_context_debug_info
+e7e6d56b77  # Allow async work in rpc RequestCallback processing. (#30637)
+a53b39f09d  # Disable flaky test_process_group_debug_info
+dbc8b00816  # Document WorkerInfo and RpcBackendOptions structures in RPC docs. (#31077)
+4b2d356ac1  # Re-enable test_rref_context_debug_info after enforcing proper synchronization (#30994)
+06d874f95b  # Change startTime_ to endTime_ in FutureInfo (#30342)
+73f9e81660  # Make rref fetch calls async. (#31086)
+a3ed350eb2  # Change type of timeoutFutures_ key to time_point instead of duration (#31078)
+2488231fe3  # Tweak pollTimedOutRPCs thread synchronization (#30355)
+a38184dbab  # Only create OwnerRRefs when processing remote calls (#31163)
+20a2e526ef  # build a generic future<T> (#29579)
+b64baa963f  # Robustify rpc_agent handlers with generic Future<T> (#31224)
+ec92711aac  # Fix error message in incorrect rref.localValue() call (#31199)
+643ca5def2  # Replace c10::guts::stuff with std::stuff (#30915)
+359c39b3c2  # Use global lock instead of per instance lock. (#31404)
+dff7b945bf  # Avoid sending large unneeded data over wire in process_group_agent. (#31357)
+348d42114e  # Kill MessageType::SHUTDOWN related logic in pg agent (#31270)
+fe76af96ed  # fix test_process_group_debug_info flaky test (#31533)
+e8e47c0a1b  # Split RRef class into abstract RRef and RRefBase (#28942)
+39297bfe08  # Fix flaky test_debug_info. (#31675)
+1499b894c4  # Apply clang-format to csrc/distributed/rpc
+f39105b68f  # add num_pending_users to debug info (#31539)
+457c57d9f7  # use unordered_set instead of vector for futureTimeouts key in (#31813)
+c829c6f3d2  # Disable flaky test_debug_info
+502533cfe6  # Implement backend-agnostic rpc._wait_all_workers() utility (#30710)
+bf8e1c0710  # Integrate async mode for autograd engine with distributed autograd. (#31508)
+a730920a3d  # Make RRef leak detection always print a warning log (#31922)
+6664703842  # Implement backend-agnostic rpc._wait_all_workers() utility (#31888)
+62f93443e5  # Explain RPC behavior when using Tensor as arg or return value
+8ea49e7a08  # add missing braces for format in rpc _to_worker_info (#31969)
+c5af0afdcb  # catch exceptions in ProcessGroupAgent::enqueueSend and report them. (#31023)
+927c2a02b0  # enable autograd profiler to work with RPC and RRef. (#31381)
+dbd737158b  # support torch script call over rpc (#30063)

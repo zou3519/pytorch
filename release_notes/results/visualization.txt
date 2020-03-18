@@ -1,0 +1,4 @@
+23650671a8  # add_hparams() NoneType error (#30286)
+95b451d386  # fixing test_tensorboard for py2 (#30298)
+085dde5965  # Fix for when PyTorch model trace has RecursiveScriptModules (#30430)
+ddff014b79  # fixed scale_factor calculation for uint8 tensor (#31778)
