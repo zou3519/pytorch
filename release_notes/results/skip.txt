@@ -1,0 +1,222 @@
+9fb879934e  # Revert D18641413: add unit tests to iOS CI jobs
+92e27c5e89  # Flag to disable Variable
+ec5c08de74  # Revert D18580867: Add logical_and and logical_or
+2f42488d36  # Updating submodules
+f3631c2464  # Revert D18542342: Boxed variable dispatch
+a2ed50c920  # Revert D17908478: Switch PyTorch/Caffe2 to C++14
+640109ae5d  # Back out "Revert D18542342: Boxed variable dispatch"
+9082123038  # Back out "Back out "Revert D18542342: Boxed variable dispatch""
+bc2e6d10fa  # Back out "Revert D17908478: Switch PyTorch/Caffe2 to C++14"
+d456a538f9  # op dependency analysis bash driver
+c0299d2707  # add LLVM code analyzer in order to replace static dispatch
+b8792c0438  # Revert D18645954: add __torch_function__ API override mechanism
+9d69c55b0d  # add MaskedRowWiseSparseAdagrad
+cd032c7f6a  # Updating submodules
+1d8a13147c  # Updating submodules
+6e38d50352  # Revert D18117070: Migrate max and min (binary) from TH to ATen.
+c1159494a6  # Revert D18621773: we should have a config-based way to skip flaky tests
+7af9d77290  # Update persons_of_interest.rst
+b0e7db5b31  # Revert D18840736: make sure windows tests get triggered
+78254eab45  # Add mobile operator observer for qpl logging.
+8b6d7698d6  # Updating submodules
+0b33080992  # Updating submodules
+fb36f1c334  # Updating submodules
+73dd8c005a  # Revert D18864774: polish up overloads on free functions
+44428d0ee2  # Updating submodules
+78a00d72b4  # Revert D18899127: resubmit polish up overloads on free functions
+2da3b9a0f6  # Updating submodules
+0cbbe050bb  # Updating submodules
+8fd85d70be  # Updating submodules
+d088bd0bad  # Updating submodules
+65f6e449c7  # Updating submodules
+4aa30d3c0c  # Revert D18293522: Optimize LayerNorm with explicit vectorization using Vec256
+3593981976  # Updating submodules
+7a8261e962  # Updating submodules
+d81c6bde3b  # Updating submodules
+c0bcfd0445  # Revert D18923167: Expose setNumThreads to android api
+c08f2ea254  # Updating submodules
+701e05dcbb  # Buck test targets robolectric,instrumentattion
+3e59e80429  # Revert D18941024: Move TorchScript language reference to its own page
+1bb800cf5c  # Updating submodules
+1e116a5089  # Revert D19054937: Add support for `del`
+6d6a91fb0f  # Updating submodules
+87768e5ade  # Updating submodules
+e9ef087d2d  # Updating submodules
+81329c907d  # Updating submodules
+fb63c0e2c9  # Remove -Wno-unused-private-field
+e2951d586d  # Updating submodules
+cf46bcace8  # Updating submodules
+34dce8e348  # Updating submodules
+cb1af5f61f  # Revert D19233558: add float[] str[] constants
+37fc59e847  # Updating submodules
+feb0ccdbfd  # Updating submodules
+fc598f9023  # generate op dependency graph as python code
+9c9d3cd550  # Revert D19262570: Fix race condition when creating build dir
+27488773b0  # Updating submodules
+9020d30fc9  # Updating submodules
+33430cf094  # Revert D18643137: Implement backend-agnostic rpc._wait_all_workers() utility
+227d1a43a4  # Revert D18838848: disable __torch_function__ overides for operators in torch.functional
+6d1fa8296b  # Support tensors with empty shape in Java
+1b4d3d5748  # Properly return data from non-contiguous tensors in Java
+4daa3dedbe  # Fix IValue.isList
+7f723cbd8a  # Revert D19290954: Implement backend-agnostic rpc._wait_all_workers() utility
+5dfcfeebb8  # Revert D19298735: Emit warning from deprecated torch function signatures
+5d5f156558  # Revert D18903453: Quantized H Tangent function
+021e1e20c1  # Revert D19320493: Javadoc changes
+c5a362a96d  # Updating submodules
+346005d3ed  # integrate op dependency analysis process into CI
+d53ce5e4cd  # Updating submodules
+632d6fc583  # Revert D19373615: Fix typo in config script to re-enable libtorch build and test in macOS CI
+c474952b5d  # Updating submodules
+62b1a5f846  # Updating submodules
+51a34545e9  # Revert D18482934: support torch script call over rpc
+89c6e18c43  # Updating submodules
+f3b62d4b1c  # Updating submodules
+61a2b34113  # Updating submodules
+5a58c16722  # Updating submodules
+c8ca70e39d  # Updating submodules
+25e62ebac9  # Updating submodules
+7fbfb7eef2  # Updating submodules
+1177191c8e  # Synchronize with ShipIt.
+9482683065  # Remove dead includes in caffe2/test
+bc6005281b  # Updating submodules
+0ed04bfdf6  # Updating submodules
+4973695268  # Updating submodules
+60b6c99aa7  # Updating submodules
+556c0b063d  # Updating submodules
+ef2d4e67d1  # Updating submodules
+f0917dce7f  # Revert D19562258: [pytorch][PR] Fixes moving after weight norm application
+389b9c180b  # Updating submodules
+39987de9e4  # [vulkan][caffe2] Add logging for descriptor extensions, fp16 storage
+1217c9b364  # Updating submodules
+02f055ffd9  # Add mapping for FbFCPacked in fakefp16 transform
+fd850685da  # Updating submodules
+642c9ef922  # More code fakefp16 mapping unification
+c47c78d0bf  # Revert D19597036: More code fakefp16 mapping unification
+cccf5e7011  # Resolve rendezvous race condition
+8ead65a946  # [PyTorch][TorchScript] Add support for join on List of strings in TorchScript
+6874278985  # Revert D19611800: [PyTorch][TorchScript] Add support for join on List of strings in TorchScript
+5380e16db9  # Updating submodules
+ed10408cc6  # Updating submodules
+22466552e3  # Updating submodules
+fd3bd7777d  # Updating submodules
+4493b10500  # [PyTorch] Gate out mobile operator logging observer.
+a8d39a7937  # Updating submodules
+c83f984906  # Updating submodules
+ce07fb26c0  # Updating submodules
+ff0ba563d5  # Updating submodules
+f8dd65f2a1  # Updating submodules
+4baadd54d7  # add SpatialBN lowered fake fp16
+341fb6d11d  # Make caffe2/caffe2/python/models/seq2seq python3 compatible
+e999095594  # Updating submodules
+b0d5ce3848  # Revert D19710990: [pytorch][PR] properly update _flat_weights in RNN modules
+e4f633ba0b  # Updating submodules
+ec1e9a1ae2  # Revert D19417087: fix #30480 torch.normal shape checking is broken
+8195961f20  # Revert D19730209: [pytorch][PR] Issue a warning when using zero_grad in DataParallel
+10db323b75  # Updating submodules
+e7b42209eb  # Added sparkspot model.
+0e29e9e0f6  # Re-enable internal test runs
+f4fbe9549d  # Revert D19800021: [pytorch][PR] Improve error message for assertWarnsRegex
+524fe8a96c  # Updating submodules
+61ac14a483  # Updating submodules
+855ee6446f  # Revert D18749922: [pytorch] Migrating index_add cuda to ATen
+74c8a8f7bc  # Revert D19825127: [pytorch][PR] Move where cuda implementation to TensorIterator
+d609497dde  # bulk_eval_collect_histograms
+7863d2413d  # Updating submodules
+a389f8fa18  # Revert D18912680: Prepare templates
+ac8511a21e  # Updating submodules
+0bf60e348f  # Revert D19878241: [pytorch][PR] Restore tests binary_macos_libtorch_2_7_cpu_build and binary_macos_li…
+b28a834813  # [codemod][lint][fbcode] Apply google-java-format
+a80d0330e4  # add int4 fake fp16 mappings
+ff5f38f53b  # Revert D19858239: [pytorch][PR] Refactor and add VS 14.16 and 2019 CI for Windows
+0c98939b7b  # Revert D19899550: [pytorch][PR] Second try on Von Mises: Make it JIT compatible
+ae53f8dd25  # Revert D19859905: [pytorch][PR] Gradient scaling API
+9c8b67b179  # Revert D19905015: Revert D19858239: [pytorch][PR] Refactor and add VS 14.16 and 2019 CI for Windows
+5cab54e0db  # Revert D19560159: [RPC Reliability] Implemented retries for RPCs with exponential backoff
+c6271c63f2  # Updating submodules
+c37a9b874b  # Updating submodules
+6dd6b0bfae  # Revert D19900566: [pytorch][PR] Simplify prim::shape when we have complete tensor types.
+c75d06d854  # Move gating part of SparseFeatureGating to local
+d4e4beddc4  # Revert D19871946: [distributed] pass in timeout to TCP store when initializing
+d29997373e  # Updating submodules
+87dc2dbcce  # Updating submodules
+1a589f50bd  # [auto quant] Add quant_scheme_generator to interface with dper
+4468a7b7b3  # Updating submodules
+d50305e2f3  # Updating submodules
+8b6a898d2b  # Updating submodules
+20c1e25832  # Re-sync with internal repository (#33519)
+883b18ea70  # Delete build_variables.bzl following configerator change.
+05fb160048  # Revert D19964089: [pytorch][PR] Allow vectorized gpu loop to have different argument types
+3233033a17  # Revert D19975410: Update documentation on why _cudnn_init_dropout_state looks the way it is.
+687a7e4a25  # Revert D19975411: Remove special case codegen for tril_indices/triu_indices.
+71225ecc8c  # Revert D20006312: Revert D19975410: Update documentation on why _cudnn_init_dropout_state looks the way it is.
+0bde610c14  # Re-sync with internal repository (#33591)
+d3d975cbf6  # Updating submodules
+e10aa6b72f  # Fix flaky DagNetTest unittest
+1c08fa7051  # [Caffe2] Skip caffe2/caffe2:caffe2_test_cpu - DBSeekTest.LMDB
+59daf1611b  # [Caffe2] Skip //caffe2/caffe2:caffe2_test_cpu -- 'DBSeekTest\.RocksDB'
+312627a7c3  # Revert D19776613: Migrate `random_` from the TH to Aten (CPU)
+039dc90854  # Revert D19521853: [pytorch][PR] Mobile Backend: NHWC memory layout + XNNPACK integration.
+ced8865d91  # Add sigmoid to mobile ops
+5090d7082b  # add propagate flag USE_DISTRIBUTED for libtorch_python_source
+97da60d511  # Updating submodules
+8159316714  # Revert D19941103: [pytorch] blas gemm fix for k=0
+51e405743f  # Revert D20010383: [jit] Unify augmented assign handling
+a7cf5c859f  # Revert D20136865: fix lint
+243af17d65  # Revert D20103905: [jit] Fix flipped PackedSequence outputs in script
+53630f7681  # Updating submodules
+910acafc79  # Revert D20124224: [jit] stop printing crap in test_jit
+5eacdfb21f  # Revert D20127441: [pytorch][PR] [JIT] Introduce a fake Tensor creation node for IR unit tests
+890242254b  # Updating submodules
+9fd1a7697f  # Create CODE_OF_CONDUCT.md
+ad44394f15  # Updating submodules
+595445e889  # Revert D20178827: Fix mobile build
+3acfccafbb  # Revert D20172782: Fix mobile build
+7f7ea685c0  # Revert D18672405: Use codegen'ed unboxing wrappers
+9f7708eecb  # Updating submodules
+e017b1e9fb  # Updating submodules
+71f8624ecb  # Revert D19153199: [ATen] Remove `AT_ASSERTM` from Blob::free_()
+1aff3e2dd3  # Revert D20204104: [pytorch][PR] .circleci: Add filter to run nightly builds on tag
+b1fd7ba019  # Revert D20169501: [pytorch][PR] .circleci: Add CUDA 10.2 to our CI pipeline
+49586a2a7e  # fix sph batchnorm to use sph fma
+c579976603  # Revert D20171428: [profiler] fix chrome tracing for profiler run with cuda
+c688eb28a2  # Minor fix for quantizing the Ads complex model
+ac6e75a165  # Revert D20195053: [pytorch][PR] Add API for listing functions overridable by __torch_function__
+d59e036f4d  # Revert D20194092: Add support to dump unsupported ops. Add lite_interpter_load test.
+1546d2afeb  # [pytorch_ci] Don't run determination tests in py35
+d98bd5e1f5  # [test all] Back out "Revert D20171428: [profiler] fix chrome tracing for profiler run with cuda"
+ed11e2536a  # [pytorch_ci] Skip determination tests in rocm
+5500c3de0a  # Revert D20150304: [pytorch][PR] [JIT] Introduce a fake Tensor creation node for IR unit tests
+30680196e4  # Revert D20121915: [JIT] Add support for list()
+91e922a338  # [AI Bench] Add support for nlu model
+6f12145c60  # Change std::to_string call to c10::to_string
+63964175b5  # Revert D20379910: [pytorch][PR] Set USE_RCCL cmake option (dependent on USE_NCCL)
+6f8a8e4e47  # Revert D20282846: Delete OperatorOptions, absorb AliasAnalysisKind into FunctionSchema.
+4b929e5466  # Revert D20193196: [pytorch][PR] PCA and SVD for low-rank matrices, LOBPCG for positive-defined generalized eigenvalue problem
+1e6c47413a  # Updating submodules
+787c307e63  # Revert D20368543: [pytorch][PR] [JIT] remove specialized list ops
+d5f8c8f3ba  # Revert D20121169: [pytorch][PR] ONNX Export Support for CrossEntropyLoss
+e9a660a160  # Revert D20354878: [quant][graphmode] Add quantized conv2d-relu fusion pattern
+6791ae51a5  # Updating submodules
+b93518a662  # Revert D20422879: [pytorch][PR] Remove hotpatches that circumvent MAGMA bug
+14c1ab049d  # [Codemod][FBSourceGoogleJavaFormatLinter] Daily `arc lint --take GOOGLEJAVAFORMAT`
+27410318ad  # [PyTorch][Mobile] Fix the operator latency issue.
+a730abd997  # [PyTorch][tools] Add linux64 clang-format hash
+6c555e1508  # Revert D20311699: [pytorch][PR] [C++ API] RNN / GRU / LSTM layer refactoring
+1af6002321  # Initial implementation of NNPI Int8FC op
+976d6aaa51  # Revert D20251830: [TensorExpr] Add tensorexpr benchmarks.
+a0b7a39a92  # Updating submodules
+3e68d0c5d0  # Revert D20461609: [caffe2] open source 2/4-bit SLS operators
+95f1cb34b9  # Revert D20480546: adds quantized implementation of hard sigmoid
+df20f5b374  # Updating submodules
+3585451469  # Release notes scripts
+f0243ea712  # Use [[deprecated]] instead of C10_DEPRECATED (#30918)
+a3dd44653f  # Fix typo in config script to re-enable libtorch build and test in macOS CI (#32072)
+2bd179147a  # Fix typo in config script to re-enable libtorch build and test in macOS CI (#32072)
+0c03304bdf  # .circleci: Only run macos libtorch on master (#32378)
+af4d6120bd  # Temporarily disable failing 'binary_macos_libtorch_2_7_cpu_build' and… (#33207)
+8245641091  # Re-activate binary_macos_libtorch_2_7_cpu_build and binary_macos_li… (#33321)
+9e384f9ce4  # Remove duplicate header include. (#33656)
+f114c33e69  # Fix iOS CI (#30327)
+47033b49f3  # Suppress XCode build warnings (#31000)
+346a349111  # Update all instances of 1.4.0 -> 1.5.0 (#31785)
