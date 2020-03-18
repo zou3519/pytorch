@@ -1,6 +1,8 @@
 import re
 import copy
 import json
+import argparse
+import os
 from common import dict_to_features, categories, subcategories
 
 def readlines(path):
@@ -35,6 +37,7 @@ class Categorizer:
     def handle_commit(self, commit):
         all_categories = categories + subcategories
         features = self.data[commit]
+        os.system('clear')
         print('=' * 80)
         print(features.title)
         print('\n')
@@ -57,8 +60,7 @@ class Categorizer:
                 print(f'Possible matches: {choices}, try again')
                 continue
             choice = choices[0]
-            print(f'\nSelected: {choice}')
-        print('\n\n\n\n\n')
+        print(f'\nSelected: {choice}')
         self.assign_category(commit, choice)
 
     def assign_category(self, commit, category):
@@ -75,12 +77,14 @@ class Categorizer:
                         if not com.startswith(commit)]
         with open(f'{self.path}', 'w+') as f:
             lines = [f'{commit}  # {self.data[commit].title}' for commit in self.commits]
-            f.writelines(lines)
+            f.write('\n'.join(lines))
 
 
 def main():
-    path = 'results/python.txt'
-    categorizer = Categorizer(path)
+    parser = argparse.ArgumentParser(description='Re-categorize commits from file')
+    parser.add_argument('file', help='which file to re-categorize. Must look like results/{category}.txt')
+    args = parser.parse_args()
+    categorizer = Categorizer(args.file)
     categorizer.categorize()
 
 

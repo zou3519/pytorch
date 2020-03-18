@@ -1,4 +1,3 @@
-2a7a39c1af  # (de)serialization of values between C++ and Python (#30108)
 7ac8efa689  # Skip undefined tensors when moving torch::nn module to a different device (#30523)
 18ec4632b3  # Exclude undefined tensors in the result of Module::parameters() / named_paramters() / buffers() / named_buffers() (#30626)
 03a73cb9ac  # Remove namespace F = torch::nn::functional from torch/nn/modules/batchhnorm.h (#30684)
@@ -10,7 +9,6 @@
 f0243ea712  # Use [[deprecated]] instead of C10_DEPRECATED (#30918)
 47766e648f  # C++ API parity: MultiheadAttention
 1bb6c51421  # Fix getAttribute (#31011)
-647569e546  # get rid of choco install (#30897)
 ebe69236d1  # Expose class constant through `attr` and `setattr` in object (#29219)
 1ba1799a66  # C++ added 3rd arg of false to BatchNorm/InstanceNorm register_parameter … (#31873)
 114562cf93  # For torch::from_blob() add clue when memory is non-owned. (#31222)
