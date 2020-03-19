@@ -220,3 +220,6 @@ af4d6120bd  # Temporarily disable failing 'binary_macos_libtorch_2_7_cpu_build' 
 f114c33e69  # Fix iOS CI (#30327)
 47033b49f3  # Suppress XCode build warnings (#31000)
 346a349111  # Update all instances of 1.4.0 -> 1.5.0 (#31785)
+9047d4df45  # Remove all remaining usages of BUILD_NAMEDTENSOR (#31116)
+409151e1bb  # Use [[noreturn]] instead of C10_NORETURN or CAFFE_NORETURN (#30917)
+c5d2758c35  # Disable flaky TestMomentumSGD.test_fp16momentum_sgd (#31369)

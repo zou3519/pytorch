@@ -22,3 +22,8 @@ e907128caf  # [ROCm] Enable BFloat16 type for pooling ops (#34166)
 866505b100  # [ci] try to fix rocm builds (#34600)
 2f32b92763  # [ROCm] Enable BFloat16 type for EmbeddingBag ops et al (#34630)
 72e3d66f50  # [ROCm] Fix for std::isnan regression in ROCm (#34664)
+957a07ffbd  # [ROCm] Enable Caffe2 video operators for ROCm
+908b451efb  # Enabling the nccl/rccl test for ROCM environment (#32340)
+2635055229  # [ROCm] Enable 3D batch norms through MIOpen (#33262)
+6ade7e3a15  # [ROCm] Enable 3D convolutions through ROCm (#33067)
+4c99351de6  # [AMD] Remove num_gpu check for remote execution (#34318)
