@@ -55,3 +55,5 @@ af28915164  # [quant][onnx] Add support to convert max_pool2d quantized pytorch 
 8a395882ce  # [quant][onnx] Support conversion of quantized sigmoid operator from pytorch to caffe2 (#34629)
 480d1849b0  # [ONNX] Fix for expand -1 dim value (#34069)
 944ea4c334  # ONNX Export Support for CrossEntropyLoss (#33767)
+78cba90a8c  # Enable constant folding for Reshape (#31054)
+112196fdee  # Fix index put (#31552)

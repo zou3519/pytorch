@@ -59,3 +59,4 @@ bf1b4b6fef  # add torch_cpu to the static library list in TorchConfig.cmake.in (
 941b42428a  # Mobile Backend: NHWC memory layout + XNNPACK integration. (#32509)
 6aecfd1e80  # Mobile Backend: NHWC memory layout + XNNPACK integration. (#33722)
 ccf4d69b75  # [Lite Interpreter] Enable __setstate__ (#33294)
+03557a9838  # Make save_for_lite_interpreter private (#32771)

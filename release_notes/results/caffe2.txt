@@ -142,3 +142,4 @@ c9ed111894  # [caffe2][quantization] Add initializer and precision as read-only 
 2599b9b551  # Add output_size argument to caffe2 Int8ResizeNearest (#30202)
 968c0d4a46  # Add support for converting quantized AvgPool2d and Reshape operations (#30490)
 980aead1f8  # Add support for quantized slice conversion (#30498)
+a2f3c6c26f  # Call RandomNumberSeed() on-demand (#33539)
