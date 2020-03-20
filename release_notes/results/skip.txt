@@ -224,3 +224,4 @@ f114c33e69  # Fix iOS CI (#30327)
 c5d2758c35  # Disable flaky TestMomentumSGD.test_fp16momentum_sgd (#31369)
 a53b39f09d  # Disable flaky test_process_group_debug_info
 bcb0bb7e0e  # Remove unnecessary ATen/core/EnableNamedTensor.h (#31117)
+204939b401  # Automatic update of fbcode/onnx to 57ebc587fcf3913b4be93653b0dd58c686447298 (#31642)

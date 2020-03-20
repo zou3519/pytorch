@@ -1,1039 +1,991 @@
-35e6c1763e  # Switch Docker image onda-cuda-cxx11-ubuntu1604 to new uniform name (#29943)
-2e709763a3  # add wrapper to exclude XLA when running device tests
-99a2a0b1ca  # Implement torch.diagonal for named tensors (#30193)
-c7f988b8c6  # transport open registration (#30167)
-7570b2798a  # updating citation (#30267)
-4aa692fc91  # Convert KernelTable to a flat-indexed array rather than a hashtable. (#30332)
-7b5045be9d  # Remove LeftRight from OperatorEntry and DispatchTable. (#30333)
-24aabe439a  # Make Dispatcher::backendFallbackKernels_ an array (#30340)
-fb8c17dde1  # Test cases for backend fallback kernels (#29214)
-afdc0bd4ec  # OperatorHandle::callBoxed/callUnboxed (#29330)
-959a849a23  # better boxing (#29681)
-0c7e4c1d62  # backend fallback test (#29682)
-3990e9d1ca  # Improve performance of LeftRight::read() (#30282)
-99a46b44ea  # Use correct API macro in VariableHooksInterface. (#30320)
-f994377d28  # Turn off scalar_check for lshift, rshift.
-94ad7544ae  # Turn off scalar_check for __or__
-0c9c62ba6e  # Turn off scalar_checks for __and__ and clone.
-ce5f1a1b25  # Turn off scalar_check for masked_select. (#29923)
-6e88ddf352  # Turn off scalar_check for _th_addmv and _th_eig as they can never pass. (#29945)
-7c6cc1d6d4  # Turn off scalar_checks for _th_multinomial_alias_draw. (#29946)
-b8eba7aca9  # Turn off scalar_check for ormqr. (#29947)
-16606e1725  # Turn off scalar_check for mode; the underlying code is correct.
-7160300638  # Turn off scalar_check for reductions _th_max, _th_min. (#29949)
-0c67311878  # Turn off scalar_check for set_(Storage, ...) (#29950)
-d7ac90e2ef  # Stop binding std_single and var_single from TH; they aren't used anymore.
-0517323dad  # Update osx CI to XCode 9.4 / CUDA 10.0, cudnn 7.6.5 (#30359)
-d64e2581cc  # Add list of supported XCode/CUDA versions to README
-25f4ba7c1b  # Improve compare kernel (#29743)
-0b71e7e1fd  # Refactor QAT Conv module for better extensibility (#30362)
-ab2ec4d835  # Fix inexistent parameter in document (#24335)
-46e7f31fa3  # Document unsupported types (#30344)
-8199596d7e  # Add missing std::move (#30411)
-79a830af56  # Turn off scalar_check for Tensor.set_(Tensor) (#29952)
-72ac45662b  # Turn off scalar_checks for torch.take. (#29953)
-dbce53fe32  # Turn off scalar_check for _th_gather. (#29954)
-dcd9f49809  # Specify ordering on singular values and eigenvalues output from torch… (#30389)
-b0871f211b  # Make all optimizers consistent so that they don't change gradients inplace
-fec903ce00  # Fix test case after get_qparams refactor (#30470)
-c5a6c4d6c9  # Adding elementwise kernel also operating on index (#28175)
-634f370c63  # Add comment to ops bound at python layer
-976d91d30a  # Comment on a set of ops bound at the python layer
-4eff2f2007  # Fix missing closing quotes in docs
-21d7532dfe  # Add more comment on NumPy detection in Python scripts.
-6bd8937aee  # FunctionParameter::set_default_str replace || with &&
-829499e626  # avoid Formatting::print() when STRIP_ERROR_MESSAGES is set (#30451)
-d2336edcfb  # Boxed variable dispatch (#29934)
-fcb7371e65  # Update docs for cpp_extension on Windows (#30392)
-106ab487eb  # fix typo in doc
-a69be8123a  # Use `gettimeofday` on iOS (#30361)
-c1c5622a6a  # Add katex to pytorch-linux-xenial-py3.6-gcc5.4 docker image (#30522)
-7d2b0aa693  # add retries to network operations (curl, conda install, git clone) (#30479)
-0b25371f5d  # Turn off scalar_check for _th_normal.
-87f29557bd  # Ignore logical_and and logical_or in op BC check for now (#30537)
-c780610f2d  # Disable test_backward_per_tensor in test_fake_quant (#30594)
-e6000a7c04  # Temporarily disable test_numerical_consistency_per_tensor (#30600)
-8ee61e0be4  # Fix CPU_INTEL flag error on windows (#30564)
-b68d1fc316  # add small input shapes to some ops (#30617)
-6deb41c88d  # Update magma to 2.5.1 for Windows and switch CUDA in CI to 9.2
-569729527b  # Turn off scalar_checks for exp, cos, cosh, tan, atan, tanh, erf, erfc. (#30434)
-19b7d49fac  # Add TOC to CONTRIBUTING.md (#29671)
-98ab55fc51  # PRAGMA missing for clang (#30351)
-2d0a4e42e9  # Add barriers to fix flaky test_graph_for_py_nested_call and (#30624)
-9e3d19412b  # Disable implicit conversion warning (#30529)
-db81e13d6b  # Fix TCPStoreTest and improve tcputils::connect() (#30354)
-e5b947a3a8  # Raise an error for is_signed on quantized types (#30527)
-61798865e3  # Turn off scalar_checks for torch.clamp. (#30435)
-8b29701ae5  # Turn off scalar_checks for _th_reciprocal. (#30436)
-b446572997  # TestCppExtension now removes /tmp/torch_extensions folder so that it can be used by other users in a multi-user environment. (#30095)
-d5c136097a  # improve .view() performance (#30554)
-a997f224ac  # Add torch.multiprocessing.create_processes
-9740011f10  # Use normal dispatch to get to CUDA threshold kernels, instead of DispatchStub. (#30307)
-d43e205026  # Properly include declaration of dispatch in file that registers it. (#30311)
-8269f7b652  # Delete redundant THC_API on THCStorage_new (#30312)
-a009fc14be  # Workaround hcc bug regarding extern "C" definitions (#30313)
-1b12fd33ed  # Add missing trigramma_stub definition. (#30314)
-1b5ce05924  # don't use size()/stride() functions in TensorImpl, use size_[d]/stride_[d] instead (#30452)
-40146eb48e  # Skip ProcessGroupGlooAyncTest if there is no CUDA available (#30345)
-4e6379379c  # fetch before checking out PR tip
-4d4d8e0dce  # Update persons_of_interest.rst (#30647)
-604a27361f  # remove tuple_parser (#30659)
-2ba03e0287  # Enable test_trainer_ps in dist_autograd_test.py
-56dd2836ec  # Make zeros argument of torch.where same dtype as other argument (#30661)
-a376dd344c  # Added check for torch.where on CPU that both arguments have same dtype (#30662)
-dcd1216efe  # Force early initialization of OpenMP in forked children (#29006)
-59151d3e43  # autograd/profiler: support merging FunctionEventAvg (#30677)
-3cf8382984  # detect_anomaly() for SparseTensors (#29803)
-4ac614191a  # Remove exp10 in TH (unused)
-76acf5b553  # Remove many unused bfloat16 functions in TH
-ab834d5093  # Remove exp10 in TH (unused)
-7e472679ff  # pin actions/checkout version
-f5c9452beb  # Fix toObject() r-value version (#30713)
-d12786b24f  # add __torch_function__ API override mechanism (#27064)
-d6ca93b353  # add doc for F.softplus
-ec7bb9de1c  # format tri[lu]_indices doc better
-a68b790293  # fix ref to nonexistent torch.repeat
-1189595875  # Fix Tensor.argsort -> torch.argsort documentation link
-d0af07ca4c  # Fix capitalization inconsistency in optim.rst
-6918f0ce86  # Move scalar_check for total_weight in NLLLoss functions to code from codegen. (#30665)
-fa2aa245cf  # Simplify scalar_check of nll_loss. (#30669)
-786de33832  # Move scalar_check logic from codegen to code in NLLLoss. (#30670)
-289e9a07fd  # Move Tanh backward to Aten(CPU+CUDA) (#30224)
-9d3402e4cb  # Add the __torch_function__ API override mechanism (#30730)
-42e79d7e8a  # Kill THNN version of MultiMarginCriterion; it's not used anymore.
-1f1ce53e8e  # Don't install pybind11 header directory for system pybind11 installs (#30758)
-a939b52ddb  # fix AvgPool2d for 2^31-1 sized inputs, and get test_cuda_kernel_loop_… (#30771)
-139aa51962  # Clean up non-C++14 code (#28443)
-f2a2fec47c  # CUDA-strided-complex Binary and Unary Op support (#30295)
-35a6997863  # Support 0-d tensors in CUDA MultiLabelMarginCriterion. (#30765)
-ba1a9871cb  # Turn off scalar_check for is_target for MultiLabelMarginCriterion, which is handled correctly in code. (#30766)
-473a044835  # Fix a CUDA memory leak in MultiLabelMarginCriterion error checking. (#30767)
-50625798df  # Fix scalar check of MultiLabelMarginLoss. (#30768)
-f12332eb51  # Move scalar_check from codegen to code in MultiLabelMarginCriterion. (#30770)
-2607772959  # Turn off scalar_checks for SpatialDepthwiseConvolution and SpatialConvolutionMM. (#30789)
-fa251cfd97  # Fully deprecate variadic inputs of checkpoint_sequential (#25985)
-1578a28692  # Migrate max and min (binary) from TH to ATen. (#27185)
-2171f91053  # reenable cuda_kernel_loop_overflow_large test (#30797)
-9617d07bd5  # Wrap warning handler in a function to avoid siof (#30800)
-be55874f2c  # style fixes to code analyzer (#30808)
-c564d794ed  # Add ATen/native/ headers to torch target (#30835)
-6486bdfb90  # Fix `os.register_at_fork` not defined on Windows (#30809)
-f874230d33  # Vectorize smooth L1 loss backward function on CPU. (#30046)
-2ced81f289  # Revert "Default to not build Caffe2 operators on Windows. (#29061)" (#30740)
-0974dcc244  # Fix error checking of CUDA multi_margin_loss. (#30825)
-e5bd7a7942  # we should have a config-based way to skip flaky tests (#29944)
-82c3f4861f  # Move hardtanh activation to Aten(CPU, CUDA) (#30152)
-4034aa7621  # make sure windows tests get triggered (#30836)
-2011cc1e91  # Fix half->float case of softmax backward when inner_size is not 1 (#30838)
-11b3065323  # Run method_tests on CUDA. (#30821)
-1d7b40f1c4  # Fix reading `__cuda_array_interface__` without strides (#24947)
-60714dfb64  # change index_select scalar_check to retain dimensionality of input. (#30790)
-e5d571ae25  # Remove scalar_check from topk, move it to the THC implementation.
-377131b0eb  # MultiMarginCriterion: fix scalar_check in the case where reduction == None. (#30826)
-0051467118  # Update CITATION from Workshop paper to Conference paper (#30872)
-44ff7b08d8  # Reduce intrusive_ptr incref/decref costs (#30709)
-d6ddfab11f  # save linux build binary size to Scuba (#30832)
-81e4739141  # Move QScheme ops to c10 (#30134)
-223f46f5fa  # Fix flake8 warning (#30905)
-baccd26df7  # update code analyzer script to handle splitted torch libraries (#30864)
-c37de32b23  # Enable len(dataloader) for iterable dataset (#23587)
-cd6167ff63  # Upgrade bazel to 1.2.0. (#30885)
-8d35b6cec7  # embedding_bag make_bag_size optimization (#30701)
-a26238da57  # Enable using `torch.autograd.profiler.record_function` as decorator (#30861)
-f1bd8cc286  # Fix lint issues in dist_autograd_test.py (#30928)
-4bb497b38e  # MultiheadAttention fixes
-190dac13e3  # Use universal references and perfect forwarding in Loops.h. (#30466)
-c75bc9067c  # MultiMarginCriterion: move scalar_check from codegen to code.
-daef363b15  # Move Softshrink activation to Aten(CPU+CUDA) (#30229)
-528fa737ba  # Custom op autograd tests (#30519)
-45f0556ba0  # Proper print for one element tuple (#30853)
-8a57362000  # Fix index out of bound error in Engine::ready_queue_size when called before start_threads
-394d2f7037  # Fix the rendering of the doc of max. (#30779)
-ed20937231  # Remove TensorImpl::maybe_zero_dim.
-e3d40f857b  # Make nn.Module `forward()` type annotation more permissive (#31057)
-5edfe9cb80  # add torch.square (#30719)
-d113b22571  # kill PyTorch py2 circle jobs (#29353)
-b7652a2f81  # remove py2 flake8 lint (#29357)
-d02280b432  # move migration guide to appendix (#31068)
-c72dd526a7  # kill py2 onnx builds
-9a5fd2eb07  # Fix conflicts in CMAKE_GENERATOR and generator (#30971)
-28ee309c9a  # disable onnx py3 gcc5 build (#31100)
-d6d6075573  # Optimize LayerNorm with explicit vectorization using Vec256 (#29104)
-9305f44854  # Remove BUILD_NAMEDTENSOR from codegen and .cu files (#31047)
-3301794855  # Port ELU activation to Aten (#29275)
-717274c001  # Add useful warnings for t.grad when it won't be populated for known reasons (#30531)
-a929d312ac  # Add dill>=0.3.1 as testing dependency (#31121)
-5b03ff0a09  # Update embedding renorm comment to reference fixed issue (#29140)
-293a139d79  # add a warning for script classes (#31069)
-945ce71b18  # Correctly handle scalar types, fix parse of numpy ints (#30486)
-e5a550cd1d  # Fix Test CI by pinning hypothesis and correcting the import (#31137)
-0414463007  # doc fix for max method: a warning about different behaviour on CPU and GPU (#31115)
-efe683fb2a  # dynamicly quantized linear benchmarking
-4f5a4be45f  # Add native/quantized to the list of header rewrites (#31151)
-0db6c01301  # Re-enable python 2 builds (#31164)
-159835e666  # Add types for the remaining optimizers. (#31130)
-4ead2e8996  # Fix CircleCI behavior for non-leaf stack PRs (#31088)
-66f2bba852  # Adding function to convert Module to channels last
-066e3ed953  # Re-apply "[bert/RoBERTa] Optimize LayerNorm with explicit vectorization using Vec256" (#31127)
-bee6344d4e  # remove / rewrite weak module tests (#31193)
-f6c31f61c5  # Enabled roll for bool tensor (#31194)
-84d6796658  # move AWS ECR gc jobs to circleci (#30996)
-b7c148013f  # fix torch square_ benchmark runtime error (#31221)
-1ef99cf0ab  # Intrusive_ptr implementation slower than shared_ptr (#30810)
-36d17f4105  # abort nccl communicators before throwing operation timed out (#31128)
-8fea7a49d6  # pinning hypothesis for windows
-3587f769dc  # use propagate_names instead of propagate_names_for_reduction for cumsum and cumprod
-9954739956  # Refactor test for unique and unique_consecutive and fix some bugs (#31211)
-d7d07e7caf  # thrust is included in SortingKthValue.cu but never used
-1ec989404c  # Kill some unnecessary function declarations.
-927588df8e  # Switch default memory format of _like operators to Preserve
-fde3d707ad  # Switch default memory format of to (and similar) operators to Preserve
-c35cddb306  # Switch default memory format of clone operator to Preserve
-6e1e09fd10  # Compile time type names (#26618)
-2950530031  # caffe2::TypeMeta uses compile time type names (#26619)
-7c1b5084a7  # Enable equality operator for bfloat16 CPU scalar types. (#30817)
-7cb83bea3b  # Fix static cuda builds on older cmake versions (#30935)
-ffe0c1ae4d  # Make test_torch.py pass cuda-memcheck (#29243)
-9dc3d8738c  # fix view call on discontiguous tensor in to_sparse_backward (#31223)
-60ec53c7fd  # Fix copy kernel speed regression introduced in #29631 (#31279)
-0d7391f8b2  # Test cases for custom ops with autograd (#31003)
-c95d46abbd  # Remove C++11 compatibility from c10::util::crc64_t (#30920)
-9ca61aec0f  # Kill THLogAdd (#31217)
-455e85a2f1  # Fix unflatten when dim is a negative integer (#31208)
-d401ba1417  # benchmark binary ops in binary_test (#31326)
-c6a8f884d8  # add copy_ operator the op bench (#31327)
-229ce89b92  # Fix coverage and hypothesis conflict (#31320)
-f9010d7648  # remove wipe cache from op bench (#31334)
-49eff2f43c  # Kill THSize. (#31218)
-d2067569e7  # Kill THTensor_(bhistc). (#31254)
-dab5f72543  # we should have a config-based way to skip flaky tests (#30978)
-0b8332efb4  # Remove c++11 examples from doc comments (#30925)
-e33dea6e4e  # dynamicly quantized lstm benchmarking
-e169e02836  # Refactor custom op tests (#31282)
-74e59c6fed  # caffe2::TypeInfo fix when using clang-cl on Windows (#31364)
-3694749cd1  # Detect dill version in torch.save/load (#30985)
-58d2dd5b73  # Enabled flip for bool tensors (#31267)
-913323750d  # CODEOWNERS for distributed optimizer. (#31403)
-285cc13435  # check devices for all input tensors in index_put (#31280)
-c63f8e5ebe  # Fix typo in data.rst docs
-4d22c3ba01  # fix docker login, add docker image tag list after purge as html (#31328)
-7cf8b9bada  # Move leaky_relu to Aten(CPU, CUDA) (#29899)
-5e8bac24b4  # Migrate soft_margin_loss from the TH to Aten (CUDA+CPU) (#28135)
-1e80ff7a67  # autograd/profiler: make record_function more threadsafe (#31346)
-d2e66b44cc  # Temporary fix to support building pytorch from fbsource (for xplat dependencies) (#31393)
-fe707c7849  # Use `default_observer` and `default_weight_observer` in tests (#31424)
-489dd6cb90  # Add TORCH_DCHECK macro that checks only in debug builds (#31240)
-540b9da41e  # Bump numba version in circleCI config to 0.46.0. (#31435)
-49fe7a7401  # Updated documentation for NLLLoss to explain what x, y and w refer to (#31488)
-779b128872  # add back in reference to jit_unsupported section (#31486)
-9d9bc93bfb  # Added error message to indicate that reduction operations are not supported for dim>=64 (#31476)
-8f3c0d541e  # Speed up `Tensor::has_names` for unnamed tensors (#31436)
-e67064a96f  # Exclude generated source docs from Google (#31484)
-dbe2f265d0  # Better error msg for autograd profiler + multi-worker dataloader crash (#31473)
-624088e444  # Don't dispatch to cudnn if it is not possible to make it 32bit by splitting batch dim (#31383)
-d0d6e0b5e3  # add type promotion support for sparse tensors (#30429)
-b38901aa15  # Test reading `__cuda_array_interface__` inferred strides. (#31451)
-6cd987e7c0  # Make fully_qualified_type_name_impl() compatible with VS2017 15.9 (#31455)
-df9d5b8a77  # Use macros instead of directly accessing Python object fields (#31388)
-3820d6f6b9  # make gc script python2 compatible (#31536)
-0b0f90f53c  # Split on batch dimension when 32bit indexing not enough for convolution forward (#31379)
-8d8e82883e  # set stream everytime when we get a cuBlas handle (#31537)
-b5bbec7bad  # set stream everytime when we get a cuSparse handle (#31538)
-700109eb63  # set stream everytime when we get a cuDNN handle (#31541)
-cc2d5ca37f  # add enabled API to autograd profiler (#31380)
-9459db86bf  # Raise warning for schedulers following chainable shedulers (#31125)
-218cfd568d  # Conv transpose/backward split 32bit (#31510)
-866c1b1fcc  # Ensure legacy sparse constructor/new doesn't interpret python data as tensor data. (#31490)
-5d95a9ca79  # Print all broken ops instead of the first one (#31628)
-ec4e347744  # Add Python language reference docs (#30686)
-91eb7c26cd  # Fix Typos
-909b8eba0d  # cudnn grouped convolution nhwc patch (#31444)
-ffcac9ad37  # Clean White List for BC Checks (#31629)
-204939b401  # Automatic update of fbcode/onnx to 57ebc587fcf3913b4be93653b0dd58c686447298 (#31642)
-e84e7ec556  # Kill aten_custom_call.
-ae214f67a5  # updated code to ensure error check for negative dims
-3b7916fccd  # Modify the order of arguments position of torch.std and torch.std_mean in doc (#31677)
-22d84204f7  # Expose torch.poisson in documentation (#31667)
-ee87b01f40  # add additional types to indexing operations dispatch (#31692)
-6064223808  # `@slowTest` some slow tests (#31706)
-7a3ed36309  # Fix nvcc math functions for MSVC 2019 (#31704)
-236b0a318c  # Delete ATen/stub (#31763)
-9e9bfbfd8d  # Update old scheduler example usage (#31358)
-7078f4b27d  # skip _test_optional_float in BC check (#31786)
-d770fbc1d2  # Some modifications to improve readability (#31352)
-ed5cd0d742  # Use numeric limits to define TensorTypeSet(FULL) representation (#31668)
-5f8308e32d  # Pin Pillow to v6 as PILLOW_VERSION is removed in v7
-155376721c  # Pin hypothesis package to 4.57.1 to avoid test failures
-dc43f9dc54  # fix test_backward_node_failure flakiness (#31588)
-fa0424f224  # add LLVM-dev package to android docker image (#31215)
-95cb66570a  # Erase array sizes from types in c10::str(). (#31683)
-f56c59ead6  # clarify when to use `as_tuple` in `torch.nonzero`
-8c425dd201  # Fix race condition when creating build dir (#30956)
-0b9cd410a9  # Fix cumsum error for tensors with zero elements (#31694)
-68f3782106  # remove std_single and var_single code in TH (#31608)
-b47e9b97a2  # Add op bitwise_and (#31104)
-a02a5129a8  # Move rrelu to Aten(CPU) (#31094)
-79e30ff3f8  # optimize index_select performance on CPU with TensorIterator (#30598)
-b44c0f328e  # Skip same tests in ONNX Python3 CI as in Python2 (#31827)
-6b1db202bc  # Add tanh to c10::cuda::compat (#31844)
-28c9dd4436  # fix ProcessGroupGlooTest (#31255)
-e5b7231edc  # Adding version check for hypothesis deadline
-b0a2765103  # move docker image html to correct bucket (#31832)
-3f0b330736  # corrected keyword argument name in docs for Tensor.scatter (#31617)
-1f2b6d632a  # Refactor tests in pytorch's test/dist_autograd_test.py file (#31803)
-c65305e991  # Add a check method for custom type tensor (#31290)
-a9dae70bae  # Remove LibIRC logic from cmake. (#31152)
-4ef9daf7b2  # Remove dead CAFFE2_LIBS variable (#31155)
-58cffbff91  # Add missing TORCH_CUDA_API annotation to throw_nccl_error (#31157)
-5d80f63478  # no_grad, enable_grad: support for decorating generator functions (#31792)
-34561dadcd  # Don't handle bias inside cudnn_convolution* (#31524)
-a561a8448b  # minor doc tweak to use mp.spawn in example (#30381)
-20c5dd59bd  # Add stub for transformer.py and MultiheadAttention Class. (#28396)
-22044c6f7c  # Use TORCH_CHECK instead of AT_ASSERT in torch::cuda::gather() (#27456)
-2f5eefe525  # Raise ValueError if CUDA device is specified without specifying the : (#29087)
-5cc62f2913  # Ensure autograd callbacks are called only once for reentrant backward. (#31909)
-0e5a6700cc  # Emit warning from deprecated torch function signatures (#31514)
-c888473b57  # Restructure docs organization and naming (#31849)
-74d69e296e  # Raise an error if torch.cat is given `out` as one of the input tensors (#30577)
-bb279c5c63  # named tensor max pooling support
-ca72df06ae  # disable __torch_function__ overides for operators in torch.functional (#30839)
-8a0503b355  # Run a non-quiet submodule update to prevent timeouts on Circle CI (#31900)
-c21f89970f  # Remove c++14-conditional constexpr (#30916)
-0dca9c30ca  # constexpr typeid improvements (#31312)
-ab60cca488  # Make c10::util::get_fully_qualified_type_name() backwards compatible with clang 4 (#31351)
-9116f02beb  # Rename TORCH_DCHECK to TORCH_INTERNAL_ASSERT_DEBUG_ONLY (#31917)
-ee817012b2  # Add more tests to the autograd wrt view and inplace (#31147)
-2a294aace6  # Remove memory ordering from LeftRight (#31026)
-f67851d69a  # Fix c10::util::get_fully_qualified_type_name for MSVC (#31313)
-f0072b3af5  # Remove C++11 compatibility from c10::optional (#30919)
-c66ca74f03  # Add device debug info to CUDA build (#31929)
-54777b1e73  # Avoid reference invalidation in cuda SpectralOps' plan_caches (#31861)
-462bfc7fe7  # docker hub image info (#31923)
-c299cb05ef  # temporary fix for jit test backward compatibility issues
-1314f7f4f4  # Ensure the original grad_mode is restored during backward (#31884)
-4f9d2f74e2  # Port softplus activation to Aten(CPU+CUDA) (#30504)
-9ba6a768de  # Add op bitwise_or (#31559)
-9a3cb1e859  # Move cauchy to Aten(CPU) (#31824)
-dedd16b418  # remove THConv code which never be used (#31879)
-8c59d48281  # Add doc previewing instructions (#31905)
-09a22f3301  # Remove C++ docs contributing page (#31908)
-5cc49ed45f  # Document `IValue` (#31904)
-eb23171bce  # TensorIterator norm update (#31903)
-0dbd5c0bfe  # Added torchvision tests as part of ORT tests (#31835)
-8614860210  # Uniformly apply Windows logic in cpp_extensions everywhere (#31161)
-5c423cae72  # Add precision tests for CUDA half linspace+logspace (#31962)
-5a76335aaa  # Move lshift to Aten (#31566)
-99b3f9cac4  # Move log_sigmoid to Aten(CPU) (#30958)
-e59e5ba5a3  # Move geometric to Aten(CPU) (#31878)
-26f552a3d1  # Javadoc changes (#31956)
-bc68a8745f  # Spelling fix in transformer docs
-cfdfdf70d7  # remove JSON dumping dependency (#30724)
-67c1d930eb  # Lock graph_task before writing leaf_streams. (#31995)
-2968faf154  # Update doc about output_differentiability keyword in derivatives.yaml
-67ff051ddd  # Remove temporary fix for torchbind in BC check (#31982)
-700d1c5cbc  # update CI script to take string docker image version (#31857)
-4e84661139  # update llvmlite to 0.30.0 (#31858)
-b6f43afaca  # Fix tensordot allowing negative dims (#31954)
-c6f41ae01b  # Fix and add more padding mode support for Conv (#31784)
-8098ae455c  # Move rshift to Aten (#31594)
-03ff3eb94d  # skip TEST_DILL on Python2 (#32027)
-16b8ca56b6  # update docker image version (#31848)
-638e4ad8b9  # Updated function definition for torch.mode and torch.median in torch docs (#32003)
-77c2c78e01  # Fix typographical error in torch.triu docstring (#32067)
-e74a215ade  # Changed clip_grad_norm_ total_norm calculation (#32020)
-4002fec509  # Display NVCC version in CI for convenience to look at
-8e93159fb6  # CUDA 8 cleanup (#32013)
-695c4f1bab  # Fix a typo in function name: liner -> linear
-5988d36f58  # Fix cumprod error for tensors with zero elements (#32070)
-d97413eb7a  # Change python/cpp docs CI to use a CPU-only image (#32102)
-701ca68882  # Docs entry for the `is_quantized`
-f003008d6e  # Allow TCPStore to pick a port to bind to. (#31674)
-26621d101f  # remove simple .data from torch/nn
-77c78b7d28  # remove .data from torch/nn doc
-8d472bab6b  # Make torch.backends.mkldnn usable without import
-5f1a881cb8  # Add private user tensor type IDs for experimentation. (#31830)
-1487582ba7  # Switch important CI from CUDA 9 to 10.1 (#31951)
-fa60e1150d  # Fix tensor^tensor derivative for 0 base entries
-b783a75aa3  # Fix scalar^tensor derivative for scalars that are zero
-0664c6bbfd  # Add ccls cache to gitignore (#31437)
-b0ac425dc4  # Emit warning from deprecated torch function signatures (#32009)
-2bb9dbeffa  # omit constexpr with nvcc on clang (#32149)
-4a26bb9b18  # Suppress pip logs (#31912)
-9bf0479b65  # Fix the passing-by-ref constructor of OperatorName. (#32170)
-8dc67a014f  # Add cummax
-7572501d40  # move ProcessGroupGlooTest to gtest (#32133)
-19bbb4fccb  # Stop building documentation in pytorch_linux_xenial_cuda*_build (#32187)
-ef0f96e92f  # [pytorch][PR] update comment in autograd.h for locking (#32222)
-05088da8e9  # [pytorch][PR] Fixed error in sample code of documentation (#31682)
-3d01e3d16f  # Notify other threads before running callbacks (#31713)
-81048c41ab  # remove simple .data from torch/nn
-74621ca926  # Add allgather_base as per our discussion re: ProcessGroup interface. (#31892)
-322f34b245  # Adding DDP Design Note
-a5161c7022  # Update out-of-date comment on Docker image updates. (#32224)
-31b7d0873c  # Add File existence checking (#32208)
-7df5dc2775  # Creating callUnboxedWithDispatchKey method (#32198)
-bab87e4b60  # reimplement __torch_function__ overrides for torch.functional using inline logic (#32194)
-14548c2d5b  # out variant for native_batch_norm forward (#29192)
-cd99b3706a  # Pin Pillow to latest and use a torchvision that works with it (#32290)
-b26ee54176  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
-8746f90cf6  # Fix weight backward for cudnn conv of large tensor (#31889)
-7b7390778c  # Make an assert on a hotpath trigger only in DEBUG mode. (#32117)
-36d09197ab  # Move error reporting code out-of-line from header. (#32118)
-b85dbe8f7b  # Out-of-line construction of OperatorName. (#32121)
-34c751c263  # Eliminate exception throwing code from dispatch call sites (#32168)
-c2761490fc  # Enhancing the test (#32321)
-7a9c920bac  # add lock for ncclCommAbort (#31901)
-904ab092c2  # fix testSend and testRecv in ProcessGroupGlooTest (#32134)
-6a5a55d573  # use gtest asserts in ProcessGroupGlooTest instead of other checks (#32138)
-78d8f691ad  # Don't dispatch to integral types in smooth_l1_kernel
-5b815d980e  # Added cummin
-7732924501  # Delete unused bernoulli_Tensor from THTensorRandom.h
-bdd5e15437  # skip testExceptions in ProcessGroupGloo if built with TSAN (#32242)
-5bc44fb6ea  # TensorIterator unrolling and vectorized load - step 0, 1 (#31974)
-824e649d40  # Specify requires_grad for Parameter replica so it's not always set to True by default (#32356)
-10c2bd35af  # Fix cudnn channels_last descriptors problem (#31952)
-61ee8c972f  # porting scatter_add to ATen (CPU) (#31662)
-ceffdbd217  # Temporary workaround for BC test due to schema parser changes
-b543e3cd6f  # support empty batch in group normalization (#32401)
-418ebc827b  # Build: Respect USE_CUDNN=0, even if cudnn is found (#32404)
-a2641e6005  # Make type of `Tensor.type()` more specific (#32353)
-cc2d5b15ad  # F.normalize uses clamp_min_ inplace (#32360)
-c13df8b688  # Fix cusparse version check (#32405)
-839fe714de  # Fix BC test after TorchBind cahnges (#32429)
-f86d6c6afd  # Enhance NCCL watchdog to acitvely abort communicators for timed out ops. (#32338)
-9e853e7090  # Revert "Temporary workaround for BC test due to schema parser changes" (#32441)
-0b606a4a7c  # Enhace DispatchStub to be thread safe from a TSAN point of view. (#32148)
-7fdc6cb74e  # Fix test_data_parallel name errors and add to run_test.py (#32428)
-64de93d8e7  # Move log_normal to Aten(CPU) (#31854)
-0d610b4821  # Remove the support of build options like NO_*, WITH_* (#32447)
-248f6d0485  # Implement backend fallback fallthrough (#32439)
-8abaa322da  # fix torch.eq() doc entry (#32399)
-e37a24b044  # Always return a new tensor from nn.functional.pad (#32350)
-c342c354a9  # Put sparse all reduce results to input tensors (#32226)
-1c017f0c14  # Migrate max and min (binary) from TH to ATen. (#30851)
-510a122d27  # add missing align_corners annotation (#32492)
-4bdfc71421  # Fix race condition for to() backward that spans devices (#31930)
-21d475e20d  # [gloo] Skip registry warning (#31126)
-02aa3ba331  # Raise error for code that risk deadlock (#32295)
-ea7bebb7fe  # [PyTorch BC] Clean up the whitelist for PyTorch Op BC check (#32523)
-9af5a97b1d  # Fix nll_loss to support empty tensors on GPU (#31491)
-b6b8620871  # Add unit test on export_opnames with interface. (#31531)
-db02a4e4ce  # Support 3D attention mask in MultiheadAttention. (#31996)
-49cd83d735  # no more build_pytorch_libs.sh/.bat (#32319)
-ad4fba0ce4  # Only run test_conv_large and test_conv_transposed_large_cuda on 32GB device (#32473)
-8ed1dd528e  # [JIT] Add torch.classes.load_library
-d2f66083c5  # porting gather to ATen using TensorIterator with multithreading support. (#32425)
-f0c85571ed  # docker: Refactor Dockerfile process for official images (#32515)
-fd1a4f18ee  # [pytorch] update code analyzer build.sh to handle srcs with same name (#32525)
-9e59244b53  # fix view listing in autograd codegen (#32044)
-9e0ce72e9e  # [pytorch] change op dependency output to use double-quoted strings (#32464)
-52f8f031ac  # add diag into pt operator microbenchmark (#32597)
-6412ca3ce9  # duplicate symbols with AT_PARALLEL_OPENMP=0 (#32568)
-1218a16aae  # [pytorch][refactor] Explicitly use auto* for pointers (#32548)
-59dbece371  # Fix iterator for ncclCommWatchdog. (#32571)
-e0ffe72649  # [aten] fix shadowing variable warning (#32573)
-0afe195046  # [pytorch] move type_derived_methods out of anonymous namespace (#32275)
-69283388ca  # [pytorch] codegen flags to whitelist op registrations / generate to separate files (#32451)
-320d1a1573  # Fix wrong typing (torch/nn/parameter.pyi) (#32617)
-3bbb36e02d  # Update linspace types (#32218)
-90a259e1e2  # Add warning regarding pickle insecurity on torch.load documentation (#32593)
-1e5aead35b  # Make cuda search process of cpp extension quiet (#32620)
-602394e996  # verify input sizes for instance norm and group norm (#29082)
-ca9dc67094  # 0-dim batch size input for interpolate. (#32400)
-e36cbb8f2f  # Fixes moving after weight norm application (#32563)
-897b6908d4  # Kill THIntegerTensor, THDenseTensor, THDenseIndexTensor. (#32599)
-57519bd829  # Revert "Fix iterator for ncclCommWatchdog. (#32571)" (#32649)
-666e5430f8  # Clean up mvlgamma doc (including a weird way to link to reference) (#32667)
-b3848c568e  # Fix flaky test_nccl_timeout. (#32653)
-8e4161517e  # div_kernel: throw when dividing by integer zero (#32629)
-e24ce0e524  # Kill some more unused code in function_wrapper.py
-da390914bd  # .circleci: Add workflows for Python 3.8 (#31948)
-34ccfba403  # [JIT] Include custom_class.h in torch/script.h
-0ea65d63cf  # [JIT] Fix stateful lambda stuff and simplify code in custom C++ binding API
-2060e0a9dd  # Split serialization tests to their own file (#32241)
-ee60cd9124  # Back out "fix view listing in autograd codegen" (#32720)
-e74e1ccc47  # Use direct vector indexing in Object::getSlot() instead of at(). (#31627)
-99228086a6  # Added missing period in README.
-18aab32959  # Move exponential_ from TH to Aten (CPU) (#32501)
-62d652f922  # replaces .at with [] in getSlot (#32677)
-594cadeb8f  # Make sure temporary vectors are properly initialized in avx2 code (#32722)
-c35ca84eee  # Get rid of some unused THGenerate*Type defines. (#32657)
-c7bf4d22fe  # added exception args to the returned error message (#32693)
-8bc889e502  # Fix crash of SobolEngine if default tensor type is cuda (#32496)
-d119de8abd  # Deduplication of type casting codes (#32730)
-b1c85dd916  # Custom RNG DispatchKey (#32325)
-2471ddc96c  # Improved speed of frobenous norm for non-complex dtype (#30871)
-8693164acb  # Randomize xla port (#32718)
-50d82f5122  # Make VC++ version a parametrizable option for Windows CI. (#32043)
-8cb05e72c6  # Port BCELoss to ATen to increase accuracy (#31365)
-3b47922855  # Improve documentation in dispatcher; remove unnecessary optional (#32533)
-5ffa1efa52  # Add missing C10_API to dispatch key TLS setter/getters (#32557)
-c7df28a2a3  # Delete copy/move constructors on these RAII guards. (#32727)
-b371eab8c7  # Expunge last two sites of resize_dim (#32112)
-8c6f52ac24  # Delete resize_dim() (#32114)
-3ee6673e99  # Refreshing numel on a stride update is pointless. (#32116)
-8b187e8f2a  # Fix ivalue_inl.h:353:29: warning: comparison of unsigned expression >= 0 is always true (#32778)
-9357b91180  # Remove -Werror from test/cpp_extensions/setup.py (#32704)
-b565d9b356  # Logspace fixes (#32744)
-2e359ef86d  # enable empty batch for all flavor of convolutions (#32709)
-85bd3e5bdb  # Removing @expectedFailureXLA from test_nll_loss_empty_tensor_reduction_mean (#32701)
-fa65859270  # Re-enable non-deterministic autograd tests
-cc35c876cb  # Fix backcompat for linear_relu_dynamic_fp16 (#32803)
-9bab617b3e  # Make python version a parameterizable option for Windows CI.
-413c0f6c29  # Fixes moving after weight norm application (#32563)
-3d0a470d89  # Rename DispatchKey::UndefinedTensorId to Undefined (#32728)
-5ddd2cd92b  # Make DispatchKeyGuards accept DispatchKey::Undefined (#32729)
-690d41f24e  # Centralize addition of "always on" dispatch keys. (#32734)
-765904f1b9  # [torch] fd error check
-bcb7c22679  # [PyTorch BC] Fix the ci (#32843)
-0f0972051a  # Cudnn bn size fix (#32763)
-fcf9fcedf4  # Remove needs_dynamic_casting from TensorIterator and move it to Loops.cuh (#32755)
-29fabb1fbc  # make tests for empty inputs check zero parameter grads (#32820)
-b16dab8a41  # Coding header is better specified in lowercase letters (#32850)
-d9e99ab544  # Loops.cuh legacy code cleanup -- gpu_kernel_with_index (#32777)
-1760d5b83c  # Remove wrap_dim from codegen layer. (#32738)
-7b65acdf9e  # Solves Issue #32750 - torch.prod now works fine with FP16 Input Tensor and FP32 Output Tensor (#32831)
-d03c9aaa05  # Fix upsampling test case on ppc (#32786)
-29e6f13cd1  # Enable MKL on MacOS if installed (#32905)
-e87887ccb4  # Update type hints for torch.optim.optimizer.Optimizer (#32900)
-7101f6b5c0  # Properly handle NaN in binary max and min (#32541)
-e085c55e53  # Fix `\\` warnings/errors when building optim documentation (#32911)
-c841ab403c  # add missing method annotations to torch.Tensor (#30576)
-b34e0dda24  # Emit the C++ version when compiling pytorch from source. (#32819)
-7cddc302e5  # min, max: check that operand and outputs are on the same device type (#32862)
-3fa907c145  # [docs] Fix argument type of torch.masked_select (#30385)
-00c6b90327  # Fix in documentation of convolutional modules (#30079)
-48eff08256  # Fix the level of headers in pytorch/CONTRIBUTING.md (#28412)
-167a892e99  # Add missing `shuffle` attribute to DistributedSampler typing file
-6996f8d880  # Add missing `default_collate` in dataloader.pyi
-9c2ed2574a  # Vectorized memory access in TensorIterator GPU loop for 1d contiguous case (#32383)
-5ca7bf453d  # Tests for verifying behaviour of BatchNorm using 0-dim batch sizes. (#32384)
-612e621da0  # Improve CHECK_OP macro (#29539)
-544eab37d0  # Move deprecation warning out of generated code into python_arg_parser. (#32907)
-3cac9900ca  # Clarify when softplus is reverted to linear. (#32945)
-df71b3e23a  # properly update _flat_weights in RNN modules (#32939)
-ec2c974bd5  # Simplify some TH codegen by moving code out of the switch and killing dead code. (#32888)
-9e7c47644f  # [NHWC CUDNN CONV]Update cudnn convolution memory_format behavior (#32482)
-aa3c871739  # Adds TestViewOps, updates documentation (#32512)
-e922826dda  # [pytorch] simplify lazy initialization of DefaultCPUGenerator singleton (#32897)
-d3fa68eeec  # Fix for MKL detection script on Windows (#32970)
-b69c685c4a  # try to find cudnn header in /usr/include/cuda (#31755)
-67706187fb  # Fix a broken link in contribution_guide.rst
-478356aeec  # Fix broken links in governance.rst
-d3a0bdd06b  # proofreading (#29797)
-27e1fecabd  # let user specify CUDA_HOST_COMPILER
-6305e4a88f  # Add warning and example for seeding to DistributedSampler (#32951)
-7ea6559658  # Add size checks to `torch.stack` (#32931)
-a9141dd240  # Patch `Half.h` for compiling CUDA with clang (#29027)
-1b446aa2ee  # Expose Channel Last 3d enum
-6b0813ea5d  # Stop using dispatchTypeId to do checks for tensor list unwrap. (#32787)
-16c166e2ea  # Add XLAPreAutograd key for XLA use cases that need custom autograd. (#32788)
-3531f99384  # Kill _th_max, _th_min overloads that aren't used.
-81a9046301  # Fix dispatch of argmax/argmin. (#32961)
-fbde3c05b6  # [aten] fix vector memory leak (#32478)
-72b9412be2  # Move some broadcasting logic away from codegen. (#32982)
-e8581869f2  # Properly update _flat_weights in RNN models (#32989)
-1b746b95fb  # Consider hub_dir alongside TORCH_HOME env variable for storing hub models (#32844)
-6209412647  # Add option to use ninja to compile ahead-of-time cpp_extensions (#32495)
-46c3c18bcc  # Issue a warning when using zero_grad in DataParallel (#32870)
-b00345a6f2  # Move normal distribution to Aten(CPU) (#32031)
-3c17cbb6c8  # fix #30480 torch.normal shape checking is broken (#32243)
-757cea92a4  # [c10] Allow taking a std::tuple as arg (#32948)
-b0476dc6e6  # Fix Typo
-e025f393f6  # windows template specialization bug (#33076)
-3b2f267ad8  # add to codeowner to get better inbox notification for PR
-de27f4261d  # [jit] remove redundant variables from JIT TestCase
-a9583c1f75  # Vectorize softplus and its backward function on CPU (#32944)
-7314f1c281  # [torch/multiprocessing] Update documentation indicating that start_method is ignored for mp.spawn() (#33070)
-efba630287  # Issue a warning when zero_grad is used in DataParallel (#33064)
-3e8d813263  # Add more checks to custom Function (#33069)
-c917a247a8  # Improve error message for assertWarnsRegex (#33099)
-9d94f56ce0  # Backward operation of torch.eig for real eigenvalues (#33090)
-ebed008dd4  # Correct /MP usage in MSVC (#33120)
-3bde97d5a5  # Move a resize from codegen to code.
-e8c4f5a74b  # Temporarily disable failing iOS builds
-495c1df510  # [pytorch] convert code analyzer to a binary (#33102)
-d672779339  # [CI][treehug] Disable xenial_py2.7 tests due to mypy min version py3.5
-a3e69d3405  # Use bazelisk instead of specifying bazel version manually. (#33036)
-9857d9b4cd  # fix gather regression by not materializing loop vars in the error mes… (#33108)
-330d051bd5  # [pytorch] Migrating index_add cuda to ATen (#30573)
-e7f0b15473  # Remove return value for __exit__ (#32997)
-857bae39e0  # Updated DispatchKeyExtractor to expect TensorOptions (#30981)
-31370949be  # Add zero_mask function for vectorized functions. (#32985)
-367488b001  # Move where cuda implementation to TensorIterator (#32984)
-a64d0ffe81  # Use int64 in pdist kernel to handle batches >= 46342 #30583 (#31593)
-ad90c97c0a  # Removes flaky check (#33146)
-7b50e76255  # optimize cat performance on CPU with TensorIterator (#30806)
-45818a3de4  # Remove some Half support in some binary CPU kernels (#33021)
-6706c3f457  # Prepare templates (#30982)
-04829e924a  # Update CPU threading doc (#33083)
-769abddfa3  # Build ahead-of-time C++ extensions with ninja on windows
-000a5e2b7f  # bad tbb lambda capture, bad chunk size (#30352)
-139afd0ea7  # Fix link to py-spy content in contribution guide TOC (#31760)
-1487137c5b  # add missing default value for LRScheduler.step() (#32411)
-f255b7a3ac  # Drop support of the build option USE_GLOO_IBVERBS (#33163)
-9e7638f7c1  # "batchSize" was set but never used (#32294)
-b9a5353fee  # Move where cuda implementation to TensorIterator (#33228)
-c6e0360812  # Minor change of docstring example of WeightedRandomSampler (#30846)
-05281a5671  # Add nice error message if missing overrides in custom autograd.Function
-3cfea39968  # Document how BCELoss avoids infinite results (#33160)
-87640570b3  # Make CUDA OOM error a type (#33056)
-97bf41ca22  # Fix iOS x86_64 CI failure (#33194)
-2e9b7c5fe1  # Migrate dist from TH to ATen(CPU, CUDA) (#29714)
-323b0e0a0f  # fix #30480 torch.normal shape checking is broken (#32243) (#33050)
-40265e2d66  # prevent various warnings related to undef and redef (#33196)
-ab14375b08  # Workaround for CUDA10.2.89 CUDA extension compilation error (#33230)
-bc0ab07064  # Opitmize Unfold3d to improve performance of Conv3d (#33191)
-e45343fa14  # TORCH_INTERNAL_ASSERT_DEBUG_ONLY not eating message string (#33251)
-03e9b9ce18  # [PyTorch BC] Remove unnecessary items in whitelist (#33247)
-946f3a9ed7  # Refactor and add VS 14.16 and 2019 CI for Windows (#33117)
-0c474d95d9  # Remove Half support in binary cross entropy and some activation functions on CPU (#33206)
-6c6a814a2c  # Beef up documentation on DispatchKey.h (#33011)
-0c93c2b142  # Add a warning sign for anomaly detection (#33176) (#33239)
-5b922918d0  # Disable flaky test TestCppExtensionAOT.test_cuda_extension in Windows CI (#33282)
-bbdc5b7bd0  # Optimize error checking in mvlgamma (#32665)
-0808485c6a  # Workaround performance bug / memory leak in GOMP (#32875)
-7ae1e023e7  # glu: port cpu forward implementation to ATen (#26410)
-cb4e6d025a  # Updates numpy to tensor negative stride error message (#33254)
-e5218e3e12  # Add missing error messages for container modules (#29991)
-602aec325d  # Kill old cuda support (#33302)
-0150f40dde  # dont force msvc /Ox flag which can conflict with /RTC1 in debug config (#33164)
-1b2d2ba504  # [PyTorch] Fix write-after-free (TSAN) in GraphTask::set_error() (#33156)
-7dde91b0ae  # Vectorize elu and its backward function on CPU (#32986)
-b276ddda38  # remove THC dist code which nerver be used (#33283)
-b730c5a3bd  # remove dispatch key (#33266)
-9c0625b004  # [iOS] Add watchOS support (#33318)
-0b5b2b864a  # [BC-Breaking] Rename at::Tensor::base() to _base() (#33316)
-dfafe2aad1  # .cirlceci: Swap PYTORCH_BUILD_VERSION if on tag (#33326)
-3359871f5d  # .circleci: Use volume mounts instead of docker cp (#33355)
-1e76649d30  # fast setup for output tensor in tensor iterator (#33165)
-fd684cc312  # Use torch.set_default_dtype in test_data_parallel and rename dtype2prec (#32962)
-cd038c0ae9  # Get rid of some template arguments in GPU loop (#33308)
-495bd5818b  # Fix index truncation in argmin/max for large tensors (#33310)
-f6808df75f  # [BC] Temporarily fix the BC check (#33387)
-c90b393c00  # Fix logging for aborted communicators in ProcessGroupNCCL. (#33147)
-ebb008eb68  # Optimize Unfold3dAcc to improve performance of conv3d backward (#33317)
-55fa133cdc  # Remove gpu_kernel_with_index (#33370)
-cfb4862673  # [pytorch] correct input size check for GroupNorm (#33008)
-28c5213a97  # Add mechanism to pass a number of workers to cpp extensions (#33346)
-2c99ea8654  # Dirac init compatibility with group convolutions (#32825)
-879cf0b15a  # fix typing bug of LambdaLR.__init__ (#33271)
-f938b3b4e0  # Remove TH binding of set_(Tensor). (#33358)
-abbf6e7f53  # fix clang-tidy lint (#33448)
-1af30451e5  # sync srcs between fbcode and ovrsource targets (#33368)
-016d73bd74  # remove Complex CPU/CUDA backend enum keys (#33267)
-da015c77a1  # Cummax and Cummin doc update and performance benchmark (#32537)
-3ad59734d7  # Add type annotation for bias in _ConvNd (#32885)
-a5f01846c2  # Kill THCState_getCurrentStream (#33376)
-a67691e508  # Fix isnan for integral types in MSVC (#33483)
-d7f00b1b45  # Remove using declaration from widely-used header file. (#33293)
-165b1ad8e8  # Kill THCState_getNumDevices (#33375)
-60339a38ed  # Fixes #33001 (#33456)
-1e3664b6ef  # Remove c/pdist tests from _internal/common_utils.py (#33409)
-a8bd1d24c9  # [Documentation] cummin doc fix (#33492)
-62c953b348  # Fix svd tests between devices. (#33470)
-1d9fcf8bd2  # Correct documentation for torch.unsqueeze (#33478)
-8908b62fb2  # Clean views created inside no_grad that are modified inplace (#32839)
-ea514c819a  # Make slow_conv_transpose2d_backward tensors contiguous (#33462)
-602ef0d9d0  # [WIP] migrate scatter_ to ATen CPU (+multithreading, nondeterministic) (#33139)
-1fe635be3c  # Allow vectorized gpu loop to have different argument types (#33222)
-ffe327f7d9  # Revert "Disable flaky test TestCppExtensionAOT.test_cuda_extension in… (#33404)
-196fda5a79  # Remove special case codegen for tril_indices/triu_indices. (#33305)
-a9e4448dff  # Update documentation on why _cudnn_init_dropout_state looks the way it is. (#33347)
-cdf381c967  # Fix LambdaLR scheduler side effects (#32848)
-d19a50bf27  # Add missing weight_decay parameter validation for Adam and AdamW (#33126)
-1a25747342  # Check for consistent devices in at::where (#33432)
-13e4ee7883  # Added tensor.is_complex(), is_complex and dtype.is_complex py binding, tensor printing, and dixed the scalar type returned for complex float (#33268)
-e5cf7afd0a  # torch.tensor can infer complex dtype now (#33361)
-c882425c24  # Add 64-bit indexing support to THC index reductions (#33405)
-faa800eb5b  # [JIT] remove inline everything jitter skip (#33468)
-ac9b40164d  # Use cheaper check in isTensorList (#33528)
-e8a03438cc  # Make TestCuda.test_memory_stats more robust (#33575)
-4588f49f68  # Kill cudaDeviceAllocator in THCState (#33380)
-e2a9ea0f72  # Ensure that lambda is no less than zero in softshrink (#33201)
-90f4c5695e  # Revert "Revert D19975411: Remove special case codegen for tril_indices/triu_indices." (#33572)
-fa80299bdf  # __torch_function__ overrides for torch.functional and torch.nn.functional (#32799)
-293fa5fc44  # [Documentation] Fix minor typo in torch.serialization (#33549)
-ca8e025cdf  # improve the doc of enforce_sorted in pack_padded_sequence (#33617)
-a72946dbab  # Stop generating out full function type for registration, use decltype or infer it (#33097)
-f62f1b2ef0  # Revert "Revert D19964089: [pytorch][PR] Allow vectorized gpu loop to … (#33553)
-16d6c17845  # improve roll performance (#33623)
-d971007c29  # Migrate `random_` from the TH to Aten (CPU) (#32534)
-a7e22b4c6a  # add bailout checks to checkScript (#32802)
-8291e06f8f  # Fixes cuda->numpy and non-strided->numpy segfaults (#33612)
-6d448acb34  # [PyTorch BC] Skip aten::random_ to fix BC CI (#33666)
-7aa605ed92  # Remove uses of `.data` in test_torch (#33638)
-e1bddbbaf6  # Bounds checking for functor execution in vectorized/unrolled kernels (#33642)
-9d834cc889  # [JIT] Fix FunctionType::python_str() (#33680)
-641750e33c  # Fix NaN handling in torch.mv. (#31666)
-e3ba533c8b  # Minimize the cases where we have to cpu_zero. (#33570)
-6a275b696e  # adding IterableDataset to utils.data.__init__ (#33543)
-32c93099c4  # Add typing info for data members of utils.data.sampler classes (#33679)
-062ac6b472  # Bring up new-style registration API as wrapper around old-style (#33205)
-330b69fef8  # Kill dead scalar_check. (#33695)
-54e41a87eb  # Make ELU great again (#33244)
-b10a39bb32  # Migrate _cat from TH to ATen (CUDA) (#33237)
-9278196d89  # scatter_add uses src, not other (#32307)
-54aac4af1f  # Update hypothesis_utils.py (#33739)
-d6ea4be153  # Fix minor problems in index_put_ docs (#33689)
-3cf97bc23c  # Fix typing error of torch/nn/modules/container.pyi.in (#33686)
-a9cef05f5d  # improve EmbeddingBag performance on cuda (#33589)
-2a4aad7466  # Don't activate vc env again for cuda with ninja on Windows (#33700)
-adbe289870  # Update MKL to 2020.0.166 for Windows (#33690)
-7a8b6c2c6b  # [pytorch] blas gemm fix for k=0 (#33419)
-4ef854b4b4  # Fix potential hang when exiting main process (#33721)
-6bdb59539f  # follow-up test_torch .data removal (#33696)
-fd175fa8a2  # fix bugs in gen_pyi.py (#33748)
-819ca2c285  # add bfloat16 conversion method in type stub (__init__.pyi) (#33747)
-8196ec0115  # Remove some dead THStorage related code. (#33734)
-2b404de347  # [scripts] Add script to fetch clang-format binary from AWS S3 (#33644)
-d82093e665  # [profiler] remove redundant assert in record_function_ops (#33225)
-9bc922d518  # Extend cuda install timeout for Windows jobs (#33755)
-0e74cbcc54  # Revert "Revert "Revert D19975411: Remove special case codegen for tril_indices/triu_indices." (#33572)" (#33742)
-72288e82e2  # Use shim executable sccache-cl as the compiler instead of sccache cl (#33745)
-4d203c6fc8  # Move cumprod and cumsum to Aten(CPU) (#33280)
-5bac7febad  # removed padding and dilation from LPPool2d Doc (#33714)
-9a5ea71380  # pad_packed_sequence: doc improvement (#33768)
-a836c4ca78  # Skip manual backward for `cdist` with case `p=2` (#31167)
-fc6a153688  # [WIP] Reanimate gradient scaling API with original scale update heuristic (#33366)
-c1dd70688a  # Fix deprecated python "add" calls (#33428)
-f87b0b2515  # Remove the use of macros in defining binary ops for base Vec256 (#33733)
-2eb95d8f4a  # Migrate `fmod` and `fmod_` from TH to ATen (CPU) (#33592)
-b8f0acf50f  # Fix examples with updated pruning naming convention (#33144)
-f597ac6efc  # Fix grid_sample gradients at image borders (#32829)
-93e30c16cb  # .circleci: Switch to using robot token for conda uploads (#33786)
-8aa09de19e  # build: set -DNDEBUG in Release (#32719)
-02908dfa67  # remove setStorage with null StorageImpl support. (#33735)
-cd0acf4374  # port masked_fill from TH to ATen (#33330)
-6eef66e1f4  # .circleci: Divert packages to test channel on tag (#33842)
-2b9fa4a756  # [jit] Fix flipped PackedSequence outputs in script (#32955)
-84101f353e  # Avoid problematic pickle usages on Python 3.8.0 and 3.8.1 (#33824)
-ca002a0f6b  # Switch empty_like to use merge_in to process TensorOptions. (#33505)
-d41c8d0461  # Correctly preserve "not set anywhere" TensorOptions when merging. (#33510)
-095de1e872  # Migrate `random_` from the TH to Aten (CPU and CUDA) (#33663)
-bd77abffe3  # Kill some unused (TH)Storage-based APIs. (#33815)
-6647a44e8c  # Automatic update of fbcode/onnx to 9fdae4c68960a2d44cd1cc871c74a6a9d469fa1f (#33858)
-908eee5583  # remove .data from test/distributed/ (#33874)
-c4d611a0f5  # Split BinaryMiscOpsKernels into more files for faster build times. (#33873)
-d97560999b  # Split BinaryCompareKernel.cu into a file-per-kernel to speed up compilation. (#33871)
-edd5c009f7  # fix docs mistakes in lr_scheduler.MultiplicativeLR (#33805)
-524dad13a8  # Add device to the test tensor. Default device type is CPU, in pytorch… (#33635)
-aff1da5aac  # .circleci: Remove trailing slash, fix conda upload (#33903)
-87e97ced20  # Split UnaryOpsKernel into smaller files for faster compilation. (#33888)
-48fd410e44  # Try fix XLAPreAutograd with *_like functions. (#33848)
-746e5218e7  # Mistake in MSELoss documentation (#33836)
-877ab3afe3  # Better handing of Autograd+Fork errors. (#33885)
-d66c320b10  # disable leaky_relu_ backward calculation with negative slope (#33639)
-c18cb1eb52  # Improve dll loading logic on Windows (#33856)
-09046713cc  # removed .data from test_autograd.py (#33886)
-dece155335  # Modified assertEqual to handle complex tensors (#33773)
-04dc0e6973  # Split Distribution.cu into smaller files to reduce compilation time. (#33892)
-c6d301220a  # Fix torch.cat() performance regression on single core CPU (#33534)
-a726827ec8  # Formatting changes for gradient scaling (#33832)
-f5d92fbc25  # Get rid of newWithStorage2d calls. (#33823)
-917e56e950  # Throw an error if nbytes is called on a sparse tensor. (#33897)
-2fa51dde28  # Remove unnecessary tensor copies (#33732)
-69d2741480  # Add list of view ops to public doc. (#32560)
-991f7a20f2  # Use clog from cpuinfo/deps instead of downloading (#33947)
-38b6cb479b  # Check fuser results when profiling (#33944)
-de55e47a4b  # Pass all ops to XLA with additional info about whether it's compound (#33908)
-c596ec7eb3  # [pytorch] update code analyzer script to cover new c10::Module::def API (#33975)
-7747fe81c4  # reuse named tensor error message in generated code (#33536)
-f857fe18cd  # [ATen] Remove `AT_ASSERTM` from Blob::free_() (#33929)
-a500491cbc  # Fix index_put when tensor length > int_max (#33753)
-6631c2a627  # [doc] Add grad context manager doc to toplevel torch module. (#33877)
-31737e989d  # [aten] remove shadowed declaration warning (#34014)
-e54b8e1a47  # [CUDNN NHWC CONVOLUTION] Re-stride input tensors for wgrad in cudnn_convolution (#33784)
-e73d4286b0  # Fix conflict between XNNPACK's clog dependency and our cpuinfo dependency (#33922)
-ba4cff2ffc  # [dtype inference] Following pytorch default for float vs double (#33713)
-ec0f2184ba  # clang intrinsics targeting (#33958)
-9956a231b9  # Fix backward compatibility tests (#34071)
-87b3f87f27  # Migrate prelu from CUDA_tensor_apply2 to TensorIterator (#34003)
-4b3ae7e0af  # Enable -Werror=format compile errors on torch exception types (#34019)
-11843049d5  # [jit] Fix flipped PackedSequence outputs in script (#32955)
-384a4feab6  # Fix bad math typesetting (#34027)
-e568c039bd  # Enable Tensor.random_(from, to) for half on CPU (#34030)
-15bf4892f2  # prevent crash on exit from static destructor race (#33955)
-a57a7b4c29  # Change input value in examples of `BCEWithLogitsLoss` (#34053)
-c206b4398d  # Show errors from the tasks in the thread pool (#33938)
-a4716d0e26  # Fix lint (#34094)
-bb4465f9f5  # .circleci: Add CUDA 10.2 to our CI pipeline (#33471)
-77b9016a8e  # Migrate gamma grad from CUDA_tensor_apply3 to TensorIterator (#34020)
-ff1fc402a8  # Migrate dirichlet from CUDA_tensor_apply3 to TensorIterator (#34021)
-1ed950e1b6  # [distributed] skip use_ignore_output tests in c10d if not built with gloo (#33513)
-ad3f4a32bd  # [pytorch][buck] fix selective buck build (#34090)
-3b93928ada  # .circleci: Add filter to run nightly builds on tag (#34078)
-0729ad733d  # Change lint from python2 -> python3 (#34107)
-0689cf8fc1  # [c10] Make __assert_fail CUDA definition compilable with clang host compiler (#34102)
-a23e8099dd  # Fix typo (#34008)
-5be8a4e027  # find mkl installed by nuget (#34031)
-f29110fdf8  # [pytorch] blas gemm fix for k=0 (#33819)
-3def76583a  # [RESUBMIT] [pytorch] Migrating index_add cuda to ATen (#33548)
-4074d559e4  # Migrate kl_div_backward from CUDA_tensor_apply3 to TensorIterator (#34022)
-5082839de5  # Migrate Lerp from CUDA_tensor_apply4 to TensorIterator (#33994)
-51936c5ea4  # [pytorch][CI] end-to-end custom build script (#34012)
-9b527b35bb  # CUDA Vectorized Dropout (#33879)
-74a0663afd  # In torch_test, mark every test that takes >5s on a DEBUG CPU-only build as slow test (#33901)
-ad2825a2c9  # Add API for listing functions overridable by __torch_function__ (#33791)
-fbc9c61c81  # randn and normal_ for complex tensors (#34037)
-49921cad28  # Minimum build should also exclude XNNPACK (#34110)
-f26bbb5f86  # [fix] flake8 lint error (#34146)
-6a97777f72  # Remove use of `.data` from optimizers (#33640)
-c93b1d427c  # [profiler] fix chrome tracing for profiler run with cuda (#33987)
-92083f31b5  # [gloo] dont hold locks in calls to buffer in ProcessGroupGloo:RecvWork::wait() and (#33926)
-27f56632a4  # Migrate bce loss from CUDA_tensor_apply3 to TensorIterator (#34023)
-1affaf8d10  # Migrate lerp from CUDA_tensor_apply3 to TensorIterator (#34025)
-f299c2d6e1  # Completely kill CUDA_tensor_apply3 (#34026)
-ba1bd41767  # Turn on strict dtype checking for test_torch.py (#33825)
-7cda964e20  # Remove deprecated codepath for old-style autograd.Function (#30696) (#33956)
-cb3905e8cf  # .circleci: Re-do run nightly pipelines on tag (#34148)
-1beb309e03  # Make DEBUG == REL_WITH_DEB_INFO on CUDA build (#34153)
-9d1c971b11  # [Aten] Suppress valgrind leaks in libcuda (#34169)
-4edff32f81  # [c10] Fix typo in __assert_fail noreturn modifier guard (#34157)
-31cc311143  # Expose `CUDACachingAllocator` `raw_alloc` and `raw_delete` to python (#33860)
-a19db54b36  # [Redo][ATen] Remove AT_ASSERTM from Blob::free_() (#34168)
-7cee787a19  # [pytorch_ci] Python target determinator (#33577)
-57c1b80ec2  # [pytorch]Migrate _th_ger to Aten and kill resize_scalar in codegen (#33792)
-fc6dce6033  # [c10] Fix TORCH_INTERNAL_ASSERT_DEBUG_ONLY MSVC bug (#34173)
-6d78882158  # Add layout.html to template for stable docs (#33770)
-fdd771c90f  # Make tracing in code gen optional (#33715)
-f6c883ccea  # TH: Defer to ATen's AVX detection code (#34088)
-5f4a01b2ea  # Update MAGMA to 2.5.2 for Windows (#34205)
-22506ae71d  # Reduce code duplication in OperatorEntry by keying hash map on optional<DispatchKey> (#33817)
-78ad3dc174  # Fix Lint (#34218)
-3a3fcbbc39  # Use templates instead of macros when defining bitwise operators. (#33835)
-438f4ea0ac  # Cleaner implementation of bitwise operations of integeral types (#33849)
-112cecc440  # Remove the use of macros when defining division between integers (#34104)
-39f78db7ec  # optimize UpSampleNearest 1d 2d and 3d performance on CPU (#31452)
-9dd5d51b01  # [ATen] Exclude CUDA tests when running `basic` under valgrind (#34181)
-67608cc018  # Fix MKLDNN conv2d 5d weight handling (#34115)
-93990bab58  # Make use of our S3 mirror if Yann Lecunn's website is not accessible (#34215)
-e1c6f93f14  # Clean warning message (#34143)
-e2ddf935bb  # Run RPC JIT tests with variable type hints only in Python >=3.6 (#34284)
-4a194f89aa  # Disable MNIST test in test_xla() (#34261)
-ff2731b45c  # Revert "Disable MNIST test in test_xla() (#34261)" (#34316)
-765c5b1c95  # .circleci: Add CUDA 10.2 to CI (#34241)
-2af64ba3ed  # Allow output to zero-strided tensors if the size is <= 1 along that dim (#34100)
-e4a883e601  # cuDNN convolution try multiple algo (#33073)
-38857734f0  # [JIT] fix py35 test (#34350)
-f9f135c5d8  # ChannelsLast3d support is_contiguous, contiguous, suggest_memory_format, caching (#33033)
-35b6d2945d  # Tensor.random_ check that from and to are in tensor dtype bounds (#34033)
-9c5578fd0a  # Make sure Vec256 int32_t and int16_t loadu temprary arrays are properly initialized (#34281)
-a7da4490cc  # Clean up some legacy scalar/empty handling. (#34217)
-82a177c07f  # [c10] remove warning attribute does not apply to any entity (#34018)
-4872b126fd  # [aten] remove stmt unreachable, variable never used warnings (#34017)
-6d8a0f6731  # [Aten] Init container iterators to an unsigned type (#34159)
-98afce3c56  # Remove unnecessary assert in autograd engine (#34307)
-0489b8da42  # Add scripts to promote S3 artifacts from test channels to stable channels (#34274)
-c6ea71b6e8  # Fix Conv.cpp, &&= is not a C++ operator (#34381)
-2d3f6cbf03  # .circleci: Update default smoke tests from cuda 10.0 -> 10.2 (#34328)
-079de7f376  # .circleci: Remove macOS builds related to CUDA (#34333)
-516a587438  # Enhance reproducibility documentation (#33795)
-37dfc6c498  # Reenable large conv tests (#34259)
-96ca06cfce  # Add nhwc memory format test for dropout (#34379)
-ccf6fab65e  # Fix doc and type hints for "torch.add"; fix deprecated python calls in tests (#33935)
-d98516026e  # [PyTorch BC] Clean up the BC whitelist (#34393)
-392afb9f8b  # Fix overlapping keywords (#34142)
-79d47c1c5f  # Fix the missing ';' in Conv.cpp (#34448)
-7e55494502  # Warns on read-only Numpy array->tensor conversion (#33615)
-b09e90af1e  # Fix C++ at::Tensor docs generation (#34467)
-b1bd950a4d  # Fixed stub for AdamW (#34299)
-f62a7e7efb  # Simplify implementation of newWithStorage1d. (#34382)
-6d3783a6bc  # Clean up unused newWithSize variants. (#34383)
-e025677e3c  # Remove **kwargs from torch.meshgrid (#34356)
-2b45368e50  # Fix cudnn 64bit indexing issue (#34407)
-8294db8f15  # [iOS][CI] Remove org-member from iOS Simulator Builds (#34410)
-34688d2c48  # Add brand guidelines link (#34503)
-4e357089b4  # Stop calling newWithSize directly. (#34384)
-90ff3b56d0  # Kill some unused TH(C)Storage functions. (#34385)
-e408d46477  # Print pytorch version before running ASAN tests (#34521)
-3e6e2e9b7b  # Print the current Node name in anomaly mode (#33875)
-f5ee46f1cf  # Remove custom function in no_grad block error message (#33896)
-20b18a58f1  # Update compiler warning about ABI compatibility (#34472)
-c7dd5f89a2  # Fix #33562 (uncaught domain_error on macOS) (#34301)
-cb689a5d68  # remove duplicated process group gloo timeout (#31342)
-0dbfb26e53  # Clean up include list of Shape.cu (#34528)
-cd9d9a2235  # fix handling of replica parameters in DataParallel (#33907)
-5f61f42c79  # .circleci: Switch should_run_job cuda 10.1 -> 10.2 (#34498)
-2cf344be4c  # Turn on exact_dtype by default on test_sparse.py (#34489) (#34542)
-dd7cec680c  # Do not use clang if it can not parse system extensions (#34549)
-be3bc1deb1  # convert counter back to list #33229 (#33356)
-d0834c5b64  # Preserve memory format for torch.cat on CUDA (#34526)
-ce77d4a316  # Set USE_RCCL cmake option (dependent on USE_NCCL) (#31341)
-ab2297dfe6  # Add Tensor overload for start in narrow. (#34317)
-fbbeee0983  # Port `remainder` from TH to ATen (CPU and CUDA) (#34136)
-b2344b70da  # Beef up documentation on Dispatcher.h, reorder methods for clarity. (#33838)
-5fc5cf6571  # Stop using ctypes to interface with CUDA libraries. (#33678)
-2ec779d46c  # PCA and SVD for low-rank matrices, LOBPCG for positive-defined generalized eigenvalue problem (#29488)
-82cdd3abae  # Stop last usage of newWithSize. (#34386)
-b553e6911a  # [distributed] quicker exit in the case of failed tests in distributed (#34150)
-70f3298684  # Fix SELECTED_OP_LIST file path issue (#33942)
-25e4e9eb86  # [On-device Benchmark] speed_benchmark_torch switch to log latency from dataset level to row level (#34598)
-2de4f245c6  # Fix typo in documentation (#34581)
-adb8e26182  # Fix for handling batch size 0. (#34599)
-86fb522acd  # Remove cudaMemcpy on full memory overlap (#34548)
-b039bca4db  # Fix typo in data.rst (#34624)
-3c76b2aeea  # Replace THPLayout with at::Layout in Python Argument Parser (#34543) (#34584)
-a22008f91e  # Prohibit copying autograd engines (#34567)
-962e362427  # Fix _cat operator (#34591)
-157d2d7825  # Fix version check for grad_fn for views (#34145)
-9fd08b9c37  # Get rid of newWithSize. (#34387)
-518e9f94c2  # Kill newWithStorage. (#34388)
-dd313f314e  # Stop creating unnecessary Storage with newWithStorage1d. (#34389)
-3f1ba3c465  # Redo of "Add API for listing functions overridable by __torch_function__" (#34240)
-d81d65b2f7  # Add entry for distributed tests to CODEOWNERS. (#34637)
-cb06cb7b9f  # Remove hotpatches that circumvent MAGMA bug (#34357)
-31cd893899  # remove some TH dead code (#34644)
-9f05fc9322  # [Aten] First argument of check_names_valid_for() should be an unsigned value (#34158)
-52787388d2  # [tools] Add clang_format_new.py to download, verify and run clang-format binary (#34566)
-c78eacb5ee  # scripts: Add promotion script for s3 to pypi (#34500)
-fd35596585  # [docs][1.5] Update distributed autograd note (#34657)
-8e8a37d746  # Fix bug in baddbmm corner case (#33467) (#33538)
-40eff454ce  # Fix max_pool2d NHWC for large tensors; fix incorrect use of cudaGetLastError() (#34519)
-b1dbe33056  # Skip `TestNN.test_spectral_norm_load_state_` if PyTorch is compiled w… (#34686)
-4a599f47fb  # scripts: Add script to promote conda packages (#34659)
-c34ee4fb6e  # [JIT] disable test (#34722)
-0f3b6f3dec  # Add min function to cuda math compat (#34723)
-aedffdf7d8  # Support for Tensor Shape Type Hint (#34595)
-6d790c3611  # Mark PyTorch incompatible with python-3.6.0 (#34724)
-1734bd6871  # skip mask_rcnn test (#34734)
-e7910aa9e5  # [fix] use non-inplace for insert observer pass (#34190)
-7dee36a061  # .circleci: Remove CUDA 10.0, no longer needed (#34726)
-4c30fc7238  # Integrate XNNPACK with custom class for packing weights. (#34047)
-84bd71dbd4  # Enable threading for XNNPACK ops. (#34547)
-08bc3c6cbf  # Remove unnecessary import (#34778)
-15c84c37b6  # [PyTorch BC] Clean up the BC whitelist (#34784)
-528aabd373  # Fix backward compatibility check test for schemas containing (#34782)
-f404537c26  # CUDA Loops: move address computation into policy, make policy.load load all arguments (#33720)
-7848c229b8  # Move min and max(reduce all) to Aten(CPU) (#33936)
-c258e4732a  # solve conv3d backward get incorrect result problem (#34358)
-c86d1361b8  # Removes unused THCTensor_(triu), THCTensor_(div) (#34712)
-c3c0cf1591  # Migrate binary_cross_entropy_backward from CUDA_tensor_apply4 to (#33995)
-a66b837b19  # Migrate dirichlet_grad from CUDA_tensor_apply4 to TensorIterator (#33996)
-b94d650868  # Remove unused newView declaration. (#34729)
-8eaafbd99b  # Remove unused newWithSize declaration. (#34730)
-e93e7b2795  # [TensorExpr] Add tensorexpr benchmarks. (#34230)
-8bae1ed144  # PCA and SVD for low-rank matrices, LOBPCG for positive-defined generalized eigenvalue problem - copy (#34721)
-31eaeba38a  # Increase the prec of test_baddbmm (#34764)
-1bac5fd0d3  # add hardsigmoid FP operator to PyTorch (#34545)
-ae0c88d6aa  # .circleci: Add manywheel builds for python 3.8 (#34732)
-1e140c353c  # [profiler][rpc] fix a race condition in the profiler when multiple threads call (#33719)
-471ddacd8b  # Add retry decorator and use it for Hub tests. (#34829)
-699a4ed8f5  # [testing][do not land] (#34605)
-76d9e76b4a  # Default to erroring when failing to return from non-void function. (#34663)
-a8ca340ad6  # Remove all uses of AT_CHECK and replace them with TORCH_CHECK (#34846)
-acbca57d18  # improve batch_norm contiguous case's performance (#34530)
-67cb018462  # Print cuda install logs for Windows CI (#34858)
-65889388d1  # Use randomtemp to resolve intermittent cuda build errors (#34777)
-7a3cf67fd8  # Implement channels last upsample2d/3d forward pass kernel. (#34597)
-940e678da9  # Add back cudaHostRegister to cudart API. (#34665)
-275f5c8049  # setup.py: Add numpy as required for install_requires (#34510)
-6b701de130  # Add types argument to __torch_function__ (#34303)
-5857a125df  # Turn on exact_dtype by default on test_optim.py (#34825)
-b227ea955e  # .circleci: Remove should_run_job, no longer needed (#34326)
-0216c76e12  # SNIFAE Template Constructors of IValue (#34647) (#34843)
-f87cd83d11  # Append multiple arguments to list of flags as multiple items (#34899)
-130e720784  # [torchbind] Add more comprehensive docscrings (#34906)
-b7129050e7  # Makes floor_divide a method, adds sparse floor division (#34552)
-3ab30753e9  # Make autogen functions correct for multiple outputs and views (#31990)
-5fd037ce44  # Fix MagmaInitializesCorrectly_CUDA by using an invertible matrix (#32547)
-db8ce7ea2d  # Back out "Make autogen functions correct for multiple outputs and views" (#32681)
-e1c53a5c86  # Fix version counter bump in cpp Function (#33068)
-3655975565  # Add allow_rebase_history flag and fix codegen functions for multiple views (#32790)
-ff7d147732  # Restore tests binary_macos_libtorch_2_7_cpu_build and binary_macos_li… (#33291)
-f909b5535e  # [autograd] fix allow_unused checking for C++ API (#34035)
-9e94e46453  # Check if rnn weights need to be flattened (#34265)
-09296c34a4  # Add the build for runtime dispatch for AVX, AVX2 instruction set (#26125)
-583c288232  # Add a OperatorHandle argument to boxed kernels (#29201)
-aa2862b843  # Hide the OperatorKernel* argument from the stack based kernel API (#29337)
-027d7f7ba5  # Delete AT_WARN and replace all AT_WARN with TORCH_WARN (#34623)
-e123d90a93  # Back out "Back out "Back out "Revert D18542342: Boxed variable dispatch""" (#30650)
-c4121ed8db  # Fix is_fundamental template for MSVC (#30959)
-ddff4efa26  # Don't use RTLD_GLOBAL to load _C. (#31162)
-ab5eb65e74  # gate torch_global_deps with BUILD_SHARED_LIBS flag (#32011)
-b77c25dec0  # Fix dll load logic for Python 3.8 on Windows (#32215)
-fb159b5236  # Some work on eager op binding codegen (gen_python_functions.py) (#29986)
-9b2b15f4fc  # misc windows warning fixes (#33632)
-00f685d2d8  # Add Scalar::type() (#33603)
-b678256bfb  # Move glu to Aten(CPU) (#33179)
-51d969e86a  # preprocessor cleanup (#33957)
-c218963270  # fix more errors (#34480)
-6725b6f503
-bcd3f6da1a
-0b3d2f7b7d
-f522651a7e
-01c8ef2757
-7cfe68ce3a
-6f3120c6b9
-6d488714a7
-35d9874a35
-1f4a4aaf64
-96860af870
-7c06b86e42
-5d92a6cc30
-9c4683e8e3
-0d8447a9b8
-6f737dd4a3
-c8f665dcb6
-d616cad676
-be82e554fe
-153b16ef4c
-eef17edaa3
-55b254e114
-d3b6099366
-5f67c923f1
-a73dfcf8cf
-e5ee95e448
-b8e043abca
-2a1c83823d
-6e47e7bf52
-a4048b4703
-4521477f83
-bcbde490e4
-b2e5e0cad6
-69e701fbf9
-e35dd4f603
-3b7e1cd2cc
-d77d907f0e
-c747f09846
-064f6285af
-1afc584188
-f3b8a470e1
-d0577e19f0
-b35e544772
-d29f450e63
-689598df0b
-aaa8f02156
-fa5bc9fa2e
-d927d58c2a
-a1eaaea288
-f531815526  # Deprecate tensor.type() (#30281)
-06c7420fa2  # Raise error if a block can not be found from a CUDA tensor (#30870)
-44af8ee6cd  # Add pybind11 exception translator (#30588)
-1111a6b810  # Use pybind11::gil_scoped_* functions instead of AutoGIL/AutoNoGIL (#30274)
-643ca5def2  # Replace c10::guts::stuff with std::stuff (#30915)
-b185359fb4  # Avoid clone for sparse tensors during accumulation of grads. (#33427)
-2ce9513b0c  # AccumulateGrad: ensure sparse tensor indices and values refcount is always 1 (#34559)
-8bbafa0b32  # Add logical_and and logical_or (#28162)
-d0acc9c085  # Switch PyTorch/Caffe2 to C++14 (#30406)
-3636cb0364  # windows build (#30556)
-bb5dcaf24f  # Add logical_and and logical_or (#30521)
-37435d36ed  # Refactor VariableTypeManual (#30649)
-e05ee4c421  # Remove BUILD_NAMEDTENSOR macros (#30894)
-27d7dba9ab  # Remove scalar_check specification and codegen. (#30874)
-62b06b9fae  # Rename TensorTypeId to DispatchKey (#32154)
-9a2691f2fc  # Fix spelling errors
-22963f42ec  # Delete unnecessary aliasAnalysis specification from operator registrations. (#33093)
-b10761d890  # fix type stub errors (#33762)
-b98bce8cd4  # Add MemoryFormat to TensorOptions, but not codegen. (#33704)
-e7fe64f6a6  # Fix typos (#30606)
-62b10721fb  # Actually make flake8 do something (#30892)
-f326045b37  # Fix typos, via a Levenshtein-type corrector (#31523)
-3ada2e0d64  # [pytorch][embeddingbag] Parallelize the EmbeddingBag operator (#4049)
-40246fa63c  # Gradient scaling API (#26512)
-a6a72ac68f  # Fix all occurrences of C416. (#33429)
-3671036ef3  # Adds true_divide function, analogous to Python 's, JAX's, NumPy's (true) division (#34236)
-f48a8901c5  # Add floor_divide function (#30493)
-3c5677a676  # Use codegen'ed unboxing wrappers (#32521)
-ad769d74d9  # Collapse _like overloads into a single overload. (#33705)
-6e2bb1c054  # End of the .data removal in torch/optim (#34211)
+35e6c1763e  # Adding DDP Design Note
+2e709763a3  # Adding DDP Design Note
+99a2a0b1ca  # Adding DDP Design Note
+7570b2798a  # Adding DDP Design Note
+4aa692fc91  # Adding DDP Design Note
+7b5045be9d  # Adding DDP Design Note
+24aabe439a  # Adding DDP Design Note
+fb8c17dde1  # Adding DDP Design Note
+afdc0bd4ec  # Adding DDP Design Note
+959a849a23  # Adding DDP Design Note
+0c7e4c1d62  # Adding DDP Design Note
+3990e9d1ca  # Adding DDP Design Note
+99a46b44ea  # Adding DDP Design Note
+f994377d28  # Adding DDP Design Note
+94ad7544ae  # Adding DDP Design Note
+0c9c62ba6e  # Adding DDP Design Note
+ce5f1a1b25  # Adding DDP Design Note
+6e88ddf352  # Adding DDP Design Note
+7c6cc1d6d4  # Adding DDP Design Note
+b8eba7aca9  # Adding DDP Design Note
+16606e1725  # Adding DDP Design Note
+7160300638  # Adding DDP Design Note
+0c67311878  # Adding DDP Design Note
+d7ac90e2ef  # Adding DDP Design Note
+0517323dad  # Adding DDP Design Note
+d64e2581cc  # Adding DDP Design Note
+25f4ba7c1b  # Adding DDP Design Note
+ab2ec4d835  # Adding DDP Design Note
+46e7f31fa3  # Adding DDP Design Note
+8199596d7e  # Adding DDP Design Note
+79a830af56  # Adding DDP Design Note
+72ac45662b  # Adding DDP Design Note
+dbce53fe32  # Adding DDP Design Note
+dcd9f49809  # Adding DDP Design Note
+b0871f211b  # Adding DDP Design Note
+c5a6c4d6c9  # Adding DDP Design Note
+634f370c63  # Adding DDP Design Note
+976d91d30a  # Adding DDP Design Note
+4eff2f2007  # Adding DDP Design Note
+21d7532dfe  # Adding DDP Design Note
+6bd8937aee  # Adding DDP Design Note
+829499e626  # Adding DDP Design Note
+d2336edcfb  # Adding DDP Design Note
+106ab487eb  # Adding DDP Design Note
+c1c5622a6a  # Adding DDP Design Note
+7d2b0aa693  # Adding DDP Design Note
+0b25371f5d  # Adding DDP Design Note
+87f29557bd  # Adding DDP Design Note
+8ee61e0be4  # Adding DDP Design Note
+b68d1fc316  # Adding DDP Design Note
+6deb41c88d  # Adding DDP Design Note
+569729527b  # Adding DDP Design Note
+19b7d49fac  # Adding DDP Design Note
+98ab55fc51  # Adding DDP Design Note
+9e3d19412b  # Adding DDP Design Note
+61798865e3  # Adding DDP Design Note
+8b29701ae5  # Adding DDP Design Note
+d5c136097a  # Adding DDP Design Note
+a997f224ac  # Adding DDP Design Note
+9740011f10  # Adding DDP Design Note
+d43e205026  # Adding DDP Design Note
+8269f7b652  # Adding DDP Design Note
+1b12fd33ed  # Adding DDP Design Note
+1b5ce05924  # Adding DDP Design Note
+4e6379379c  # Adding DDP Design Note
+4d4d8e0dce  # Adding DDP Design Note
+604a27361f  # Adding DDP Design Note
+56dd2836ec  # Adding DDP Design Note
+a376dd344c  # Adding DDP Design Note
+dcd1216efe  # Adding DDP Design Note
+59151d3e43  # Adding DDP Design Note
+3cf8382984  # Adding DDP Design Note
+4ac614191a  # Adding DDP Design Note
+76acf5b553  # Adding DDP Design Note
+ab834d5093  # Adding DDP Design Note
+7e472679ff  # Adding DDP Design Note
+f5c9452beb  # Adding DDP Design Note
+d12786b24f  # Adding DDP Design Note
+d6ca93b353  # Adding DDP Design Note
+ec7bb9de1c  # Adding DDP Design Note
+a68b790293  # Adding DDP Design Note
+1189595875  # Adding DDP Design Note
+d0af07ca4c  # Adding DDP Design Note
+6918f0ce86  # Adding DDP Design Note
+fa2aa245cf  # Adding DDP Design Note
+786de33832  # Adding DDP Design Note
+289e9a07fd  # Adding DDP Design Note
+9d3402e4cb  # Adding DDP Design Note
+42e79d7e8a  # Adding DDP Design Note
+1f1ce53e8e  # Adding DDP Design Note
+a939b52ddb  # Adding DDP Design Note
+139aa51962  # Adding DDP Design Note
+f2a2fec47c  # Adding DDP Design Note
+35a6997863  # Adding DDP Design Note
+ba1a9871cb  # Adding DDP Design Note
+473a044835  # Adding DDP Design Note
+50625798df  # Adding DDP Design Note
+f12332eb51  # Adding DDP Design Note
+2607772959  # Adding DDP Design Note
+fa251cfd97  # Adding DDP Design Note
+1578a28692  # Adding DDP Design Note
+2171f91053  # Adding DDP Design Note
+9617d07bd5  # Adding DDP Design Note
+be55874f2c  # Adding DDP Design Note
+c564d794ed  # Adding DDP Design Note
+6486bdfb90  # Adding DDP Design Note
+f874230d33  # Adding DDP Design Note
+2ced81f289  # Adding DDP Design Note
+0974dcc244  # Adding DDP Design Note
+e5bd7a7942  # Adding DDP Design Note
+82c3f4861f  # Adding DDP Design Note
+4034aa7621  # Adding DDP Design Note
+2011cc1e91  # Adding DDP Design Note
+11b3065323  # Adding DDP Design Note
+1d7b40f1c4  # Adding DDP Design Note
+60714dfb64  # Adding DDP Design Note
+e5d571ae25  # Adding DDP Design Note
+377131b0eb  # Adding DDP Design Note
+0051467118  # Adding DDP Design Note
+44ff7b08d8  # Adding DDP Design Note
+d6ddfab11f  # Adding DDP Design Note
+223f46f5fa  # Adding DDP Design Note
+baccd26df7  # Adding DDP Design Note
+c37de32b23  # Adding DDP Design Note
+cd6167ff63  # Adding DDP Design Note
+8d35b6cec7  # Adding DDP Design Note
+a26238da57  # Adding DDP Design Note
+4bb497b38e  # Adding DDP Design Note
+190dac13e3  # Adding DDP Design Note
+c75bc9067c  # Adding DDP Design Note
+daef363b15  # Adding DDP Design Note
+528fa737ba  # Adding DDP Design Note
+45f0556ba0  # Adding DDP Design Note
+8a57362000  # Adding DDP Design Note
+394d2f7037  # Adding DDP Design Note
+ed20937231  # Adding DDP Design Note
+e3d40f857b  # Adding DDP Design Note
+5edfe9cb80  # Adding DDP Design Note
+d113b22571  # Adding DDP Design Note
+b7652a2f81  # Adding DDP Design Note
+d02280b432  # Adding DDP Design Note
+9a5fd2eb07  # Adding DDP Design Note
+d6d6075573  # Adding DDP Design Note
+9305f44854  # Adding DDP Design Note
+3301794855  # Adding DDP Design Note
+717274c001  # Adding DDP Design Note
+a929d312ac  # Adding DDP Design Note
+5b03ff0a09  # Adding DDP Design Note
+945ce71b18  # Adding DDP Design Note
+e5a550cd1d  # Adding DDP Design Note
+0414463007  # Adding DDP Design Note
+0db6c01301  # Adding DDP Design Note
+159835e666  # Adding DDP Design Note
+4ead2e8996  # Adding DDP Design Note
+66f2bba852  # Adding DDP Design Note
+066e3ed953  # Adding DDP Design Note
+f6c31f61c5  # Adding DDP Design Note
+84d6796658  # Adding DDP Design Note
+b7c148013f  # Adding DDP Design Note
+1ef99cf0ab  # Adding DDP Design Note
+8fea7a49d6  # Adding DDP Design Note
+3587f769dc  # Adding DDP Design Note
+9954739956  # Adding DDP Design Note
+d7d07e7caf  # Adding DDP Design Note
+1ec989404c  # Adding DDP Design Note
+927588df8e  # Adding DDP Design Note
+fde3d707ad  # Adding DDP Design Note
+c35cddb306  # Adding DDP Design Note
+6e1e09fd10  # Adding DDP Design Note
+2950530031  # Adding DDP Design Note
+7c1b5084a7  # Adding DDP Design Note
+7cb83bea3b  # Adding DDP Design Note
+ffe0c1ae4d  # Adding DDP Design Note
+9dc3d8738c  # Adding DDP Design Note
+60ec53c7fd  # Adding DDP Design Note
+0d7391f8b2  # Adding DDP Design Note
+c95d46abbd  # Adding DDP Design Note
+9ca61aec0f  # Adding DDP Design Note
+455e85a2f1  # Adding DDP Design Note
+d401ba1417  # Adding DDP Design Note
+c6a8f884d8  # Adding DDP Design Note
+229ce89b92  # Adding DDP Design Note
+f9010d7648  # Adding DDP Design Note
+49eff2f43c  # Adding DDP Design Note
+d2067569e7  # Adding DDP Design Note
+dab5f72543  # Adding DDP Design Note
+0b8332efb4  # Adding DDP Design Note
+e169e02836  # Adding DDP Design Note
+74e59c6fed  # Adding DDP Design Note
+3694749cd1  # Adding DDP Design Note
+58d2dd5b73  # Adding DDP Design Note
+285cc13435  # Adding DDP Design Note
+c63f8e5ebe  # Adding DDP Design Note
+4d22c3ba01  # Adding DDP Design Note
+7cf8b9bada  # Adding DDP Design Note
+5e8bac24b4  # Adding DDP Design Note
+1e80ff7a67  # Adding DDP Design Note
+d2e66b44cc  # Adding DDP Design Note
+489dd6cb90  # Adding DDP Design Note
+540b9da41e  # Adding DDP Design Note
+49fe7a7401  # Adding DDP Design Note
+9d9bc93bfb  # Adding DDP Design Note
+8f3c0d541e  # Adding DDP Design Note
+e67064a96f  # Adding DDP Design Note
+dbe2f265d0  # Adding DDP Design Note
+624088e444  # Adding DDP Design Note
+d0d6e0b5e3  # Adding DDP Design Note
+b38901aa15  # Adding DDP Design Note
+6cd987e7c0  # Adding DDP Design Note
+df9d5b8a77  # Adding DDP Design Note
+3820d6f6b9  # Adding DDP Design Note
+0b0f90f53c  # Adding DDP Design Note
+8d8e82883e  # Adding DDP Design Note
+b5bbec7bad  # Adding DDP Design Note
+700109eb63  # Adding DDP Design Note
+cc2d5ca37f  # Adding DDP Design Note
+9459db86bf  # Adding DDP Design Note
+218cfd568d  # Adding DDP Design Note
+866c1b1fcc  # Adding DDP Design Note
+5d95a9ca79  # Adding DDP Design Note
+91eb7c26cd  # Adding DDP Design Note
+909b8eba0d  # Adding DDP Design Note
+ffcac9ad37  # Adding DDP Design Note
+e84e7ec556  # Adding DDP Design Note
+ae214f67a5  # Adding DDP Design Note
+3b7916fccd  # Adding DDP Design Note
+22d84204f7  # Adding DDP Design Note
+ee87b01f40  # Adding DDP Design Note
+6064223808  # Adding DDP Design Note
+7a3ed36309  # Adding DDP Design Note
+236b0a318c  # Adding DDP Design Note
+9e9bfbfd8d  # Adding DDP Design Note
+7078f4b27d  # Adding DDP Design Note
+d770fbc1d2  # Adding DDP Design Note
+ed5cd0d742  # Adding DDP Design Note
+5f8308e32d  # Adding DDP Design Note
+155376721c  # Adding DDP Design Note
+95cb66570a  # Adding DDP Design Note
+f56c59ead6  # Adding DDP Design Note
+0b9cd410a9  # Adding DDP Design Note
+68f3782106  # Adding DDP Design Note
+b47e9b97a2  # Adding DDP Design Note
+a02a5129a8  # Adding DDP Design Note
+79e30ff3f8  # Adding DDP Design Note
+e5b7231edc  # Adding DDP Design Note
+b0a2765103  # Adding DDP Design Note
+3f0b330736  # Adding DDP Design Note
+c65305e991  # Adding DDP Design Note
+a9dae70bae  # Adding DDP Design Note
+4ef9daf7b2  # Adding DDP Design Note
+5d80f63478  # Adding DDP Design Note
+34561dadcd  # Adding DDP Design Note
+20c5dd59bd  # Adding DDP Design Note
+22044c6f7c  # Adding DDP Design Note
+2f5eefe525  # Adding DDP Design Note
+5cc62f2913  # Adding DDP Design Note
+0e5a6700cc  # Adding DDP Design Note
+c888473b57  # Adding DDP Design Note
+74d69e296e  # Adding DDP Design Note
+bb279c5c63  # Adding DDP Design Note
+ca72df06ae  # Adding DDP Design Note
+8a0503b355  # Adding DDP Design Note
+c21f89970f  # Adding DDP Design Note
+0dca9c30ca  # Adding DDP Design Note
+ab60cca488  # Adding DDP Design Note
+9116f02beb  # Adding DDP Design Note
+ee817012b2  # Adding DDP Design Note
+2a294aace6  # Adding DDP Design Note
+f67851d69a  # Adding DDP Design Note
+f0072b3af5  # Adding DDP Design Note
+c66ca74f03  # Adding DDP Design Note
+54777b1e73  # Adding DDP Design Note
+462bfc7fe7  # Adding DDP Design Note
+1314f7f4f4  # Adding DDP Design Note
+4f9d2f74e2  # Adding DDP Design Note
+9ba6a768de  # Adding DDP Design Note
+9a3cb1e859  # Adding DDP Design Note
+dedd16b418  # Adding DDP Design Note
+8c59d48281  # Adding DDP Design Note
+09a22f3301  # Adding DDP Design Note
+eb23171bce  # Adding DDP Design Note
+5c423cae72  # Adding DDP Design Note
+5a76335aaa  # Adding DDP Design Note
+99b3f9cac4  # Adding DDP Design Note
+e59e5ba5a3  # Adding DDP Design Note
+bc68a8745f  # Adding DDP Design Note
+cfdfdf70d7  # Adding DDP Design Note
+67c1d930eb  # Adding DDP Design Note
+2968faf154  # Adding DDP Design Note
+700d1c5cbc  # Adding DDP Design Note
+4e84661139  # Adding DDP Design Note
+b6f43afaca  # Adding DDP Design Note
+c6f41ae01b  # Adding DDP Design Note
+8098ae455c  # Adding DDP Design Note
+03ff3eb94d  # Adding DDP Design Note
+16b8ca56b6  # Adding DDP Design Note
+638e4ad8b9  # Adding DDP Design Note
+77c2c78e01  # Adding DDP Design Note
+e74a215ade  # Adding DDP Design Note
+4002fec509  # Adding DDP Design Note
+8e93159fb6  # Adding DDP Design Note
+695c4f1bab  # Adding DDP Design Note
+5988d36f58  # Adding DDP Design Note
+d97413eb7a  # Adding DDP Design Note
+26621d101f  # Adding DDP Design Note
+77c78b7d28  # Adding DDP Design Note
+8d472bab6b  # Adding DDP Design Note
+5f1a881cb8  # Adding DDP Design Note
+1487582ba7  # Adding DDP Design Note
+fa60e1150d  # Adding DDP Design Note
+b783a75aa3  # Adding DDP Design Note
+0664c6bbfd  # Adding DDP Design Note
+b0ac425dc4  # Adding DDP Design Note
+2bb9dbeffa  # Adding DDP Design Note
+4a26bb9b18  # Adding DDP Design Note
+9bf0479b65  # Adding DDP Design Note
+8dc67a014f  # Adding DDP Design Note
+19bbb4fccb  # Adding DDP Design Note
+ef0f96e92f  # Adding DDP Design Note
+05088da8e9  # Adding DDP Design Note
+3d01e3d16f  # Adding DDP Design Note
+81048c41ab  # Adding DDP Design Note
+74621ca926  # Adding DDP Design Note
+a5161c7022  # Adding DDP Design Note
+31b7d0873c  # Adding DDP Design Note
+7df5dc2775  # Adding DDP Design Note
+bab87e4b60  # Adding DDP Design Note
+14548c2d5b  # Adding DDP Design Note
+cd99b3706a  # Adding DDP Design Note
+b26ee54176  # Adding DDP Design Note
+8746f90cf6  # Adding DDP Design Note
+7b7390778c  # Adding DDP Design Note
+36d09197ab  # Adding DDP Design Note
+b85dbe8f7b  # Adding DDP Design Note
+34c751c263  # Adding DDP Design Note
+c2761490fc  # Adding DDP Design Note
+7a9c920bac  # Adding DDP Design Note
+904ab092c2  # Adding DDP Design Note
+6a5a55d573  # Adding DDP Design Note
+78d8f691ad  # Adding DDP Design Note
+5b815d980e  # Adding DDP Design Note
+7732924501  # Adding DDP Design Note
+bdd5e15437  # Adding DDP Design Note
+5bc44fb6ea  # Adding DDP Design Note
+824e649d40  # Adding DDP Design Note
+10c2bd35af  # Adding DDP Design Note
+61ee8c972f  # Adding DDP Design Note
+ceffdbd217  # Adding DDP Design Note
+b543e3cd6f  # Adding DDP Design Note
+418ebc827b  # Adding DDP Design Note
+a2641e6005  # Adding DDP Design Note
+cc2d5b15ad  # Adding DDP Design Note
+c13df8b688  # Adding DDP Design Note
+839fe714de  # Adding DDP Design Note
+f86d6c6afd  # Adding DDP Design Note
+9e853e7090  # Adding DDP Design Note
+0b606a4a7c  # Adding DDP Design Note
+7fdc6cb74e  # Adding DDP Design Note
+64de93d8e7  # Adding DDP Design Note
+0d610b4821  # Adding DDP Design Note
+248f6d0485  # Adding DDP Design Note
+8abaa322da  # Adding DDP Design Note
+e37a24b044  # Adding DDP Design Note
+c342c354a9  # Adding DDP Design Note
+1c017f0c14  # Adding DDP Design Note
+510a122d27  # Adding DDP Design Note
+4bdfc71421  # Adding DDP Design Note
+21d475e20d  # Adding DDP Design Note
+02aa3ba331  # Adding DDP Design Note
+ea7bebb7fe  # Adding DDP Design Note
+9af5a97b1d  # Adding DDP Design Note
+b6b8620871  # Adding DDP Design Note
+db02a4e4ce  # Adding DDP Design Note
+49cd83d735  # Adding DDP Design Note
+ad4fba0ce4  # Adding DDP Design Note
+8ed1dd528e  # Adding DDP Design Note
+d2f66083c5  # Adding DDP Design Note
+f0c85571ed  # Adding DDP Design Note
+fd1a4f18ee  # Adding DDP Design Note
+9e59244b53  # Adding DDP Design Note
+9e0ce72e9e  # Adding DDP Design Note
+52f8f031ac  # Adding DDP Design Note
+6412ca3ce9  # Adding DDP Design Note
+1218a16aae  # Adding DDP Design Note
+59dbece371  # Adding DDP Design Note
+e0ffe72649  # Adding DDP Design Note
+0afe195046  # Adding DDP Design Note
+69283388ca  # Adding DDP Design Note
+320d1a1573  # Adding DDP Design Note
+3bbb36e02d  # Adding DDP Design Note
+90a259e1e2  # Adding DDP Design Note
+1e5aead35b  # Adding DDP Design Note
+602394e996  # Adding DDP Design Note
+ca9dc67094  # Adding DDP Design Note
+e36cbb8f2f  # Adding DDP Design Note
+897b6908d4  # Adding DDP Design Note
+57519bd829  # Adding DDP Design Note
+666e5430f8  # Adding DDP Design Note
+b3848c568e  # Adding DDP Design Note
+8e4161517e  # Adding DDP Design Note
+e24ce0e524  # Adding DDP Design Note
+da390914bd  # Adding DDP Design Note
+34ccfba403  # Adding DDP Design Note
+0ea65d63cf  # Adding DDP Design Note
+2060e0a9dd  # Adding DDP Design Note
+ee60cd9124  # Adding DDP Design Note
+e74e1ccc47  # Adding DDP Design Note
+99228086a6  # Adding DDP Design Note
+18aab32959  # Adding DDP Design Note
+62d652f922  # Adding DDP Design Note
+594cadeb8f  # Adding DDP Design Note
+c35ca84eee  # Adding DDP Design Note
+c7bf4d22fe  # Adding DDP Design Note
+8bc889e502  # Adding DDP Design Note
+d119de8abd  # Adding DDP Design Note
+b1c85dd916  # Adding DDP Design Note
+2471ddc96c  # Adding DDP Design Note
+8693164acb  # Adding DDP Design Note
+50d82f5122  # Adding DDP Design Note
+8cb05e72c6  # Adding DDP Design Note
+3b47922855  # Adding DDP Design Note
+5ffa1efa52  # Adding DDP Design Note
+c7df28a2a3  # Adding DDP Design Note
+b371eab8c7  # Adding DDP Design Note
+8c6f52ac24  # Adding DDP Design Note
+3ee6673e99  # Adding DDP Design Note
+8b187e8f2a  # Adding DDP Design Note
+9357b91180  # Adding DDP Design Note
+b565d9b356  # Adding DDP Design Note
+2e359ef86d  # Adding DDP Design Note
+85bd3e5bdb  # Adding DDP Design Note
+fa65859270  # Adding DDP Design Note
+cc35c876cb  # Adding DDP Design Note
+9bab617b3e  # Adding DDP Design Note
+413c0f6c29  # Adding DDP Design Note
+3d0a470d89  # Adding DDP Design Note
+5ddd2cd92b  # Adding DDP Design Note
+690d41f24e  # Adding DDP Design Note
+765904f1b9  # Adding DDP Design Note
+bcb7c22679  # Adding DDP Design Note
+0f0972051a  # Adding DDP Design Note
+fcf9fcedf4  # Adding DDP Design Note
+29fabb1fbc  # Adding DDP Design Note
+b16dab8a41  # Adding DDP Design Note
+d9e99ab544  # Adding DDP Design Note
+1760d5b83c  # Adding DDP Design Note
+7b65acdf9e  # Adding DDP Design Note
+d03c9aaa05  # Adding DDP Design Note
+29e6f13cd1  # Adding DDP Design Note
+e87887ccb4  # Adding DDP Design Note
+7101f6b5c0  # Adding DDP Design Note
+e085c55e53  # Adding DDP Design Note
+c841ab403c  # Adding DDP Design Note
+b34e0dda24  # Adding DDP Design Note
+7cddc302e5  # Adding DDP Design Note
+3fa907c145  # Adding DDP Design Note
+00c6b90327  # Adding DDP Design Note
+48eff08256  # Adding DDP Design Note
+167a892e99  # Adding DDP Design Note
+6996f8d880  # Adding DDP Design Note
+9c2ed2574a  # Adding DDP Design Note
+5ca7bf453d  # Adding DDP Design Note
+612e621da0  # Adding DDP Design Note
+544eab37d0  # Adding DDP Design Note
+3cac9900ca  # Adding DDP Design Note
+df71b3e23a  # Adding DDP Design Note
+ec2c974bd5  # Adding DDP Design Note
+9e7c47644f  # Adding DDP Design Note
+aa3c871739  # Adding DDP Design Note
+e922826dda  # Adding DDP Design Note
+d3fa68eeec  # Adding DDP Design Note
+b69c685c4a  # Adding DDP Design Note
+67706187fb  # Adding DDP Design Note
+478356aeec  # Adding DDP Design Note
+d3a0bdd06b  # Adding DDP Design Note
+27e1fecabd  # Adding DDP Design Note
+6305e4a88f  # Adding DDP Design Note
+7ea6559658  # Adding DDP Design Note
+a9141dd240  # Adding DDP Design Note
+1b446aa2ee  # Adding DDP Design Note
+6b0813ea5d  # Adding DDP Design Note
+16c166e2ea  # Adding DDP Design Note
+3531f99384  # Adding DDP Design Note
+81a9046301  # Adding DDP Design Note
+fbde3c05b6  # Adding DDP Design Note
+72b9412be2  # Adding DDP Design Note
+e8581869f2  # Adding DDP Design Note
+1b746b95fb  # Adding DDP Design Note
+6209412647  # Adding DDP Design Note
+46c3c18bcc  # Adding DDP Design Note
+b00345a6f2  # Adding DDP Design Note
+3c17cbb6c8  # Adding DDP Design Note
+757cea92a4  # Adding DDP Design Note
+b0476dc6e6  # Adding DDP Design Note
+e025f393f6  # Adding DDP Design Note
+3b2f267ad8  # Adding DDP Design Note
+de27f4261d  # Adding DDP Design Note
+a9583c1f75  # Adding DDP Design Note
+7314f1c281  # Adding DDP Design Note
+efba630287  # Adding DDP Design Note
+3e8d813263  # Adding DDP Design Note
+c917a247a8  # Adding DDP Design Note
+9d94f56ce0  # Adding DDP Design Note
+ebed008dd4  # Adding DDP Design Note
+3bde97d5a5  # Adding DDP Design Note
+e8c4f5a74b  # Adding DDP Design Note
+495c1df510  # Adding DDP Design Note
+d672779339  # Adding DDP Design Note
+a3e69d3405  # Adding DDP Design Note
+9857d9b4cd  # Adding DDP Design Note
+330d051bd5  # Adding DDP Design Note
+e7f0b15473  # Adding DDP Design Note
+857bae39e0  # Adding DDP Design Note
+31370949be  # Adding DDP Design Note
+367488b001  # Adding DDP Design Note
+a64d0ffe81  # Adding DDP Design Note
+ad90c97c0a  # Adding DDP Design Note
+7b50e76255  # Adding DDP Design Note
+45818a3de4  # Adding DDP Design Note
+6706c3f457  # Adding DDP Design Note
+04829e924a  # Adding DDP Design Note
+769abddfa3  # Adding DDP Design Note
+000a5e2b7f  # Adding DDP Design Note
+139afd0ea7  # Adding DDP Design Note
+1487137c5b  # Adding DDP Design Note
+f255b7a3ac  # Adding DDP Design Note
+9e7638f7c1  # Adding DDP Design Note
+b9a5353fee  # Adding DDP Design Note
+c6e0360812  # Adding DDP Design Note
+05281a5671  # Adding DDP Design Note
+3cfea39968  # Adding DDP Design Note
+87640570b3  # Adding DDP Design Note
+97bf41ca22  # Adding DDP Design Note
+2e9b7c5fe1  # Adding DDP Design Note
+323b0e0a0f  # Adding DDP Design Note
+40265e2d66  # Adding DDP Design Note
+ab14375b08  # Adding DDP Design Note
+bc0ab07064  # Adding DDP Design Note
+e45343fa14  # Adding DDP Design Note
+03e9b9ce18  # Adding DDP Design Note
+946f3a9ed7  # Adding DDP Design Note
+0c474d95d9  # Adding DDP Design Note
+6c6a814a2c  # Adding DDP Design Note
+0c93c2b142  # Adding DDP Design Note
+5b922918d0  # Adding DDP Design Note
+bbdc5b7bd0  # Adding DDP Design Note
+0808485c6a  # Adding DDP Design Note
+7ae1e023e7  # Adding DDP Design Note
+cb4e6d025a  # Adding DDP Design Note
+e5218e3e12  # Adding DDP Design Note
+602aec325d  # Adding DDP Design Note
+0150f40dde  # Adding DDP Design Note
+1b2d2ba504  # Adding DDP Design Note
+7dde91b0ae  # Adding DDP Design Note
+b276ddda38  # Adding DDP Design Note
+b730c5a3bd  # Adding DDP Design Note
+9c0625b004  # Adding DDP Design Note
+0b5b2b864a  # Adding DDP Design Note
+dfafe2aad1  # Adding DDP Design Note
+3359871f5d  # Adding DDP Design Note
+1e76649d30  # Adding DDP Design Note
+fd684cc312  # Adding DDP Design Note
+cd038c0ae9  # Adding DDP Design Note
+495bd5818b  # Adding DDP Design Note
+f6808df75f  # Adding DDP Design Note
+c90b393c00  # Adding DDP Design Note
+ebb008eb68  # Adding DDP Design Note
+55fa133cdc  # Adding DDP Design Note
+cfb4862673  # Adding DDP Design Note
+28c5213a97  # Adding DDP Design Note
+2c99ea8654  # Adding DDP Design Note
+879cf0b15a  # Adding DDP Design Note
+f938b3b4e0  # Adding DDP Design Note
+abbf6e7f53  # Adding DDP Design Note
+1af30451e5  # Adding DDP Design Note
+016d73bd74  # Adding DDP Design Note
+da015c77a1  # Adding DDP Design Note
+3ad59734d7  # Adding DDP Design Note
+a5f01846c2  # Adding DDP Design Note
+a67691e508  # Adding DDP Design Note
+d7f00b1b45  # Adding DDP Design Note
+165b1ad8e8  # Adding DDP Design Note
+60339a38ed  # Adding DDP Design Note
+1e3664b6ef  # Adding DDP Design Note
+a8bd1d24c9  # Adding DDP Design Note
+62c953b348  # Adding DDP Design Note
+1d9fcf8bd2  # Adding DDP Design Note
+8908b62fb2  # Adding DDP Design Note
+ea514c819a  # Adding DDP Design Note
+602ef0d9d0  # Adding DDP Design Note
+1fe635be3c  # Adding DDP Design Note
+ffe327f7d9  # Adding DDP Design Note
+196fda5a79  # Adding DDP Design Note
+a9e4448dff  # Adding DDP Design Note
+cdf381c967  # Adding DDP Design Note
+d19a50bf27  # Adding DDP Design Note
+1a25747342  # Adding DDP Design Note
+13e4ee7883  # Adding DDP Design Note
+e5cf7afd0a  # Adding DDP Design Note
+c882425c24  # Adding DDP Design Note
+faa800eb5b  # Adding DDP Design Note
+ac9b40164d  # Adding DDP Design Note
+e8a03438cc  # Adding DDP Design Note
+4588f49f68  # Adding DDP Design Note
+e2a9ea0f72  # Adding DDP Design Note
+90f4c5695e  # Adding DDP Design Note
+fa80299bdf  # Adding DDP Design Note
+293fa5fc44  # Adding DDP Design Note
+ca8e025cdf  # Adding DDP Design Note
+a72946dbab  # Adding DDP Design Note
+f62f1b2ef0  # Adding DDP Design Note
+16d6c17845  # Adding DDP Design Note
+d971007c29  # Adding DDP Design Note
+a7e22b4c6a  # Adding DDP Design Note
+8291e06f8f  # Adding DDP Design Note
+6d448acb34  # Adding DDP Design Note
+7aa605ed92  # Adding DDP Design Note
+e1bddbbaf6  # Adding DDP Design Note
+9d834cc889  # Adding DDP Design Note
+641750e33c  # Adding DDP Design Note
+e3ba533c8b  # Adding DDP Design Note
+6a275b696e  # Adding DDP Design Note
+32c93099c4  # Adding DDP Design Note
+062ac6b472  # Adding DDP Design Note
+330b69fef8  # Adding DDP Design Note
+54e41a87eb  # Adding DDP Design Note
+b10a39bb32  # Adding DDP Design Note
+9278196d89  # Adding DDP Design Note
+54aac4af1f  # Adding DDP Design Note
+d6ea4be153  # Adding DDP Design Note
+3cf97bc23c  # Adding DDP Design Note
+a9cef05f5d  # Adding DDP Design Note
+2a4aad7466  # Adding DDP Design Note
+adbe289870  # Adding DDP Design Note
+7a8b6c2c6b  # Adding DDP Design Note
+4ef854b4b4  # Adding DDP Design Note
+6bdb59539f  # Adding DDP Design Note
+fd175fa8a2  # Adding DDP Design Note
+819ca2c285  # Adding DDP Design Note
+8196ec0115  # Adding DDP Design Note
+2b404de347  # Adding DDP Design Note
+d82093e665  # Adding DDP Design Note
+9bc922d518  # Adding DDP Design Note
+0e74cbcc54  # Adding DDP Design Note
+72288e82e2  # Adding DDP Design Note
+4d203c6fc8  # Adding DDP Design Note
+5bac7febad  # Adding DDP Design Note
+9a5ea71380  # Adding DDP Design Note
+a836c4ca78  # Adding DDP Design Note
+fc6a153688  # Adding DDP Design Note
+c1dd70688a  # Adding DDP Design Note
+f87b0b2515  # Adding DDP Design Note
+2eb95d8f4a  # Adding DDP Design Note
+b8f0acf50f  # Adding DDP Design Note
+f597ac6efc  # Adding DDP Design Note
+93e30c16cb  # Adding DDP Design Note
+8aa09de19e  # Adding DDP Design Note
+02908dfa67  # Adding DDP Design Note
+cd0acf4374  # Adding DDP Design Note
+6eef66e1f4  # Adding DDP Design Note
+2b9fa4a756  # Adding DDP Design Note
+84101f353e  # Adding DDP Design Note
+ca002a0f6b  # Adding DDP Design Note
+d41c8d0461  # Adding DDP Design Note
+095de1e872  # Adding DDP Design Note
+bd77abffe3  # Adding DDP Design Note
+6647a44e8c  # Adding DDP Design Note
+908eee5583  # Adding DDP Design Note
+c4d611a0f5  # Adding DDP Design Note
+d97560999b  # Adding DDP Design Note
+edd5c009f7  # Adding DDP Design Note
+524dad13a8  # Adding DDP Design Note
+aff1da5aac  # Adding DDP Design Note
+87e97ced20  # Adding DDP Design Note
+48fd410e44  # Adding DDP Design Note
+746e5218e7  # Adding DDP Design Note
+877ab3afe3  # Adding DDP Design Note
+d66c320b10  # Adding DDP Design Note
+c18cb1eb52  # Adding DDP Design Note
+09046713cc  # Adding DDP Design Note
+dece155335  # Adding DDP Design Note
+04dc0e6973  # Adding DDP Design Note
+c6d301220a  # Adding DDP Design Note
+a726827ec8  # Adding DDP Design Note
+f5d92fbc25  # Adding DDP Design Note
+917e56e950  # Adding DDP Design Note
+2fa51dde28  # Adding DDP Design Note
+69d2741480  # Adding DDP Design Note
+991f7a20f2  # Adding DDP Design Note
+38b6cb479b  # Adding DDP Design Note
+de55e47a4b  # Adding DDP Design Note
+c596ec7eb3  # Adding DDP Design Note
+7747fe81c4  # Adding DDP Design Note
+f857fe18cd  # Adding DDP Design Note
+a500491cbc  # Adding DDP Design Note
+6631c2a627  # Adding DDP Design Note
+31737e989d  # Adding DDP Design Note
+e54b8e1a47  # Adding DDP Design Note
+e73d4286b0  # Adding DDP Design Note
+ba4cff2ffc  # Adding DDP Design Note
+ec0f2184ba  # Adding DDP Design Note
+9956a231b9  # Adding DDP Design Note
+87b3f87f27  # Adding DDP Design Note
+4b3ae7e0af  # Adding DDP Design Note
+11843049d5  # Adding DDP Design Note
+384a4feab6  # Adding DDP Design Note
+e568c039bd  # Adding DDP Design Note
+15bf4892f2  # Adding DDP Design Note
+a57a7b4c29  # Adding DDP Design Note
+c206b4398d  # Adding DDP Design Note
+a4716d0e26  # Adding DDP Design Note
+bb4465f9f5  # Adding DDP Design Note
+77b9016a8e  # Adding DDP Design Note
+ff1fc402a8  # Adding DDP Design Note
+1ed950e1b6  # Adding DDP Design Note
+ad3f4a32bd  # Adding DDP Design Note
+3b93928ada  # Adding DDP Design Note
+0729ad733d  # Adding DDP Design Note
+0689cf8fc1  # Adding DDP Design Note
+a23e8099dd  # Adding DDP Design Note
+5be8a4e027  # Adding DDP Design Note
+f29110fdf8  # Adding DDP Design Note
+3def76583a  # Adding DDP Design Note
+4074d559e4  # Adding DDP Design Note
+5082839de5  # Adding DDP Design Note
+51936c5ea4  # Adding DDP Design Note
+9b527b35bb  # Adding DDP Design Note
+74a0663afd  # Adding DDP Design Note
+ad2825a2c9  # Adding DDP Design Note
+fbc9c61c81  # Adding DDP Design Note
+49921cad28  # Adding DDP Design Note
+f26bbb5f86  # Adding DDP Design Note
+6a97777f72  # Adding DDP Design Note
+c93b1d427c  # Adding DDP Design Note
+92083f31b5  # Adding DDP Design Note
+27f56632a4  # Adding DDP Design Note
+1affaf8d10  # Adding DDP Design Note
+f299c2d6e1  # Adding DDP Design Note
+ba1bd41767  # Adding DDP Design Note
+7cda964e20  # Adding DDP Design Note
+cb3905e8cf  # Adding DDP Design Note
+1beb309e03  # Adding DDP Design Note
+9d1c971b11  # Adding DDP Design Note
+4edff32f81  # Adding DDP Design Note
+31cc311143  # Adding DDP Design Note
+a19db54b36  # Adding DDP Design Note
+7cee787a19  # Adding DDP Design Note
+57c1b80ec2  # Adding DDP Design Note
+fc6dce6033  # Adding DDP Design Note
+6d78882158  # Adding DDP Design Note
+fdd771c90f  # Adding DDP Design Note
+f6c883ccea  # Adding DDP Design Note
+5f4a01b2ea  # Adding DDP Design Note
+22506ae71d  # Adding DDP Design Note
+78ad3dc174  # Adding DDP Design Note
+3a3fcbbc39  # Adding DDP Design Note
+438f4ea0ac  # Adding DDP Design Note
+112cecc440  # Adding DDP Design Note
+39f78db7ec  # Adding DDP Design Note
+9dd5d51b01  # Adding DDP Design Note
+67608cc018  # Adding DDP Design Note
+93990bab58  # Adding DDP Design Note
+e1c6f93f14  # Adding DDP Design Note
+e2ddf935bb  # Adding DDP Design Note
+4a194f89aa  # Adding DDP Design Note
+ff2731b45c  # Adding DDP Design Note
+765c5b1c95  # Adding DDP Design Note
+2af64ba3ed  # Adding DDP Design Note
+e4a883e601  # Adding DDP Design Note
+38857734f0  # Adding DDP Design Note
+f9f135c5d8  # Adding DDP Design Note
+35b6d2945d  # Adding DDP Design Note
+9c5578fd0a  # Adding DDP Design Note
+a7da4490cc  # Adding DDP Design Note
+82a177c07f  # Adding DDP Design Note
+4872b126fd  # Adding DDP Design Note
+6d8a0f6731  # Adding DDP Design Note
+98afce3c56  # Adding DDP Design Note
+0489b8da42  # Adding DDP Design Note
+c6ea71b6e8  # Adding DDP Design Note
+2d3f6cbf03  # Adding DDP Design Note
+079de7f376  # Adding DDP Design Note
+516a587438  # Adding DDP Design Note
+37dfc6c498  # Adding DDP Design Note
+96ca06cfce  # Adding DDP Design Note
+ccf6fab65e  # Adding DDP Design Note
+d98516026e  # Adding DDP Design Note
+392afb9f8b  # Adding DDP Design Note
+79d47c1c5f  # Adding DDP Design Note
+7e55494502  # Adding DDP Design Note
+b09e90af1e  # Adding DDP Design Note
+b1bd950a4d  # Adding DDP Design Note
+f62a7e7efb  # Adding DDP Design Note
+6d3783a6bc  # Adding DDP Design Note
+e025677e3c  # Adding DDP Design Note
+2b45368e50  # Adding DDP Design Note
+8294db8f15  # Adding DDP Design Note
+34688d2c48  # Adding DDP Design Note
+4e357089b4  # Adding DDP Design Note
+90ff3b56d0  # Adding DDP Design Note
+e408d46477  # Adding DDP Design Note
+3e6e2e9b7b  # Adding DDP Design Note
+f5ee46f1cf  # Adding DDP Design Note
+20b18a58f1  # Adding DDP Design Note
+c7dd5f89a2  # Adding DDP Design Note
+cb689a5d68  # Adding DDP Design Note
+0dbfb26e53  # Adding DDP Design Note
+cd9d9a2235  # Adding DDP Design Note
+5f61f42c79  # Adding DDP Design Note
+2cf344be4c  # Adding DDP Design Note
+dd7cec680c  # Adding DDP Design Note
+be3bc1deb1  # Adding DDP Design Note
+d0834c5b64  # Adding DDP Design Note
+ce77d4a316  # Adding DDP Design Note
+ab2297dfe6  # Adding DDP Design Note
+fbbeee0983  # Adding DDP Design Note
+b2344b70da  # Adding DDP Design Note
+5fc5cf6571  # Adding DDP Design Note
+2ec779d46c  # Adding DDP Design Note
+82cdd3abae  # Adding DDP Design Note
+b553e6911a  # Adding DDP Design Note
+70f3298684  # Adding DDP Design Note
+25e4e9eb86  # Adding DDP Design Note
+2de4f245c6  # Adding DDP Design Note
+adb8e26182  # Adding DDP Design Note
+86fb522acd  # Adding DDP Design Note
+b039bca4db  # Adding DDP Design Note
+3c76b2aeea  # Adding DDP Design Note
+a22008f91e  # Adding DDP Design Note
+962e362427  # Adding DDP Design Note
+157d2d7825  # Adding DDP Design Note
+9fd08b9c37  # Adding DDP Design Note
+518e9f94c2  # Adding DDP Design Note
+dd313f314e  # Adding DDP Design Note
+3f1ba3c465  # Adding DDP Design Note
+d81d65b2f7  # Adding DDP Design Note
+cb06cb7b9f  # Adding DDP Design Note
+31cd893899  # Adding DDP Design Note
+9f05fc9322  # Adding DDP Design Note
+52787388d2  # Adding DDP Design Note
+c78eacb5ee  # Adding DDP Design Note
+fd35596585  # Adding DDP Design Note
+8e8a37d746  # Adding DDP Design Note
+40eff454ce  # Adding DDP Design Note
+b1dbe33056  # Adding DDP Design Note
+4a599f47fb  # Adding DDP Design Note
+c34ee4fb6e  # Adding DDP Design Note
+0f3b6f3dec  # Adding DDP Design Note
+aedffdf7d8  # Adding DDP Design Note
+6d790c3611  # Adding DDP Design Note
+1734bd6871  # Adding DDP Design Note
+e7910aa9e5  # Adding DDP Design Note
+7dee36a061  # Adding DDP Design Note
+4c30fc7238  # Adding DDP Design Note
+84bd71dbd4  # Adding DDP Design Note
+08bc3c6cbf  # Adding DDP Design Note
+15c84c37b6  # Adding DDP Design Note
+528aabd373  # Adding DDP Design Note
+f404537c26  # Adding DDP Design Note
+7848c229b8  # Adding DDP Design Note
+c258e4732a  # Adding DDP Design Note
+c86d1361b8  # Adding DDP Design Note
+c3c0cf1591  # Adding DDP Design Note
+a66b837b19  # Adding DDP Design Note
+b94d650868  # Adding DDP Design Note
+8eaafbd99b  # Adding DDP Design Note
+e93e7b2795  # Adding DDP Design Note
+8bae1ed144  # Adding DDP Design Note
+31eaeba38a  # Adding DDP Design Note
+1bac5fd0d3  # Adding DDP Design Note
+ae0c88d6aa  # Adding DDP Design Note
+1e140c353c  # Adding DDP Design Note
+471ddacd8b  # Adding DDP Design Note
+699a4ed8f5  # Adding DDP Design Note
+76d9e76b4a  # Adding DDP Design Note
+a8ca340ad6  # Adding DDP Design Note
+acbca57d18  # Adding DDP Design Note
+67cb018462  # Adding DDP Design Note
+65889388d1  # Adding DDP Design Note
+7a3cf67fd8  # Adding DDP Design Note
+940e678da9  # Adding DDP Design Note
+275f5c8049  # Adding DDP Design Note
+6b701de130  # Adding DDP Design Note
+5857a125df  # Adding DDP Design Note
+b227ea955e  # Adding DDP Design Note
+0216c76e12  # Adding DDP Design Note
+f87cd83d11  # Adding DDP Design Note
+130e720784  # Adding DDP Design Note
+b7129050e7  # Adding DDP Design Note
+3ab30753e9  # Adding DDP Design Note
+5fd037ce44  # Adding DDP Design Note
+db8ce7ea2d  # Adding DDP Design Note
+e1c53a5c86  # Adding DDP Design Note
+3655975565  # Adding DDP Design Note
+ff7d147732  # Adding DDP Design Note
+f909b5535e  # Adding DDP Design Note
+9e94e46453  # Adding DDP Design Note
+09296c34a4  # Adding DDP Design Note
+583c288232  # Adding DDP Design Note
+aa2862b843  # Adding DDP Design Note
+027d7f7ba5  # Adding DDP Design Note
+e123d90a93  # Adding DDP Design Note
+c4121ed8db  # Adding DDP Design Note
+ddff4efa26  # Adding DDP Design Note
+ab5eb65e74  # Adding DDP Design Note
+b77c25dec0  # Adding DDP Design Note
+fb159b5236  # Adding DDP Design Note
+9b2b15f4fc  # Adding DDP Design Note
+00f685d2d8  # Adding DDP Design Note
+b678256bfb  # Adding DDP Design Note
+51d969e86a  # Adding DDP Design Note
+c218963270  # Adding DDP Design Note
+6725b6f503  # Adding DDP Design Note
+bcd3f6da1a  # Adding DDP Design Note
+0b3d2f7b7d  # Adding DDP Design Note
+f522651a7e  # Adding DDP Design Note
+01c8ef2757  # Adding DDP Design Note
+7cfe68ce3a  # Adding DDP Design Note
+6f3120c6b9  # Adding DDP Design Note
+6d488714a7  # Adding DDP Design Note
+35d9874a35  # Adding DDP Design Note
+1f4a4aaf64  # Adding DDP Design Note
+96860af870  # Adding DDP Design Note
+7c06b86e42  # Adding DDP Design Note
+5d92a6cc30  # Adding DDP Design Note
+9c4683e8e3  # Adding DDP Design Note
+0d8447a9b8  # Adding DDP Design Note
+6f737dd4a3  # Adding DDP Design Note
+c8f665dcb6  # Adding DDP Design Note
+d616cad676  # Adding DDP Design Note
+be82e554fe  # Adding DDP Design Note
+153b16ef4c  # Adding DDP Design Note
+eef17edaa3  # Adding DDP Design Note
+55b254e114  # Adding DDP Design Note
+d3b6099366  # Adding DDP Design Note
+5f67c923f1  # Adding DDP Design Note
+a73dfcf8cf  # Adding DDP Design Note
+e5ee95e448  # Adding DDP Design Note
+b8e043abca  # Adding DDP Design Note
+2a1c83823d  # Adding DDP Design Note
+6e47e7bf52  # Adding DDP Design Note
+a4048b4703  # Adding DDP Design Note
+4521477f83  # Adding DDP Design Note
+bcbde490e4  # Adding DDP Design Note
+b2e5e0cad6  # Adding DDP Design Note
+69e701fbf9  # Adding DDP Design Note
+e35dd4f603  # Adding DDP Design Note
+3b7e1cd2cc  # Adding DDP Design Note
+d77d907f0e  # Adding DDP Design Note
+c747f09846  # Adding DDP Design Note
+064f6285af  # Adding DDP Design Note
+1afc584188  # Adding DDP Design Note
+f3b8a470e1  # Adding DDP Design Note
+d0577e19f0  # Adding DDP Design Note
+b35e544772  # Adding DDP Design Note
+d29f450e63  # Adding DDP Design Note
+689598df0b  # Adding DDP Design Note
+aaa8f02156  # Adding DDP Design Note
+fa5bc9fa2e  # Adding DDP Design Note
+d927d58c2a  # Adding DDP Design Note
+a1eaaea288  # Adding DDP Design Note
+f531815526  # Adding DDP Design Note
+06c7420fa2  # Adding DDP Design Note
+44af8ee6cd  # Adding DDP Design Note
+1111a6b810  # Adding DDP Design Note
+643ca5def2  # Adding DDP Design Note
+b185359fb4  # Adding DDP Design Note
+2ce9513b0c  # Adding DDP Design Note
+8bbafa0b32  # Adding DDP Design Note
+d0acc9c085  # Adding DDP Design Note
+3636cb0364  # Adding DDP Design Note
+bb5dcaf24f  # Adding DDP Design Note
+37435d36ed  # Adding DDP Design Note
+e05ee4c421  # Adding DDP Design Note
+27d7dba9ab  # Adding DDP Design Note
+62b06b9fae  # Adding DDP Design Note
+9a2691f2fc  # Adding DDP Design Note
+22963f42ec  # Adding DDP Design Note
+b10761d890  # Adding DDP Design Note
+b98bce8cd4  # Adding DDP Design Note
+e7fe64f6a6  # Adding DDP Design Note
+62b10721fb  # Adding DDP Design Note
+f326045b37  # Adding DDP Design Note
+3ada2e0d64  # Adding DDP Design Note
+40246fa63c  # Adding DDP Design Note
+a6a72ac68f  # Adding DDP Design Note
+3671036ef3  # Adding DDP Design Note
+f48a8901c5  # Adding DDP Design Note
+3c5677a676  # Adding DDP Design Note
+ad769d74d9  # Adding DDP Design Note
+6e2bb1c054  # Adding DDP Design Note

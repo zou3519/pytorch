@@ -57,3 +57,7 @@ af28915164  # [quant][onnx] Add support to convert max_pool2d quantized pytorch 
 944ea4c334  # ONNX Export Support for CrossEntropyLoss (#33767)
 78cba90a8c  # Enable constant folding for Reshape (#31054)
 112196fdee  # Fix index put (#31552)
+c72dd526a7  # kill py2 onnx builds
+28ee309c9a  # disable onnx py3 gcc5 build (#31100)
+b44c0f328e  # Skip same tests in ONNX Python3 CI as in Python2 (#31827)
+0dbd5c0bfe  # Added torchvision tests as part of ORT tests (#31835)

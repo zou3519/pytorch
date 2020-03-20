@@ -262,3 +262,11 @@ fddf73250d  # [JIT] fix resolving of functions in torch/functional. fix compilat
 af3a7e2b50  # [jit] small cleanups after script:: removal (#34677)
 150e025be8  # [jit] stop printing crap in test_jit (#33779)
 bd7e9c490a  # [jit] stop printing crap in test_jit (#33917)
+293a139d79  # add a warning for script classes (#31069)
+bee6344d4e  # remove / rewrite weak module tests (#31193)
+fe707c7849  # Use `default_observer` and `default_weight_observer` in tests (#31424)
+779b128872  # add back in reference to jit_unsupported section (#31486)
+ec4e347744  # Add Python language reference docs (#30686)
+5cc49ed45f  # Document `IValue` (#31904)
+c299cb05ef  # temporary fix for jit test backward compatibility issues
+67ff051ddd  # Remove temporary fix for torchbind in BC check (#31982)

@@ -129,3 +129,12 @@ b336deb6ee  # [quant][mobile] Not use qnnpack max_pool2d if ceil_mode is true (#
 58c5b6d306  # adds quantized implementation of hard sigmoid (#34607)
 841f7600bb  # [quant][graphmode] Quantization pattern for aten::linear (#33854)
 1c8e086537  # [quant][graphmode][refactor] Change QParamMap to QParamVector (#34314)
+0b71e7e1fd  # Refactor QAT Conv module for better extensibility (#30362)
+fec903ce00  # Fix test case after get_qparams refactor (#30470)
+c780610f2d  # Disable test_backward_per_tensor in test_fake_quant (#30594)
+e6000a7c04  # Temporarily disable test_numerical_consistency_per_tensor (#30600)
+e5b947a3a8  # Raise an error for is_signed on quantized types (#30527)
+81e4739141  # Move QScheme ops to c10 (#30134)
+efe683fb2a  # dynamicly quantized linear benchmarking
+e33dea6e4e  # dynamicly quantized lstm benchmarking
+701ca68882  # Docs entry for the `is_quantized`

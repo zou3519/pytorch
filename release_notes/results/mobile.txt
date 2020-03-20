@@ -60,3 +60,6 @@ bf1b4b6fef  # add torch_cpu to the static library list in TorchConfig.cmake.in (
 6aecfd1e80  # Mobile Backend: NHWC memory layout + XNNPACK integration. (#33722)
 ccf4d69b75  # [Lite Interpreter] Enable __setstate__ (#33294)
 03557a9838  # Make save_for_lite_interpreter private (#32771)
+a69be8123a  # Use `gettimeofday` on iOS (#30361)
+fa0424f224  # add LLVM-dev package to android docker image (#31215)
+26f552a3d1  # Javadoc changes (#31956)
