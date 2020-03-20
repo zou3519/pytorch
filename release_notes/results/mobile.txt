@@ -54,3 +54,8 @@ ab76a8206f  # [JIT][mobile] Support built-in Function call in lite interpreter (
 647569e546  # get rid of choco install (#30897)
 0e753b2818  # Fix SIGABORT caused by double exception in PyTorchStreamReader when file not found. (#33243)
 4da5569300  # Pass to remove prepacking ops. (#34319)
+6e145b4614  # add irregular c10 op registration/invocation cases to test project (#30558)
+bf1b4b6fef  # add torch_cpu to the static library list in TorchConfig.cmake.in (#30769)
+941b42428a  # Mobile Backend: NHWC memory layout + XNNPACK integration. (#32509)
+6aecfd1e80  # Mobile Backend: NHWC memory layout + XNNPACK integration. (#33722)
+ccf4d69b75  # [Lite Interpreter] Enable __setstate__ (#33294)
