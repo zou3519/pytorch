@@ -209,7 +209,6 @@ a0b7a39a92  # Updating submodules
 3e68d0c5d0  # Revert D20461609: [caffe2] open source 2/4-bit SLS operators
 95f1cb34b9  # Revert D20480546: adds quantized implementation of hard sigmoid
 df20f5b374  # Updating submodules
-3585451469  # Release notes scripts
 f0243ea712  # Use [[deprecated]] instead of C10_DEPRECATED (#30918)
 a3dd44653f  # Fix typo in config script to re-enable libtorch build and test in macOS CI (#32072)
 2bd179147a  # Fix typo in config script to re-enable libtorch build and test in macOS CI (#32072)

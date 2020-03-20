@@ -1007,3 +1007,6 @@ aaa8f02156
 fa5bc9fa2e
 d927d58c2a
 a1eaaea288
+f531815526  # Deprecate tensor.type() (#30281)
+06c7420fa2  # Raise error if a block can not be found from a CUDA tensor (#30870)
+44af8ee6cd  # Add pybind11 exception translator (#30588)
