@@ -261,3 +261,6 @@ e31d462e92  # [TensorExpr] Pull changes to core classes for representing express
 42b2c8c65d  # [TensorExpr] Add a fuser pass based on tensor expressions. (#34226)
 35e7efeb9a  # [TensorExpr] Add CUDA codegen. (#34227)
 ea5c86c276  # [TensorExpr] Add LLVM codegen. (#34228)
+dbe850af5b  # [jit] do the code reorg (#33851)
+60e8615a6d  # [JIT] Virtualize Function (#33921)
+c235be42dd  # [jit] kill script namespace (#34515)

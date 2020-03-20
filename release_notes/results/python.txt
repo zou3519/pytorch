@@ -1010,3 +1010,7 @@ a1eaaea288
 f531815526  # Deprecate tensor.type() (#30281)
 06c7420fa2  # Raise error if a block can not be found from a CUDA tensor (#30870)
 44af8ee6cd  # Add pybind11 exception translator (#30588)
+1111a6b810  # Use pybind11::gil_scoped_* functions instead of AutoGIL/AutoNoGIL (#30274)
+643ca5def2  # Replace c10::guts::stuff with std::stuff (#30915)
+b185359fb4  # Avoid clone for sparse tensors during accumulation of grads. (#33427)
+2ce9513b0c  # AccumulateGrad: ensure sparse tensor indices and values refcount is always 1 (#34559)
