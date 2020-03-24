@@ -61,3 +61,4 @@ c72dd526a7  # kill py2 onnx builds
 28ee309c9a  # disable onnx py3 gcc5 build (#31100)
 b44c0f328e  # Skip same tests in ONNX Python3 CI as in Python2 (#31827)
 0dbd5c0bfe  # Added torchvision tests as part of ORT tests (#31835)
+1734bd6871  # skip mask_rcnn test (#34734)

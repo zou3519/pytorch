@@ -270,3 +270,31 @@ ec4e347744  # Add Python language reference docs (#30686)
 5cc49ed45f  # Document `IValue` (#31904)
 c299cb05ef  # temporary fix for jit test backward compatibility issues
 67ff051ddd  # Remove temporary fix for torchbind in BC check (#31982)
+ceffdbd217  # Temporary workaround for BC test due to schema parser changes
+839fe714de  # Fix BC test after TorchBind cahnges (#32429)
+9e853e7090  # Revert "Temporary workaround for BC test due to schema parser changes" (#32441)
+b6b8620871  # Add unit test on export_opnames with interface. (#31531)
+8ed1dd528e  # [JIT] Add torch.classes.load_library
+34ccfba403  # [JIT] Include custom_class.h in torch/script.h
+0ea65d63cf  # [JIT] Fix stateful lambda stuff and simplify code in custom C++ binding API
+e74e1ccc47  # Use direct vector indexing in Object::getSlot() instead of at(). (#31627)
+62d652f922  # replaces .at with [] in getSlot (#32677)
+de27f4261d  # [jit] remove redundant variables from JIT TestCase
+faa800eb5b  # [JIT] remove inline everything jitter skip (#33468)
+ac9b40164d  # Use cheaper check in isTensorList (#33528)
+a7e22b4c6a  # add bailout checks to checkScript (#32802)
+9d834cc889  # [JIT] Fix FunctionType::python_str() (#33680)
+2b9fa4a756  # [jit] Fix flipped PackedSequence outputs in script (#32955)
+38b6cb479b  # Check fuser results when profiling (#33944)
+11843049d5  # [jit] Fix flipped PackedSequence outputs in script (#32955)
+fdd771c90f  # Make tracing in code gen optional (#33715)
+c34ee4fb6e  # [JIT] disable test (#34722)
+08bc3c6cbf  # Remove unnecessary import (#34778)
+e93e7b2795  # [TensorExpr] Add tensorexpr benchmarks. (#34230)
+699a4ed8f5  # [testing][do not land] (#34605)
+130e720784  # [torchbind] Add more comprehensive docscrings (#34906)
+153b16ef4c  # Doxygen for torchbind (#35007)
+eef17edaa3  # Fix warnings in test/test_jit_fuser.py (#34980)
+a4048b4703  # port ge changes from bert/pytorch_fusion (#34942)
+e35dd4f603  # [jit] Include call stack in OSError message (#34669)
+22963f42ec  # Delete unnecessary aliasAnalysis specification from operator registrations. (#33093)

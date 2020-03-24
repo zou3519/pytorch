@@ -158,3 +158,17 @@ f1bd8cc286  # Fix lint issues in dist_autograd_test.py (#30928)
 dc43f9dc54  # fix test_backward_node_failure flakiness (#31588)
 1f2b6d632a  # Refactor tests in pytorch's test/dist_autograd_test.py file (#31803)
 a561a8448b  # minor doc tweak to use mp.spawn in example (#30381)
+167a892e99  # Add missing `shuffle` attribute to DistributedSampler typing file
+6305e4a88f  # Add warning and example for seeding to DistributedSampler (#32951)
+9956a231b9  # Fix backward compatibility tests (#34071)
+e2ddf935bb  # Run RPC JIT tests with variable type hints only in Python >=3.6 (#34284)
+fd35596585  # [docs][1.5] Update distributed autograd note (#34657)
+1e140c353c  # [profiler][rpc] fix a race condition in the profiler when multiple threads call (#33719)
+96860af870  # Revert D20164420: [1.5 Release][Dist Autograd][Better Engineering] Notify Workers on Failure during Distributed Autograd
+5d92a6cc30  # Revert D7778113: Reland "[RPC] Use qualified name str directly in RPC torch script code path"
+d616cad676  # Reland "[RPC] Use qualified name str directly in RPC torch script code path" (#34962)
+5f67c923f1  # [1.5 Release][Dist Autograd][Better Engineering] Notify Workers on Failure during Distributed Autograd (#34638)
+e5ee95e448  # [RPC] Add to confirmed users immediately if the fork is shared from owner, instead of adding nothing to pending users (#34988)
+b35e544772  # Minor fixes for RPC API doc (#34955)
+d29f450e63  # Revert D20442573: [RPC] Use qualified name str directly in RPC torch script code path
+2ce9513b0c  # AccumulateGrad: ensure sparse tensor indices and values refcount is always 1 (#34559)

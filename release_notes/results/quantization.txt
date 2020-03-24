@@ -138,3 +138,7 @@ e5b947a3a8  # Raise an error for is_signed on quantized types (#30527)
 efe683fb2a  # dynamicly quantized linear benchmarking
 e33dea6e4e  # dynamicly quantized lstm benchmarking
 701ca68882  # Docs entry for the `is_quantized`
+e7910aa9e5  # [fix] use non-inplace for insert observer pass (#34190)
+b2e5e0cad6  # [quant][graphmode] quantization support for aten::rehshape (#34803)
+d77d907f0e  # [quant][graphmode] Add quantization support for aten::dropout (#34347)
+689598df0b  # [quant][graphmode] insert quant/dequant work for duplicated debugName (#34315)

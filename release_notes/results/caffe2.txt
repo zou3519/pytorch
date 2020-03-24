@@ -143,3 +143,5 @@ c9ed111894  # [caffe2][quantization] Add initializer and precision as read-only 
 968c0d4a46  # Add support for converting quantized AvgPool2d and Reshape operations (#30490)
 980aead1f8  # Add support for quantized slice conversion (#30498)
 a2f3c6c26f  # Call RandomNumberSeed() on-demand (#33539)
+69e701fbf9  # Add transfer_learning_blob_name_mappings into layer_model_helper to support layer model transfer learning
+d927d58c2a  # Revert D20289209: Support RowWiseSparseAdam on GPU

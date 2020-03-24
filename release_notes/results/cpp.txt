@@ -52,3 +52,16 @@ fcb7371e65  # Document `IValue` (#31904)
 b446572997  # Document `IValue` (#31904)
 8c425dd201  # Document `IValue` (#31904)
 8614860210  # Uniformly apply Windows logic in cpp_extensions everywhere (#31161)
+1e5aead35b  # Make cuda search process of cpp extension quiet (#32620)
+9357b91180  # Remove -Werror from test/cpp_extensions/setup.py (#32704)
+769abddfa3  # Build ahead-of-time C++ extensions with ninja on windows
+5b922918d0  # Disable flaky test TestCppExtensionAOT.test_cuda_extension in Windows CI (#33282)
+28c5213a97  # Add mechanism to pass a number of workers to cpp extensions (#33346)
+ffe327f7d9  # Revert "Disable flaky test TestCppExtensionAOT.test_cuda_extension in… (#33404)
+392afb9f8b  # Fix overlapping keywords (#34142)
+b09e90af1e  # Fix C++ at::Tensor docs generation (#34467)
+20b18a58f1  # Update compiler warning about ABI compatibility (#34472)
+7c06b86e42  # Revert D20518647: [pytorch][PR] [C++ API Parity] [Optimizers] Merged Optimizer and LossClosureOptimizer
+be82e554fe  # Revert D20524479: [pytorch][PR] [C++ API Parity] Add xor_convergence test for lbfgs
+b8e043abca  # [C++ API Parity] [Optimizers] Merged Optimizer and LossClosureOptimizer (#34957)
+4521477f83  # [C++ API Parity] Add xor_convergence test for lbfgs (#35001)
