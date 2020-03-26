@@ -68,3 +68,8 @@ b8e043abca  # [C++ API Parity] [Optimizers] Merged Optimizer and LossClosureOpti
 190dac13e3  # Use universal references and perfect forwarding in Loops.h. (#30466)
 95cb66570a  # Erase array sizes from types in c10::str(). (#31683)
 6209412647  # Add option to use ninja to compile ahead-of-time cpp_extensions (#32495)
+0b5b2b864a  # [BC-Breaking] Rename at::Tensor::base() to _base() (#33316)
+ca002a0f6b  # Switch empty_like to use merge_in to process TensorOptions. (#33505)
+e1c53a5c86  # Fix version counter bump in cpp Function (#33068)
+f909b5535e  # [autograd] fix allow_unused checking for C++ API (#34035)
+f531815526  # Deprecate tensor.type() (#30281)

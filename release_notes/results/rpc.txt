@@ -173,3 +173,4 @@ b35e544772  # Minor fixes for RPC API doc (#34955)
 d29f450e63  # Revert D20442573: [RPC] Use qualified name str directly in RPC torch script code path
 2ce9513b0c  # AccumulateGrad: ensure sparse tensor indices and values refcount is always 1 (#34559)
 8a57362000  # Fix index out of bound error in Engine::ready_queue_size when called before start_threads
+1b2d2ba504  # [PyTorch] Fix write-after-free (TSAN) in GraphTask::set_error() (#33156)

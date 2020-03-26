@@ -1,2 +1,6 @@
 0e5a6700cc  # Emit warning from deprecated torch function signatures (#31514)
 b0ac425dc4  # Emit warning from deprecated torch function signatures (#32009)
+8908b62fb2  # Clean views created inside no_grad that are modified inplace (#32839)
+c1dd70688a  # Fix deprecated python "add" calls (#33428)
+35b6d2945d  # Tensor.random_ check that from and to are in tensor dtype bounds (#34033)
+1afc584188  # Deprecates current torch.full integral type inference, adds torch.full complex type inference (#34709)
