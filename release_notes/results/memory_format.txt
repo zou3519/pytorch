@@ -1,0 +1,8 @@
+66f2bba852  # Adding function to convert Module to channels last
+927588df8e  # Switch default memory format of _like operators to Preserve
+fde3d707ad  # Switch default memory format of to (and similar) operators to Preserve
+c35cddb306  # Switch default memory format of clone operator to Preserve
+909b8eba0d  # cudnn grouped convolution nhwc patch (#31444)
+10c2bd35af  # Fix cudnn channels_last descriptors problem (#31952)
+9e7c47644f  # [NHWC CUDNN CONV]Update cudnn convolution memory_format behavior (#32482)
+1b446aa2ee  # Expose Channel Last 3d enum

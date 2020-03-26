@@ -1,0 +1,2 @@
+0e5a6700cc  # Emit warning from deprecated torch function signatures (#31514)
+b0ac425dc4  # Emit warning from deprecated torch function signatures (#32009)

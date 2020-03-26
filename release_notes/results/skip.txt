@@ -1,227 +1,417 @@
-9fb879934e  # Revert D18641413: add unit tests to iOS CI jobs
-92e27c5e89  # Flag to disable Variable
-ec5c08de74  # Revert D18580867: Add logical_and and logical_or
-2f42488d36  # Updating submodules
-f3631c2464  # Revert D18542342: Boxed variable dispatch
-a2ed50c920  # Revert D17908478: Switch PyTorch/Caffe2 to C++14
-640109ae5d  # Back out "Revert D18542342: Boxed variable dispatch"
-9082123038  # Back out "Back out "Revert D18542342: Boxed variable dispatch""
-bc2e6d10fa  # Back out "Revert D17908478: Switch PyTorch/Caffe2 to C++14"
-d456a538f9  # op dependency analysis bash driver
-c0299d2707  # add LLVM code analyzer in order to replace static dispatch
-b8792c0438  # Revert D18645954: add __torch_function__ API override mechanism
-9d69c55b0d  # add MaskedRowWiseSparseAdagrad
-cd032c7f6a  # Updating submodules
-1d8a13147c  # Updating submodules
-6e38d50352  # Revert D18117070: Migrate max and min (binary) from TH to ATen.
-c1159494a6  # Revert D18621773: we should have a config-based way to skip flaky tests
-7af9d77290  # Update persons_of_interest.rst
-b0e7db5b31  # Revert D18840736: make sure windows tests get triggered
-78254eab45  # Add mobile operator observer for qpl logging.
-8b6d7698d6  # Updating submodules
-0b33080992  # Updating submodules
-fb36f1c334  # Updating submodules
-73dd8c005a  # Revert D18864774: polish up overloads on free functions
-44428d0ee2  # Updating submodules
-78a00d72b4  # Revert D18899127: resubmit polish up overloads on free functions
-2da3b9a0f6  # Updating submodules
-0cbbe050bb  # Updating submodules
-8fd85d70be  # Updating submodules
-d088bd0bad  # Updating submodules
-65f6e449c7  # Updating submodules
-4aa30d3c0c  # Revert D18293522: Optimize LayerNorm with explicit vectorization using Vec256
-3593981976  # Updating submodules
-7a8261e962  # Updating submodules
-d81c6bde3b  # Updating submodules
-c0bcfd0445  # Revert D18923167: Expose setNumThreads to android api
-c08f2ea254  # Updating submodules
-701e05dcbb  # Buck test targets robolectric,instrumentattion
-3e59e80429  # Revert D18941024: Move TorchScript language reference to its own page
-1bb800cf5c  # Updating submodules
-1e116a5089  # Revert D19054937: Add support for `del`
-6d6a91fb0f  # Updating submodules
-87768e5ade  # Updating submodules
-e9ef087d2d  # Updating submodules
-81329c907d  # Updating submodules
-fb63c0e2c9  # Remove -Wno-unused-private-field
-e2951d586d  # Updating submodules
-cf46bcace8  # Updating submodules
-34dce8e348  # Updating submodules
-cb1af5f61f  # Revert D19233558: add float[] str[] constants
-37fc59e847  # Updating submodules
-feb0ccdbfd  # Updating submodules
-fc598f9023  # generate op dependency graph as python code
-9c9d3cd550  # Revert D19262570: Fix race condition when creating build dir
-27488773b0  # Updating submodules
-9020d30fc9  # Updating submodules
-33430cf094  # Revert D18643137: Implement backend-agnostic rpc._wait_all_workers() utility
-227d1a43a4  # Revert D18838848: disable __torch_function__ overides for operators in torch.functional
-6d1fa8296b  # Support tensors with empty shape in Java
-1b4d3d5748  # Properly return data from non-contiguous tensors in Java
-4daa3dedbe  # Fix IValue.isList
-7f723cbd8a  # Revert D19290954: Implement backend-agnostic rpc._wait_all_workers() utility
-5dfcfeebb8  # Revert D19298735: Emit warning from deprecated torch function signatures
-5d5f156558  # Revert D18903453: Quantized H Tangent function
-021e1e20c1  # Revert D19320493: Javadoc changes
-c5a362a96d  # Updating submodules
-346005d3ed  # integrate op dependency analysis process into CI
-d53ce5e4cd  # Updating submodules
-632d6fc583  # Revert D19373615: Fix typo in config script to re-enable libtorch build and test in macOS CI
-c474952b5d  # Updating submodules
-62b1a5f846  # Updating submodules
-51a34545e9  # Revert D18482934: support torch script call over rpc
-89c6e18c43  # Updating submodules
-f3b62d4b1c  # Updating submodules
-61a2b34113  # Updating submodules
-5a58c16722  # Updating submodules
-c8ca70e39d  # Updating submodules
-25e62ebac9  # Updating submodules
-7fbfb7eef2  # Updating submodules
-1177191c8e  # Synchronize with ShipIt.
-9482683065  # Remove dead includes in caffe2/test
-bc6005281b  # Updating submodules
-0ed04bfdf6  # Updating submodules
-4973695268  # Updating submodules
-60b6c99aa7  # Updating submodules
-556c0b063d  # Updating submodules
-ef2d4e67d1  # Updating submodules
-f0917dce7f  # Revert D19562258: [pytorch][PR] Fixes moving after weight norm application
-389b9c180b  # Updating submodules
-39987de9e4  # [vulkan][caffe2] Add logging for descriptor extensions, fp16 storage
-1217c9b364  # Updating submodules
-02f055ffd9  # Add mapping for FbFCPacked in fakefp16 transform
-fd850685da  # Updating submodules
-642c9ef922  # More code fakefp16 mapping unification
-c47c78d0bf  # Revert D19597036: More code fakefp16 mapping unification
-cccf5e7011  # Resolve rendezvous race condition
-8ead65a946  # [PyTorch][TorchScript] Add support for join on List of strings in TorchScript
-6874278985  # Revert D19611800: [PyTorch][TorchScript] Add support for join on List of strings in TorchScript
-5380e16db9  # Updating submodules
-ed10408cc6  # Updating submodules
-22466552e3  # Updating submodules
-fd3bd7777d  # Updating submodules
-4493b10500  # [PyTorch] Gate out mobile operator logging observer.
-a8d39a7937  # Updating submodules
-c83f984906  # Updating submodules
-ce07fb26c0  # Updating submodules
-ff0ba563d5  # Updating submodules
-f8dd65f2a1  # Updating submodules
-4baadd54d7  # add SpatialBN lowered fake fp16
-341fb6d11d  # Make caffe2/caffe2/python/models/seq2seq python3 compatible
-e999095594  # Updating submodules
-b0d5ce3848  # Revert D19710990: [pytorch][PR] properly update _flat_weights in RNN modules
-e4f633ba0b  # Updating submodules
-ec1e9a1ae2  # Revert D19417087: fix #30480 torch.normal shape checking is broken
-8195961f20  # Revert D19730209: [pytorch][PR] Issue a warning when using zero_grad in DataParallel
-10db323b75  # Updating submodules
-e7b42209eb  # Added sparkspot model.
-0e29e9e0f6  # Re-enable internal test runs
-f4fbe9549d  # Revert D19800021: [pytorch][PR] Improve error message for assertWarnsRegex
-524fe8a96c  # Updating submodules
-61ac14a483  # Updating submodules
-855ee6446f  # Revert D18749922: [pytorch] Migrating index_add cuda to ATen
-74c8a8f7bc  # Revert D19825127: [pytorch][PR] Move where cuda implementation to TensorIterator
-d609497dde  # bulk_eval_collect_histograms
-7863d2413d  # Updating submodules
-a389f8fa18  # Revert D18912680: Prepare templates
-ac8511a21e  # Updating submodules
-0bf60e348f  # Revert D19878241: [pytorch][PR] Restore tests binary_macos_libtorch_2_7_cpu_build and binary_macos_li…
-b28a834813  # [codemod][lint][fbcode] Apply google-java-format
-a80d0330e4  # add int4 fake fp16 mappings
-ff5f38f53b  # Revert D19858239: [pytorch][PR] Refactor and add VS 14.16 and 2019 CI for Windows
-0c98939b7b  # Revert D19899550: [pytorch][PR] Second try on Von Mises: Make it JIT compatible
-ae53f8dd25  # Revert D19859905: [pytorch][PR] Gradient scaling API
-9c8b67b179  # Revert D19905015: Revert D19858239: [pytorch][PR] Refactor and add VS 14.16 and 2019 CI for Windows
-5cab54e0db  # Revert D19560159: [RPC Reliability] Implemented retries for RPCs with exponential backoff
-c6271c63f2  # Updating submodules
-c37a9b874b  # Updating submodules
-6dd6b0bfae  # Revert D19900566: [pytorch][PR] Simplify prim::shape when we have complete tensor types.
-c75d06d854  # Move gating part of SparseFeatureGating to local
-d4e4beddc4  # Revert D19871946: [distributed] pass in timeout to TCP store when initializing
-d29997373e  # Updating submodules
-87dc2dbcce  # Updating submodules
-1a589f50bd  # [auto quant] Add quant_scheme_generator to interface with dper
-4468a7b7b3  # Updating submodules
-d50305e2f3  # Updating submodules
-8b6a898d2b  # Updating submodules
-20c1e25832  # Re-sync with internal repository (#33519)
-883b18ea70  # Delete build_variables.bzl following configerator change.
-05fb160048  # Revert D19964089: [pytorch][PR] Allow vectorized gpu loop to have different argument types
-3233033a17  # Revert D19975410: Update documentation on why _cudnn_init_dropout_state looks the way it is.
-687a7e4a25  # Revert D19975411: Remove special case codegen for tril_indices/triu_indices.
-71225ecc8c  # Revert D20006312: Revert D19975410: Update documentation on why _cudnn_init_dropout_state looks the way it is.
-0bde610c14  # Re-sync with internal repository (#33591)
-d3d975cbf6  # Updating submodules
-e10aa6b72f  # Fix flaky DagNetTest unittest
-1c08fa7051  # [Caffe2] Skip caffe2/caffe2:caffe2_test_cpu - DBSeekTest.LMDB
-59daf1611b  # [Caffe2] Skip //caffe2/caffe2:caffe2_test_cpu -- 'DBSeekTest\.RocksDB'
-312627a7c3  # Revert D19776613: Migrate `random_` from the TH to Aten (CPU)
-039dc90854  # Revert D19521853: [pytorch][PR] Mobile Backend: NHWC memory layout + XNNPACK integration.
-ced8865d91  # Add sigmoid to mobile ops
-5090d7082b  # add propagate flag USE_DISTRIBUTED for libtorch_python_source
-97da60d511  # Updating submodules
-8159316714  # Revert D19941103: [pytorch] blas gemm fix for k=0
-51e405743f  # Revert D20010383: [jit] Unify augmented assign handling
-a7cf5c859f  # Revert D20136865: fix lint
-243af17d65  # Revert D20103905: [jit] Fix flipped PackedSequence outputs in script
-53630f7681  # Updating submodules
-910acafc79  # Revert D20124224: [jit] stop printing crap in test_jit
-5eacdfb21f  # Revert D20127441: [pytorch][PR] [JIT] Introduce a fake Tensor creation node for IR unit tests
-890242254b  # Updating submodules
-9fd1a7697f  # Create CODE_OF_CONDUCT.md
-ad44394f15  # Updating submodules
-595445e889  # Revert D20178827: Fix mobile build
-3acfccafbb  # Revert D20172782: Fix mobile build
-7f7ea685c0  # Revert D18672405: Use codegen'ed unboxing wrappers
-9f7708eecb  # Updating submodules
-e017b1e9fb  # Updating submodules
-71f8624ecb  # Revert D19153199: [ATen] Remove `AT_ASSERTM` from Blob::free_()
-1aff3e2dd3  # Revert D20204104: [pytorch][PR] .circleci: Add filter to run nightly builds on tag
-b1fd7ba019  # Revert D20169501: [pytorch][PR] .circleci: Add CUDA 10.2 to our CI pipeline
-49586a2a7e  # fix sph batchnorm to use sph fma
-c579976603  # Revert D20171428: [profiler] fix chrome tracing for profiler run with cuda
-c688eb28a2  # Minor fix for quantizing the Ads complex model
-ac6e75a165  # Revert D20195053: [pytorch][PR] Add API for listing functions overridable by __torch_function__
-d59e036f4d  # Revert D20194092: Add support to dump unsupported ops. Add lite_interpter_load test.
-1546d2afeb  # [pytorch_ci] Don't run determination tests in py35
-d98bd5e1f5  # [test all] Back out "Revert D20171428: [profiler] fix chrome tracing for profiler run with cuda"
-ed11e2536a  # [pytorch_ci] Skip determination tests in rocm
-5500c3de0a  # Revert D20150304: [pytorch][PR] [JIT] Introduce a fake Tensor creation node for IR unit tests
-30680196e4  # Revert D20121915: [JIT] Add support for list()
-91e922a338  # [AI Bench] Add support for nlu model
-6f12145c60  # Change std::to_string call to c10::to_string
-63964175b5  # Revert D20379910: [pytorch][PR] Set USE_RCCL cmake option (dependent on USE_NCCL)
-6f8a8e4e47  # Revert D20282846: Delete OperatorOptions, absorb AliasAnalysisKind into FunctionSchema.
-4b929e5466  # Revert D20193196: [pytorch][PR] PCA and SVD for low-rank matrices, LOBPCG for positive-defined generalized eigenvalue problem
-1e6c47413a  # Updating submodules
-787c307e63  # Revert D20368543: [pytorch][PR] [JIT] remove specialized list ops
-d5f8c8f3ba  # Revert D20121169: [pytorch][PR] ONNX Export Support for CrossEntropyLoss
-e9a660a160  # Revert D20354878: [quant][graphmode] Add quantized conv2d-relu fusion pattern
-6791ae51a5  # Updating submodules
-b93518a662  # Revert D20422879: [pytorch][PR] Remove hotpatches that circumvent MAGMA bug
-14c1ab049d  # [Codemod][FBSourceGoogleJavaFormatLinter] Daily `arc lint --take GOOGLEJAVAFORMAT`
-27410318ad  # [PyTorch][Mobile] Fix the operator latency issue.
-a730abd997  # [PyTorch][tools] Add linux64 clang-format hash
-6c555e1508  # Revert D20311699: [pytorch][PR] [C++ API] RNN / GRU / LSTM layer refactoring
-1af6002321  # Initial implementation of NNPI Int8FC op
-976d6aaa51  # Revert D20251830: [TensorExpr] Add tensorexpr benchmarks.
-a0b7a39a92  # Updating submodules
-3e68d0c5d0  # Revert D20461609: [caffe2] open source 2/4-bit SLS operators
-95f1cb34b9  # Revert D20480546: adds quantized implementation of hard sigmoid
-df20f5b374  # Updating submodules
-f0243ea712  # Use [[deprecated]] instead of C10_DEPRECATED (#30918)
-a3dd44653f  # Fix typo in config script to re-enable libtorch build and test in macOS CI (#32072)
-2bd179147a  # Fix typo in config script to re-enable libtorch build and test in macOS CI (#32072)
-0c03304bdf  # .circleci: Only run macos libtorch on master (#32378)
-af4d6120bd  # Temporarily disable failing 'binary_macos_libtorch_2_7_cpu_build' and… (#33207)
-8245641091  # Re-activate binary_macos_libtorch_2_7_cpu_build and binary_macos_li… (#33321)
-9e384f9ce4  # Remove duplicate header include. (#33656)
-f114c33e69  # Fix iOS CI (#30327)
-47033b49f3  # Suppress XCode build warnings (#31000)
-346a349111  # Update all instances of 1.4.0 -> 1.5.0 (#31785)
-9047d4df45  # Remove all remaining usages of BUILD_NAMEDTENSOR (#31116)
-409151e1bb  # Use [[noreturn]] instead of C10_NORETURN or CAFFE_NORETURN (#30917)
-c5d2758c35  # Disable flaky TestMomentumSGD.test_fp16momentum_sgd (#31369)
-a53b39f09d  # Disable flaky test_process_group_debug_info
-bcb0bb7e0e  # Remove unnecessary ATen/core/EnableNamedTensor.h (#31117)
-204939b401  # Automatic update of fbcode/onnx to 57ebc587fcf3913b4be93653b0dd58c686447298 (#31642)
+9fb879934e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+92e27c5e89  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ec5c08de74  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2f42488d36  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f3631c2464  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a2ed50c920  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+640109ae5d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9082123038  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+bc2e6d10fa  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d456a538f9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c0299d2707  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b8792c0438  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9d69c55b0d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+cd032c7f6a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1d8a13147c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6e38d50352  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c1159494a6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7af9d77290  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b0e7db5b31  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+78254eab45  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8b6d7698d6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0b33080992  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+fb36f1c334  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+73dd8c005a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+44428d0ee2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+78a00d72b4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2da3b9a0f6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0cbbe050bb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8fd85d70be  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d088bd0bad  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+65f6e449c7  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4aa30d3c0c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+3593981976  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7a8261e962  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d81c6bde3b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c0bcfd0445  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c08f2ea254  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+701e05dcbb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+3e59e80429  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1bb800cf5c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1e116a5089  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6d6a91fb0f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+87768e5ade  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e9ef087d2d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+81329c907d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+fb63c0e2c9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e2951d586d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+cf46bcace8  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+34dce8e348  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+cb1af5f61f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+37fc59e847  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+feb0ccdbfd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+fc598f9023  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9c9d3cd550  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+27488773b0  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9020d30fc9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+33430cf094  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+227d1a43a4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6d1fa8296b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1b4d3d5748  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4daa3dedbe  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7f723cbd8a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5dfcfeebb8  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5d5f156558  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+021e1e20c1  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c5a362a96d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+346005d3ed  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d53ce5e4cd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+632d6fc583  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c474952b5d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+62b1a5f846  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+51a34545e9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+89c6e18c43  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f3b62d4b1c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+61a2b34113  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5a58c16722  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c8ca70e39d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+25e62ebac9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7fbfb7eef2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1177191c8e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9482683065  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+bc6005281b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0ed04bfdf6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4973695268  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+60b6c99aa7  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+556c0b063d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ef2d4e67d1  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f0917dce7f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+389b9c180b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+39987de9e4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1217c9b364  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+02f055ffd9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+fd850685da  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+642c9ef922  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c47c78d0bf  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+cccf5e7011  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8ead65a946  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6874278985  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5380e16db9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ed10408cc6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+22466552e3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+fd3bd7777d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4493b10500  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a8d39a7937  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c83f984906  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ce07fb26c0  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ff0ba563d5  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f8dd65f2a1  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4baadd54d7  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+341fb6d11d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e999095594  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b0d5ce3848  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e4f633ba0b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ec1e9a1ae2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8195961f20  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+10db323b75  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e7b42209eb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0e29e9e0f6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f4fbe9549d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+524fe8a96c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+61ac14a483  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+855ee6446f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+74c8a8f7bc  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d609497dde  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7863d2413d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a389f8fa18  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ac8511a21e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0bf60e348f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b28a834813  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a80d0330e4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ff5f38f53b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0c98939b7b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ae53f8dd25  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9c8b67b179  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5cab54e0db  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c6271c63f2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c37a9b874b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6dd6b0bfae  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c75d06d854  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d4e4beddc4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d29997373e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+87dc2dbcce  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1a589f50bd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4468a7b7b3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d50305e2f3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8b6a898d2b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+20c1e25832  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+883b18ea70  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+05fb160048  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+3233033a17  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+687a7e4a25  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+71225ecc8c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0bde610c14  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d3d975cbf6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e10aa6b72f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1c08fa7051  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+59daf1611b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+312627a7c3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+039dc90854  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ced8865d91  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5090d7082b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+97da60d511  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8159316714  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+51e405743f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a7cf5c859f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+243af17d65  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+53630f7681  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+910acafc79  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5eacdfb21f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+890242254b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9fd1a7697f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ad44394f15  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+595445e889  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+3acfccafbb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7f7ea685c0  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9f7708eecb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e017b1e9fb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+71f8624ecb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1aff3e2dd3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b1fd7ba019  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+49586a2a7e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c579976603  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c688eb28a2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ac6e75a165  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d59e036f4d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1546d2afeb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d98bd5e1f5  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ed11e2536a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5500c3de0a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+30680196e4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+91e922a338  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6f12145c60  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+63964175b5  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6f8a8e4e47  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4b929e5466  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1e6c47413a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+787c307e63  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d5f8c8f3ba  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e9a660a160  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6791ae51a5  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b93518a662  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+14c1ab049d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+27410318ad  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a730abd997  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6c555e1508  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1af6002321  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+976d6aaa51  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a0b7a39a92  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+3e68d0c5d0  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+95f1cb34b9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+df20f5b374  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f0243ea712  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a3dd44653f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2bd179147a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0c03304bdf  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+af4d6120bd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8245641091  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9e384f9ce4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f114c33e69  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+47033b49f3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+346a349111  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9047d4df45  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+409151e1bb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c5d2758c35  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a53b39f09d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+bcb0bb7e0e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+204939b401  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+35e6c1763e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2e709763a3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7570b2798a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+99a46b44ea  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f994377d28  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+94ad7544ae  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0c9c62ba6e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6e88ddf352  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7c6cc1d6d4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b8eba7aca9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+16606e1725  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7160300638  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0c67311878  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d7ac90e2ef  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0517323dad  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+79a830af56  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+72ac45662b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+dbce53fe32  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+634f370c63  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+976d91d30a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+21d7532dfe  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+829499e626  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c1c5622a6a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7d2b0aa693  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0b25371f5d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+87f29557bd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+98ab55fc51  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+61798865e3  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8b29701ae5  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8269f7b652  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1b12fd33ed  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4e6379379c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+604a27361f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+56dd2836ec  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a376dd344c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+569729527b  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4ac614191a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+76acf5b553  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ab834d5093  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7e472679ff  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6918f0ce86  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+fa2aa245cf  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+786de33832  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+42e79d7e8a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6bd8937aee  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+139aa51962  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ba1a9871cb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f12332eb51  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2607772959  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2171f91053  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+be55874f2c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c564d794ed  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e5bd7a7942  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4034aa7621  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+11b3065323  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e5d571ae25  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d6ddfab11f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+223f46f5fa  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+baccd26df7  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4bb497b38e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c75bc9067c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+528fa737ba  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ed20937231  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d113b22571  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b7652a2f81  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9305f44854  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a929d312ac  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5b03ff0a09  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e5a550cd1d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0db6c01301  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4ead2e8996  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+84d6796658  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1ef99cf0ab  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8fea7a49d6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+3587f769dc  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d7d07e7caf  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1ec989404c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6e1e09fd10  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2950530031  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ffe0c1ae4d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0d7391f8b2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c95d46abbd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9ca61aec0f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+229ce89b92  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+49eff2f43c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d2067569e7  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+dab5f72543  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0b8332efb4  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e169e02836  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4d22c3ba01  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d2e66b44cc  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+540b9da41e  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b38901aa15  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6cd987e7c0  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+df9d5b8a77  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+3820d6f6b9  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5d95a9ca79  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+91eb7c26cd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ffcac9ad37  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e84e7ec556  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+6064223808  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+236b0a318c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+7078f4b27d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d770fbc1d2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ed5cd0d742  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5f8308e32d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+155376721c  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+68f3782106  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+e5b7231edc  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+b0a2765103  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c65305e991  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a9dae70bae  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4ef9daf7b2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8a0503b355  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c21f89970f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0dca9c30ca  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ab60cca488  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+9116f02beb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ee817012b2  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+f0072b3af5  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+c66ca74f03  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+462bfc7fe7  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+dedd16b418  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+5c423cae72  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2968faf154  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+700d1c5cbc  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4e84661139  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+03ff3eb94d  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+16b8ca56b6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4002fec509  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+8e93159fb6  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+d97413eb7a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+26621d101f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+1487582ba7  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+0664c6bbfd  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+2bb9dbeffa  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+4a26bb9b18  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+19bbb4fccb  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+ef0f96e92f  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+81048c41ab  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+a5161c7022  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+cd99b3706a  # For ppc64le, stop presenting the python 2.7 builds (we will no longer… (#32315)
+78d8f691ad  # Don't dispatch to integral types in smooth_l1_kernel
+7732924501  # Delete unused bernoulli_Tensor from THTensorRandom.h
+418ebc827b  # Build: Respect USE_CUDNN=0, even if cudnn is found (#32404)
+c13df8b688  # Fix cusparse version check (#32405)
+ea7bebb7fe  # [PyTorch BC] Clean up the whitelist for PyTorch Op BC check (#32523)
+49cd83d735  # no more build_pytorch_libs.sh/.bat (#32319)
+ad4fba0ce4  # Only run test_conv_large and test_conv_transposed_large_cuda on 32GB device (#32473)
+f0c85571ed  # docker: Refactor Dockerfile process for official images (#32515)
+9e0ce72e9e  # [pytorch] change op dependency output to use double-quoted strings (#32464)
+1218a16aae  # [pytorch][refactor] Explicitly use auto* for pointers (#32548)
+e0ffe72649  # [aten] fix shadowing variable warning (#32573)
+0afe195046  # [pytorch] move type_derived_methods out of anonymous namespace (#32275)
+69283388ca  # [pytorch] codegen flags to whitelist op registrations / generate to separate files (#32451)
+897b6908d4  # Kill THIntegerTensor, THDenseTensor, THDenseIndexTensor. (#32599)
+e24ce0e524  # Kill some more unused code in function_wrapper.py
+da390914bd  # .circleci: Add workflows for Python 3.8 (#31948)
+2060e0a9dd  # Split serialization tests to their own file (#32241)
+99228086a6  # Added missing period in README.
+c35ca84eee  # Get rid of some unused THGenerate*Type defines. (#32657)
+d119de8abd  # Deduplication of type casting codes (#32730)
+8693164acb  # Randomize xla port (#32718)
+b371eab8c7  # Expunge last two sites of resize_dim (#32112)
+8c6f52ac24  # Delete resize_dim() (#32114)
+8b187e8f2a  # Fix ivalue_inl.h:353:29: warning: comparison of unsigned expression >= 0 is always true (#32778)
+85bd3e5bdb  # Removing @expectedFailureXLA from test_nll_loss_empty_tensor_reduction_mean (#32701)
+fa65859270  # Re-enable non-deterministic autograd tests
+cc35c876cb  # Fix backcompat for linear_relu_dynamic_fp16 (#32803)
+9bab617b3e  # Make python version a parameterizable option for Windows CI.
+bcb7c22679  # [PyTorch BC] Fix the ci (#32843)
+fcf9fcedf4  # Remove needs_dynamic_casting from TensorIterator and move it to Loops.cuh (#32755)
+b16dab8a41  # Coding header is better specified in lowercase letters (#32850)
+d9e99ab544  # Loops.cuh legacy code cleanup -- gpu_kernel_with_index (#32777)
+1760d5b83c  # Remove wrap_dim from codegen layer. (#32738)
+b34e0dda24  # Emit the C++ version when compiling pytorch from source. (#32819)
+612e621da0  # Improve CHECK_OP macro (#29539)
+544eab37d0  # Move deprecation warning out of generated code into python_arg_parser. (#32907)
+ec2c974bd5  # Simplify some TH codegen by moving code out of the switch and killing dead code. (#32888)
+e922826dda  # [pytorch] simplify lazy initialization of DefaultCPUGenerator singleton (#32897)
+d3a0bdd06b  # proofreading (#29797)
+3531f99384  # Kill _th_max, _th_min overloads that aren't used.
+72b9412be2  # Move some broadcasting logic away from codegen. (#32982)
+b0476dc6e6  # Fix Typo
+3b2f267ad8  # add to codeowner to get better inbox notification for PR
+c917a247a8  # Improve error message for assertWarnsRegex (#33099)
+ebed008dd4  # Correct /MP usage in MSVC (#33120)
+3bde97d5a5  # Move a resize from codegen to code.
+d672779339  # [CI][treehug] Disable xenial_py2.7 tests due to mypy min version py3.5
+ad90c97c0a  # Removes flaky check (#33146)

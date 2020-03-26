@@ -39,3 +39,7 @@ b553e6911a  # [distributed] quicker exit in the case of failed tests in distribu
 d81d65b2f7  # Add entry for distributed tests to CODEOWNERS. (#34637)
 35d9874a35  # in test_data_parallel.py, remove skipIfRocm from tests that pass (#34978)
 d3b6099366  # [build] Update gloo submodule (#34969)
+824e649d40  # Specify requires_grad for Parameter replica so it's not always set to True by default (#32356)
+c342c354a9  # Put sparse all reduce results to input tensors (#32226)
+46c3c18bcc  # Issue a warning when using zero_grad in DataParallel (#32870)
+efba630287  # Issue a warning when zero_grad is used in DataParallel (#33064)

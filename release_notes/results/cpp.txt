@@ -65,3 +65,6 @@ b09e90af1e  # Fix C++ at::Tensor docs generation (#34467)
 be82e554fe  # Revert D20524479: [pytorch][PR] [C++ API Parity] Add xor_convergence test for lbfgs
 b8e043abca  # [C++ API Parity] [Optimizers] Merged Optimizer and LossClosureOptimizer (#34957)
 4521477f83  # [C++ API Parity] Add xor_convergence test for lbfgs (#35001)
+190dac13e3  # Use universal references and perfect forwarding in Loops.h. (#30466)
+95cb66570a  # Erase array sizes from types in c10::str(). (#31683)
+6209412647  # Add option to use ninja to compile ahead-of-time cpp_extensions (#32495)

@@ -1,0 +1,8 @@
+d12786b24f  # add __torch_function__ API override mechanism (#27064)
+9d3402e4cb  # Add the __torch_function__ API override mechanism (#30730)
+b47e9b97a2  # Add op bitwise_and (#31104)
+ca72df06ae  # disable __torch_function__ overides for operators in torch.functional (#30839)
+8dc67a014f  # Add cummax
+bab87e4b60  # reimplement __torch_function__ overrides for torch.functional using inline logic (#32194)
+5b815d980e  # Added cummin
+b1c85dd916  # Custom RNG DispatchKey (#32325)
