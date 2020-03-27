@@ -6,6 +6,10 @@ def any_path_startswith(pattern, files_changed):
     return any(path.startswith(pattern) for path in files_changed)
 
 
+def autocategorize_from_features(commit_hash, features):
+    return autocategorize(commit_hash, *features)
+
+
 def autocategorize(commit_hash, title, body, pr_number, files_changed, labels):
     if pr_number is None:
         return 'skip'
@@ -33,6 +37,8 @@ def autocategorize(commit_hash, title, body, pr_number, files_changed, labels):
     if any_path_startswith('torch/distributed', files_changed):
         return 'distributed'
     if any_path_startswith('torch/csrc/distributed', files_changed):
+        return 'distributed'
+    if any('c10d' in path for path in files_changed):
         return 'distributed'
     if 'module: distributed' in labels:
         return 'distributed'
@@ -93,9 +99,13 @@ def autocategorize(commit_hash, title, body, pr_number, files_changed, labels):
     if 'libtorch' in title.lower():
         return 'cpp'
 
+    if '[jit]' in title.lower():
+        return 'jit'
     if 'torchscript' in title.lower():
         return 'jit'
     if 'jit' in labels:
+        return 'jit'
+    if any_path_startswith('test/test_jit', files_changed):
         return 'jit'
 
     # python or misc?
@@ -118,5 +128,5 @@ def main():
                 f.write(f'{commit}  # {feature.title}\n')
                 # f.write(f'{feature.title} [#{feature.pr_number}](https://github.com/pytorch/pytorch/pull/{feature.pr_number})\n')
 
-
-main()
+if __name__ == '__main__':
+    main()
