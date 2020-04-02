@@ -46,15 +46,15 @@
   use_c10_dispatcher: full
 
 # TODO: these should be fast
-- func: _batch_dim(Tensor self) -> int
-  use_c10_dispatcher: full
+# - func: _batch_dim(Tensor self) -> int
+#   use_c10_dispatcher: full
 
 - func: _is_batched(Tensor self) -> bool
   use_c10_dispatcher: full
 
 # TODO: just testing
-- func: _get_undefined(Tensor self) -> Tensor
-  use_c10_dispatcher: full
+# - func: _get_undefined(Tensor self) -> Tensor
+#   use_c10_dispatcher: full
 
 
 # Computes the gradient of current tensor w.r.t. graph leaves.
