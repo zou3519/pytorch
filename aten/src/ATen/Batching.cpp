@@ -7,27 +7,15 @@
 #include <torch/script.h>
 #include <torch/types.h>
 #include <bitset>
+#include <iostream>
 
 namespace at {
 
-IntArrayRef realSizes(const Tensor& self) {
-  if (isBatched(self)) {
-    return getBatched(self)->value().sizes();
-  } else {
-    return self.sizes();
-  }
-}
-
 bool areBdimsAtFrontInOrder(BatchDimsRef bdims) {
-  int64_t idx = 0;
-  for (const auto& bdim: bdims) {
-    if (!bdim.index().has_value()) {
-      continue;
-    }
-    if (bdim.index().value() != idx) {
+  for (int64_t idx = 0; idx < bdims.size(); idx++) {
+    if (bdims[idx].index() != idx) {
       return false;
     }
-    idx++;
   }
   return true;
 }
@@ -42,14 +30,11 @@ std::bitset<64> createLevelsBitset(BatchDimsRef bdims) {
 
 Tensor moveBdimsToFront(const Tensor& self, BatchDimsRef bdims) {
   auto self_sizes = self.sizes();
-  std::vector<int64_t> permutation(0, self_sizes.size());
+  std::vector<int64_t> permutation(self_sizes.size(), 0);
   auto is_bdim = createIsBdimBitset(bdims);
   int64_t idx = 0;
   for (const auto& bdim : bdims) {
-    if (!bdim.index().has_value()) {
-      continue;
-    }
-    permutation[idx++] = bdim.index().value();
+    permutation[idx++] = bdim.index();
   }
   for (int64_t ptr = 0; idx < self_sizes.size(); ptr++) {
     if (is_bdim[ptr]) {
@@ -60,46 +45,7 @@ Tensor moveBdimsToFront(const Tensor& self, BatchDimsRef bdims) {
   return self.permute(permutation);
 }
 
-Tensor moveBdimsToFront(const Tensor& self) {
-  if (!isBatched(self)) {
-    return self;
-  }
-  const auto self_sizes = realSizes(self);
-  const auto* batched = getBatched(self);
-  const auto& bdims = batched->bdims();
-  if (areBdimsAtFrontInOrder(bdims)) {
-    return self;
-  }
-
-  std::vector<int64_t> permutation(0, self_sizes.size());
-  auto is_bdim = createIsBdimBitset(batched->bdims());
-  int64_t idx = 0;
-  for (const auto& bdim : bdims) {
-    if (!bdim.index().has_value()) {
-      continue;
-    }
-    permutation[idx++] = bdim.index().value();
-  }
-  for (int64_t ptr = 0; idx < self_sizes.size(); ptr++) {
-    if (is_bdim[ptr]) {
-      continue;
-    } 
-    permutation[idx++] = ptr;
-  }
-  auto new_bdims = bdims;
-  for (int64_t ptr, idx = 0; ptr < new_bdims.size(); ptr++) {
-    const auto& bdim = new_bdims[ptr];
-    if (!bdim.index().value()) {
-      continue;
-    }
-    new_bdims[ptr] = { idx++, bdim.level() };
-  }
-  return detail::make_tensor<BatchTensorImpl>(
-      batched->value().permute(permutation),
-      std::move(new_bdims));
-}
-
-std::pair<Tensor, BatchDimsRef> unrapBatched(const Tensor& self) {
+std::pair<Tensor, BatchDimsRef> unwrapBatched2(const Tensor& self) {
   if (isBatched(self)) {
     const auto* batched = getBatched(self);
     return { batched->value(), batched->bdims() };
@@ -115,63 +61,123 @@ Tensor unsqueezeMultiple(const Tensor& self, int64_t before_dim, int64_t ndims) 
   return result;
 }
 
-Tensor insertDimsAfterBdims(const Tensor& self, int64_t ndims) {
-  if (!isBatched(self)) {
-    return unsqueezeMultiple(self, 0, ndims);
+Tensor alignTensorTo(
+    const Tensor& tensor,
+    BatchDimsRef tensor_bdims,
+    std::bitset<64> result_levels,
+    int64_t max_result_level,
+    int64_t num_result_regular_dims) {
+  // NB: Two prerequisites:
+  // 1. tensor_bdims are all at the front of tensor
+  // 2. all of tensor_bdims are accounted for in result_levels
+  auto tensor_sizes = tensor.sizes();
+  int64_t num_result_bdims = result_levels.count();
+  int64_t num_tensor_regular_dims = tensor_sizes.size() - tensor_bdims.size();
+  if (num_tensor_regular_dims == num_result_regular_dims &&
+      tensor_bdims.size() == num_result_bdims) {
+    return tensor;
   }
-  const auto* batched = getBatched(self);
-  TORCH_INTERNAL_ASSERT(areBdimsAtFrontInOrder(batched->bdims()));
-  auto idx = batched->numNonNoneBdims();
-  return detail::make_tensor<BatchTensorImpl>(
-      unsqueezeMultiple(batched->value(), idx, ndims),
-      batched->bdims());
+  // TODO: should we do this?
+  if (tensor_bdims.size() == 0 && num_tensor_regular_dims <= num_result_regular_dims) {
+    return tensor;
+  }
+
+  std::vector<int64_t> aligned_sizes(num_result_bdims + num_result_regular_dims, 1);
+
+  // align the regular (non-bdims) first
+  std::copy(
+      tensor_sizes.rbegin(),
+      tensor_sizes.rbegin() + num_tensor_regular_dims,
+      aligned_sizes.rbegin());
+
+  // align the bdims
+  int64_t level = 0;
+  int64_t dim = 0;
+  auto tensor_bdims_iter = tensor_bdims.begin();
+  while (level <= max_result_level && tensor_bdims_iter != tensor_bdims.end()) {
+    if (!result_levels[level]) {
+      level++;
+      continue;
+    }
+    if (tensor_bdims_iter->level() == level) {
+      aligned_sizes[dim] = tensor_sizes[tensor_bdims_iter - tensor_bdims.begin()]; 
+      level++;
+      tensor_bdims_iter++;
+    } else if (tensor_bdims_iter->level() < level) {
+      tensor_bdims_iter++; 
+    } else if (tensor_bdims_iter->level() > level) {
+      level++;
+    }
+    dim++;
+  }
+
+  return tensor.view(aligned_sizes);
 }
 
-std::pair<Tensor,Tensor> alignBdims(const Tensor& self, const Tensor& other) {
-  // TORCH_INTERNAL_ASSERT(areBdimsAtFrontInOrder(batched->bdims()));
-  return { self, other };
-}
+std::tuple<Tensor,Tensor,BatchDims> alignBdimsAtFront(
+    const Tensor& self,
+    BatchDimsRef self_bdims,
+    const Tensor& other,
+    BatchDimsRef other_bdims) {
 
-//std::tuple<Tensor,Tensor,BatchDims> alignBdimsAtFront(
-//    const Tensor& self,
-//    BatchDimsRef self_bdims,
-//    const Tensor& other,
-//    BatchDimsRef other_bdims) {
-//
-//  // Step 1: Permute the bdims to the front of the tensors
-//  auto self_ = moveBdimsToFront(self, self_bdims);
-//  auto other_ = moveBdimsToFront(self, other_bdims);
-//
-//  // Step 2: Align the bdims
-//  auto self_levels = createLevelsBitset(self_bdims);
-//  auto other_levels = createLevelsBitset(other_bdims);
-//  auto result_levels = self_levels & other_levels;
-//
-//  // for each level, we need to figure out where the position is in both and how to align.
-//  for (int64_t level = std::max(self.dim(), other.dim()); level >= 0; ++level) {
-//    
-//  }
-//
-//  BatchDims result_bdims;
-//  // compute the result bdims
-//  // compute the amount of padding necesary
-//  // permute + unsqueeze the inputs.
-//}
+  // Step 1: Permute the bdims to the front of the tensors
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto other_ = moveBdimsToFront(other, other_bdims);
+
+  auto self_sizes = self.sizes();
+  auto other_sizes = other.sizes();
+
+  // Step 2: Align the bdims
+  auto self_levels = createLevelsBitset(self_bdims);
+  auto other_levels = createLevelsBitset(other_bdims);
+  auto result_levels = self_levels | other_levels;
+  auto max_result_level = 0;
+  if (self_bdims.size() == 0) {
+    max_result_level = other_bdims.back().level();
+  } else if (other_bdims.size() == 0) {
+    max_result_level = self_bdims.back().level();
+  } else {
+    max_result_level = std::max(self_bdims.back().level(), other_bdims.back().level());
+  }
+  auto num_result_regular_dims = std::max(
+      self_sizes.size() - self_bdims.size(),
+      other_sizes.size() - other_bdims.size());
+  self_ = alignTensorTo(self_, self_bdims, result_levels, max_result_level, num_result_regular_dims);
+  other_ = alignTensorTo(other_, other_bdims, result_levels, max_result_level, num_result_regular_dims);
+
+  // Step 3: construct the result bdims
+  BatchDims result_bdims;
+  int64_t dim = 0;
+  for (int64_t level = 0; level < 64; level++) {
+    if (!result_levels[level]) {
+      continue;
+    }
+    result_bdims.push_back({dim++, level});
+  }
+
+  return { std::move(self_), std::move(other_), result_bdims };
+}
 
 Tensor BatchedTensor_mul(const Tensor& self, const Tensor& other) {
-//   Tensor self_, other_;
-//   BatchDimsRef self_bdims, other_bdims;
-//   BatchDims result_bdims;
-// 
-//   std::tie(self_, self_bdims) = unrapBatched(self);
-//   std::tie(other_, other_bdims) = unrapBatched(other);
-//   std::tie(self_, other_, result_bdims) = alignBdimsAtFront(self_, self_bdims, other_, other_bdims);
-//   return makeBatched(self_ + other_, result_bdims);
-  return self;
+  Tensor self_, other_;
+  BatchDimsRef self_bdims, other_bdims;
+  BatchDims result_bdims;
+
+  std::tie(self_, self_bdims) = unwrapBatched2(self);
+  std::tie(other_, other_bdims) = unwrapBatched2(other);
+  std::tie(self_, other_, result_bdims) = alignBdimsAtFront(self_, self_bdims, other_, other_bdims);
+  return detail::make_tensor<BatchTensorImpl>(self_ * other_, result_bdims);
 }
 
 Tensor BatchedTensor_add(const Tensor& self, const Tensor& other, Scalar alpha) {
-  return self;
+  Tensor self_, other_;
+  BatchDimsRef self_bdims, other_bdims;
+  BatchDims result_bdims;
+
+  std::tie(self_, self_bdims) = unwrapBatched2(self);
+  std::tie(other_, other_bdims) = unwrapBatched2(other);
+  std::tie(self_, other_, result_bdims) = alignBdimsAtFront(self_, self_bdims, other_, other_bdims);
+  return detail::make_tensor<BatchTensorImpl>(self_ + other_, result_bdims);
 }
 
 
@@ -631,22 +637,22 @@ static auto batched_registry2 = torch::RegisterOperators()
   //           batched->batch_dim_,
   //           batched->level_);
   //     }))
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::_is_batched(Tensor self) -> bool")
-  //     .kernel(BatchTensorKey, [] (const Tensor& self) -> bool {
-  //       return true;
-  //     }))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::_is_batched(Tensor self) -> bool")
+      .kernel(BatchTensorKey, [] (const Tensor& self) -> bool {
+        return true;
+      }))
   // .op(torch::RegisterOperators::options()
   //     .schema("aten::_batch_dim(Tensor self) -> int")
   //     .kernel(BatchTensorKey, [] (const Tensor& self) -> int64_t {
   //       return native::_batch_dim(self); // wut
   //     }))
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::size.int(Tensor self, int dim) -> int")
-  //     .kernel(BatchTensorKey, [] (const Tensor& self, int64_t dim) -> int64_t {
-  //       dim = maybe_wrap_dim(dim, self.dim());
-  //       return self.sizes()[dim];
-  //     }))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::size.int(Tensor self, int dim) -> int")
+      .kernel(BatchTensorKey, [] (const Tensor& self, int64_t dim) -> int64_t {
+        dim = maybe_wrap_dim(dim, self.dim());
+        return self.sizes()[dim];
+      }))
   // .op(torch::RegisterOperators::options()
   //     .schema("aten::conv2d(Tensor input, Tensor weight, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] dilation=1, int groups=1) -> Tensor")
   //     .impl_unboxedOnlyKernel<Tensor (const Tensor&, const Tensor&, const Tensor&, IntArrayRef, IntArrayRef, IntArrayRef, int64_t), &BatchedTensor_conv2d>(BatchTensorKey))

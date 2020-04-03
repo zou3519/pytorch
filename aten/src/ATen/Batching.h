@@ -9,15 +9,15 @@ namespace at {
 constexpr auto BatchTensorKey = DispatchKey::TESTING_ONLY_GenericWrapperTensorId;
 
 struct BatchDim {
-  BatchDim(optional<int64_t> index, int64_t level) : index_(index), level_(level) {}
-  optional<int64_t> index() const {
+  BatchDim(int64_t index, int64_t level) : index_(index), level_(level) {}
+  int64_t index() const {
     return index_;
   }
   int64_t level() const {
     return level_;
   }
  private:
-  optional<int64_t> index_;
+  int64_t index_;
   int64_t level_;
 };
 
@@ -27,10 +27,7 @@ using BatchDimsRef = ArrayRef<BatchDim>;
 inline std::bitset<64> createIsBdimBitset(BatchDimsRef bdims) {
   std::bitset<64> is_bdim;
   for (const auto& bdim : bdims) {
-    if (!bdim.index().has_value()) {
-      continue;
-    }
-    is_bdim.set(bdim.index().value());
+    is_bdim.set(bdim.index());
   }
   return is_bdim;
 }
@@ -48,12 +45,6 @@ struct BatchTensorImpl : public c10::TensorImpl {
   {
     TORCH_INTERNAL_ASSERT(value_.defined());
     initSizes();
-  }
-
-  int64_t numNonNoneBdims() const {
-    return std::count_if(bdims_.begin(), bdims_.end(), [](const BatchDim& bdim) {
-        return bdim.index().has_value();
-      });
   }
 
   int64_t actualDim(int64_t dim, bool wrap_dim = true) const {
@@ -80,11 +71,9 @@ struct BatchTensorImpl : public c10::TensorImpl {
 
  private:
   void initSizes() {
-    const auto mapped_dims = std::count_if(bdims_.begin(), bdims_.end(), [](const BatchDim& bdim) {
-        return bdim.index().has_value();
-      });
-    const auto public_dims = value_.dim() - mapped_dims;
+    const auto public_dims = value_.dim() - bdims_.size();
     const auto value_sizes = value_.sizes();
+    sizes_.clear();
     sizes_.reserve(public_dims);
     for (int64_t dim = 0; dim < public_dims; dim++) {
       auto actual_dim = actualDim(dim, /*wrap_dim=*/false);
@@ -125,15 +114,18 @@ inline BatchTensorImpl* getBatched(Tensor tensor) {
   return static_cast<BatchTensorImpl*>(tensor.unsafeGetTensorImpl());
 }
 
-inline Tensor makeBatched(Tensor tensor, optional<int64_t> batch_dim, int64_t level) {
+inline Tensor makeBatched(const Tensor& tensor, optional<int64_t> batch_dim, int64_t level) {
+  if (!batch_dim.has_value()) {
+    return tensor;
+  }
   if (!isBatched(tensor)) {
     BatchDims bdims;
-    bdims.push_back({batch_dim, level});
+    bdims.push_back({batch_dim.value(), level});
     return at::detail::make_tensor<BatchTensorImpl>(tensor, std::move(bdims));
   }
   const auto* batched = getBatched(tensor);
   auto new_bdims = batched->bdims();
-  new_bdims.push_back({batch_dim, level});
+  new_bdims.push_back({batch_dim.value(), level});
   return at::detail::make_tensor<BatchTensorImpl>(batched->value(), std::move(new_bdims));
 }
 
@@ -150,6 +142,11 @@ inline Tensor unwrapBatched(Tensor tensor, int64_t ntimes=1) {
     }
   }
   return tensor;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const BatchDim& bdim) {
+  out << "(idx=" << bdim.index() << ", lvl=" << bdim.level() << ")";
+  return out;
 }
 
 
