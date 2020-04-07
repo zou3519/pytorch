@@ -28,6 +28,15 @@ std::bitset<64> createLevelsBitset(BatchDimsRef bdims) {
   return result;
 }
 
+BatchDims moveBdimsToFront(BatchDimsRef bdims) {
+  BatchDims result;
+  result.reserve(bdims.size());
+  for (int64_t idx = 0; idx < bdims.size(); idx++) {
+    result.push_back(BatchDim(idx, bdims[idx].level()));
+  }
+  return result;
+}
+
 Tensor moveBdimsToFront(const Tensor& self, BatchDimsRef bdims) {
   auto self_sizes = self.sizes();
   std::vector<int64_t> permutation(self_sizes.size(), 0);
@@ -48,8 +57,10 @@ Tensor moveBdimsToFront(const Tensor& self, BatchDimsRef bdims) {
 std::pair<Tensor, BatchDimsRef> unwrapBatched2(const Tensor& self) {
   if (isBatched(self)) {
     const auto* batched = getBatched(self);
+    TORCH_INTERNAL_ASSERT(!isBatched(batched->value()));
     return { batched->value(), batched->bdims() };
   }
+  TORCH_INTERNAL_ASSERT(!isBatched(self));
   return { self, {} };
 }
 
@@ -155,7 +166,7 @@ std::tuple<Tensor,Tensor,BatchDims> alignBdimsAtFront(
     result_bdims.push_back({dim++, level});
   }
 
-  return { std::move(self_), std::move(other_), result_bdims };
+  return { self_, other_, result_bdims };
 }
 
 Tensor BatchedTensor_mul(const Tensor& self, const Tensor& other) {
@@ -165,6 +176,8 @@ Tensor BatchedTensor_mul(const Tensor& self, const Tensor& other) {
 
   std::tie(self_, self_bdims) = unwrapBatched2(self);
   std::tie(other_, other_bdims) = unwrapBatched2(other);
+  TORCH_INTERNAL_ASSERT(!isBatched(self_));
+  TORCH_INTERNAL_ASSERT(!isBatched(other_));
   std::tie(self_, other_, result_bdims) = alignBdimsAtFront(self_, self_bdims, other_, other_bdims);
   return detail::make_tensor<BatchTensorImpl>(self_ * other_, result_bdims);
 }
@@ -177,8 +190,42 @@ Tensor BatchedTensor_add(const Tensor& self, const Tensor& other, Scalar alpha) 
   std::tie(self_, self_bdims) = unwrapBatched2(self);
   std::tie(other_, other_bdims) = unwrapBatched2(other);
   std::tie(self_, other_, result_bdims) = alignBdimsAtFront(self_, self_bdims, other_, other_bdims);
-  return detail::make_tensor<BatchTensorImpl>(self_ + other_, result_bdims);
+  return detail::make_tensor<BatchTensorImpl>(at::add(self_, other_, alpha), result_bdims);
 }
+
+Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
+                            const Tensor& bias, IntArrayRef stride,
+                            IntArrayRef padding, IntArrayRef dilation,
+                            int64_t groups) {
+  Tensor input_, weight_, bias_;
+  BatchDimsRef input_bdims, weight_bdims, bias_bdims;
+  IntArrayRef unflatten_sizes;
+
+  std::tie(input_, input_bdims) = unwrapBatched2(input);
+  std::tie(weight_, weight_bdims) = unwrapBatched2(weight);
+  std::tie(bias_, bias_bdims) = unwrapBatched2(bias);
+
+  if (weight_bdims.size() > 0) {
+    // TODO: call fallback
+    TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched weight");
+  }
+  if (bias_bdims.size() > 0) {
+    // TODO: call fallback
+    TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched bias");
+  }
+
+  input_ = moveBdimsToFront(input_, input_bdims);
+  auto result_bdims = moveBdimsToFront(input_bdims);
+
+  auto num_dims_to_flatten = input_bdims.size() + 1;
+  auto flat_input_ = input_.flatten(0, num_dims_to_flatten - 1);
+  auto flat_result = at::conv2d(flat_input_, weight_, bias_, stride, padding, dilation, groups);
+  auto result = flat_result.unflatten(
+      0, IntArrayRef(input_.sizes().begin(), input_.sizes().begin() + num_dims_to_flatten));
+
+  return detail::make_tensor<BatchTensorImpl>(result, result_bdims);
+}
+
 
 
 // int64_t BatchTensorImpl::batch_size() const {
@@ -464,33 +511,6 @@ Tensor BatchedTensor_add(const Tensor& self, const Tensor& other, Scalar alpha) 
 //   return module;
 // }
 // 
-// std::pair<Tensor,optional<int64_t>> conv2d_batching_rule(
-//     const Tensor& self, optional<int64_t> self_bdim,
-//     const Tensor& weight, optional<int64_t> weight_bdim,
-//     const Tensor& bias, optional<int64_t> bias_bdim,
-//     IntArrayRef stride,
-//     IntArrayRef padding,
-//     IntArrayRef dilation,
-//     int64_t groups) {
-//   if (weight_bdim) {
-//     TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched weight");
-//   }
-//   if (bias_bdim) {
-//     TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched bias");
-//   }
-//   auto result_dim = minDim(self, self_bdim);
-//   auto self_ = moveBatchDimToFront(self, self_bdim, result_dim);
-//   auto self_sizes = self_.sizes(); 
-// 
-//   auto self_4d = self_.flatten(0, 1);
-//   auto result_4d = at::conv2d(
-//       self_4d, weight, bias, stride, padding, dilation);
-//   return {
-//     result_4d.unflatten(0, {self_sizes.begin(), self_sizes.begin() + 2}),
-//     /*result_bdim=*/0
-//   };
-// }
-// 
 // // #define USE_TORCHSCRIPT_BATCHING_RULE
 // 
 // #ifndef USE_TORCHSCRIPT_BATCHING_RULE
@@ -548,30 +568,6 @@ Tensor BatchedTensor_add(const Tensor& self, const Tensor& other, Scalar alpha) 
 //   return self;
 // }
 // 
-// Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
-//                             const Tensor& bias, IntArrayRef stride,
-//                             IntArrayRef padding, IntArrayRef dilation,
-//                             int64_t groups) {
-//   // The following lines need to happen in each kernel
-//   auto cur_level = maxLevel({input, weight, bias});
-//   auto input_and_bdim = unwrapAtLevel(input, cur_level);
-//   auto weight_and_bdim = unwrapAtLevel(weight, cur_level);
-//   auto bias_and_bdim = unwrapAtLevel(bias, cur_level);
-// 
-//   auto result_and_bdim = conv2d_batching_rule(
-//       input_and_bdim.first,
-//       input_and_bdim.second,
-//       weight_and_bdim.first,
-//       weight_and_bdim.second,
-//       bias_and_bdim.first,
-//       bias_and_bdim.second,
-//       stride, padding, dilation, groups);
-//   return makeBatched(
-//       result_and_bdim.first,
-//       result_and_bdim.second,
-//       cur_level);
-// }
-//
 
 void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   TORCH_CHECK(false, "Batching rule not implemented for ", op.schema());
@@ -653,9 +649,9 @@ static auto batched_registry2 = torch::RegisterOperators()
         dim = maybe_wrap_dim(dim, self.dim());
         return self.sizes()[dim];
       }))
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::conv2d(Tensor input, Tensor weight, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] dilation=1, int groups=1) -> Tensor")
-  //     .impl_unboxedOnlyKernel<Tensor (const Tensor&, const Tensor&, const Tensor&, IntArrayRef, IntArrayRef, IntArrayRef, int64_t), &BatchedTensor_conv2d>(BatchTensorKey))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::conv2d(Tensor input, Tensor weight, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] dilation=1, int groups=1) -> Tensor")
+      .impl_unboxedOnlyKernel<Tensor (const Tensor&, const Tensor&, const Tensor&, IntArrayRef, IntArrayRef, IntArrayRef, int64_t), &BatchedTensor_conv2d>(BatchTensorKey))
   // .op(torch::RegisterOperators::options()
   //     .schema("aten::view(Tensor(a) self, int[] size) -> Tensor(a)")
   //     .kernel(BatchTensorKey, [] (const Tensor& self, IntArrayRef size) -> Tensor {
