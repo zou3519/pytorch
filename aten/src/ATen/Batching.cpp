@@ -125,6 +125,18 @@ Tensor alignTensorTo(
   return tensor.view(aligned_sizes);
 }
 
+BatchDims computeFrontBatchDims(std::bitset<64> levels_bitset) {
+  BatchDims bdims;
+  int64_t dim = 0;
+  for (int64_t level = 0; level < 64; level++) {
+    if (!levels_bitset[level]) {
+      continue;
+    }
+    bdims.push_back({dim++, level});
+  }
+  return bdims;
+}
+
 std::tuple<Tensor,Tensor,BatchDims> alignBdimsAtFront(
     const Tensor& self,
     BatchDimsRef self_bdims,
@@ -157,14 +169,7 @@ std::tuple<Tensor,Tensor,BatchDims> alignBdimsAtFront(
   other_ = alignTensorTo(other_, other_bdims, result_levels, max_result_level, num_result_regular_dims);
 
   // Step 3: construct the result bdims
-  BatchDims result_bdims;
-  int64_t dim = 0;
-  for (int64_t level = 0; level < 64; level++) {
-    if (!result_levels[level]) {
-      continue;
-    }
-    result_bdims.push_back({dim++, level});
-  }
+  BatchDims result_bdims = computeFrontBatchDims(result_levels);
 
   return { self_, other_, result_bdims };
 }
@@ -342,102 +347,191 @@ Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
 //   return result;
 // }
 // 
-// // Copy pasta'ed from backed_fallback_test.cpp
-// void callBoxedWorkaround(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
-//   // This should just be op.callBoxed(stack), but that doesn't work for all ops yet.
-//   // Note: If op.callBoxed(stack) works for you, then that is preferrable because
-//   // it's much faster and doesn't come with a dependency on JIT code.
-//   // Instead, we take a path through the JIT operator registry, which has a boxed
-//   // calling mechanism that works for all ops from native_functions.yaml.
-// 
-//   auto s = Symbol::fromQualString(op.schema().name());
-//   auto operators = torch::jit::getAllOperatorsFor(s);
-//   // Find the exact match
-//   std::shared_ptr<torch::jit::Operator> jit_op;
-//   for (const auto& candidate_op : operators) {
-//     auto candidate_schema = candidate_op->schema();
-//     // NB: this is a VERY slow equality test
-//     if (candidate_schema == op.schema()) {
-//       jit_op = candidate_op;
-//       break;
-//     }
-//   }
-//   TORCH_INTERNAL_ASSERT(jit_op);
-// 
-//   auto offset = jit_op->getOperation()(*stack);
-//   TORCH_INTERNAL_ASSERT(offset == 0);
-// }
-// 
-// void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
-//   // const auto& schema = op.schema();
-//   // TORCH_CHECK(
-//   //     !schema.is_mutable() && !schema.hasAnyAliasInfo(),
-//   //     "Batching rule not implemented for ", schema(), "; ",
-//   //     "the fallback path doesn't work on in-place or view ops.");
-//   //
-//   TORCH_WARN("Batching rule not implemented for ", op.schema(), " falling back "
-//              "to slow (for-loop) implementation");
-//   TORCH_CHECK(std::all_of(op.schema().returns().begin(),
-//                           op.schema().returns().end(),
-//                           [] (const Argument& arg) { return arg.type() == TensorType::get(); }),
-//               "Batching rule not implemented for ", op.schema(), ". ",
-//               "We could not generate a fallback.");
-// 
-// 
-//   auto num_arguments = op.schema().arguments().size();
-//   auto num_returns = op.schema().returns().size();
-// 
-//   // Unwrap all arguments
-//   auto args = torch::jit::pop(*stack, num_arguments);
-// 
-//   int64_t batch_size;
-//   int64_t level;
-//   std::tie(batch_size, level) = discoverBatchSizeAndLevel(&args);
-// 
-//   // Set up batch_size stacks, one for each unbatched computation.
-//   std::vector<torch::jit::Stack> unbatched_stacks(batch_size);
-//   auto pushToEachStack = [&](const auto& ivalue) {
-//     for (auto& stack : unbatched_stacks) {
-//       torch::jit::push(stack, ivalue);
-//     }
-//   };
-//   for (const auto& ivalue : args) {
-//     if (!ivalue.isTensor()) {
-//       pushToEachStack(ivalue);
-//       continue;
-//     }
-//     const auto& tensor = ivalue.toTensor();
-//     if (!isBatched(tensor)) {
-//       pushToEachStack(tensor);
-//       continue;
-//     }
-//     const auto* batched = getBatched(tensor);
-//     if (batched->level_ != level) {
-//       pushToEachStack(ivalue);
-//       continue;
-//     }
-//     const auto tensors = batched->rep_.unbind(batched->batch_dim_);
-//     for (auto stack_idx = 0; stack_idx < batch_size; stack_idx++) {
-//       torch::jit::push(unbatched_stacks[stack_idx], tensors[stack_idx]);
-//     }
-//   }
-// 
-//   // Call the op on each stack.
-//   for (auto& stack : unbatched_stacks) {
-//     callBoxedWorkaround(op, &stack);
-//   }
-// 
-//   // Only support num_returns == 1 for now. Also assume Tensor returns
-//   TORCH_INTERNAL_ASSERT(num_returns == 1);
-//   for (int64_t return_idx = 0; return_idx < num_returns; return_idx++) {
-//     std::vector<Tensor> output_shards;
-//     for (const auto& stack : unbatched_stacks) {
-//       output_shards.push_back(stack[return_idx].toTensor());
-//     }
-//     auto output = makeBatched(at::stack(output_shards), 0, level);
-//     torch::jit::push(*stack, std::move(output));
-//   }
-// }
+// Copy pasta'ed from backed_fallback_test.cpp
+void callBoxedWorkaround(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+  // This should just be op.callBoxed(stack), but that doesn't work for all ops yet.
+  // Note: If op.callBoxed(stack) works for you, then that is preferrable because
+  // it's much faster and doesn't come with a dependency on JIT code.
+  // Instead, we take a path through the JIT operator registry, which has a boxed
+  // calling mechanism that works for all ops from native_functions.yaml.
+
+  auto s = Symbol::fromQualString(op.schema().name());
+  auto operators = torch::jit::getAllOperatorsFor(s);
+  // Find the exact match
+  std::shared_ptr<torch::jit::Operator> jit_op;
+  for (const auto& candidate_op : operators) {
+    auto candidate_schema = candidate_op->schema();
+    // NB: this is a VERY slow equality test
+    if (candidate_schema == op.schema()) {
+      jit_op = candidate_op;
+      break;
+    }
+  }
+  TORCH_INTERNAL_ASSERT(jit_op);
+
+  auto offset = jit_op->getOperation()(*stack);
+  TORCH_INTERNAL_ASSERT(offset == 0);
+}
+
+// Modifies `stack` in-place.
+// Returns: levels_bitset, batch_sizes
+std::pair<std::bitset<64>,std::vector<int64_t>>
+broadcastBdimsAtFront(torch::jit::Stack& stack) {
+  std::unordered_map<int64_t,int64_t> level_to_size;
+  std::bitset<64> levels_bitset;
+  int64_t max_level = -1;
+  BatchDimsRef bdims;
+  Tensor arg;
+
+  // Compute levels_bitset, level_to_size mapping
+  for (const auto& ivalue : stack) {
+    if (!ivalue.isTensor()) continue;
+    std::tie(arg, bdims) = unwrapBatched2(ivalue.toTensor());
+    auto arg_levels = createLevelsBitset(bdims);
+    levels_bitset |= arg_levels;
+    auto arg_sizes = arg.sizes();
+    for (const auto& bdim : bdims) {
+      if (level_to_size.count(bdim.level())) {
+        TORCH_CHECK(level_to_size[bdim.level()] == arg_sizes[bdim.index()]);
+      } else {
+        level_to_size[bdim.level()] = arg_sizes[bdim.index()];
+      }
+    }
+  }
+
+  // Get max_level
+  for (int64_t idx = 0; idx < 64; idx++) {
+    if (levels_bitset[idx]) {
+      max_level = idx; 
+    }
+  }
+
+  // Get batch_sizes
+  std::vector<int64_t> batch_sizes;
+  for (int64_t level = 0; level < max_level; level++) {
+    if (!levels_bitset[level]) {
+      continue;
+    }
+    batch_sizes.push_back(level_to_size[level]);
+  }
+
+  // Move all bdims to front, align them, and expand them.
+  for (int64_t idx = 0; idx < stack.size(); idx++) {
+    const auto& ivalue = stack[idx];
+    if (!ivalue.isTensor()) {
+      continue;
+    }
+    std::cout << "---------------------" << std::endl;
+    std::tie(arg, bdims) = unwrapBatched2(ivalue.toTensor());
+    std::cout << arg.sizes() << std::endl;
+    arg = moveBdimsToFront(arg, bdims);
+    std::cout << arg.sizes() << std::endl;
+    arg = alignTensorTo(arg, bdims, levels_bitset, max_level, arg.dim() - bdims.size());
+    std::cout << arg.sizes() << std::endl;
+    std::vector<int64_t> expanded_sizes(batch_sizes);
+    expanded_sizes.insert(
+        expanded_sizes.end(),
+        arg.sizes().begin() + batch_sizes.size(),
+        arg.sizes().end());
+    std::cout << expanded_sizes << std::endl;
+    stack[idx] = arg.expand(expanded_sizes);
+  }
+  return { levels_bitset, batch_sizes };
+}
+
+std::vector<int64_t> computeIndex(int64_t linear_idx, IntArrayRef sizes) {
+  std::vector<int64_t> result;
+  result.reserve(sizes.size());
+  for (auto it = sizes.rbegin(); it != sizes.rend(); it++) {
+    result.push_back(linear_idx % *it);
+    linear_idx -= *it;
+    linear_idx /= *it;
+  }
+  std::reverse(std::begin(result), std::end(result));
+  return result;
+}
+
+Tensor selectAll(const Tensor& tensor, IntArrayRef indices) {
+  auto tensor_ = tensor;
+  for (int64_t dim = 0; dim < indices.size(); dim++) {
+    tensor_ = tensor_.select(dim, indices[dim]); 
+  }
+  return tensor_;
+}
+
+void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+  const auto& schema = op.schema();
+  TORCH_CHECK(
+      !schema.is_mutable() && !schema.hasAnyAliasInfo(),
+      "Batching rule not implemented for ", schema, "; ",
+      "the fallback path doesn't work on in-place or view ops.");
+  
+  TORCH_WARN("Batching rule not implemented for ", op.schema(), " falling back "
+             "to slow (for-loop) implementation");
+  TORCH_CHECK(std::all_of(op.schema().returns().begin(),
+                          op.schema().returns().end(),
+                          [] (const Argument& arg) { return arg.type() == TensorType::get(); }),
+              "Batching rule not implemented for ", op.schema(), ". ",
+              "We could not generate a fallback.");
+
+
+  auto num_arguments = op.schema().arguments().size();
+  auto num_returns = op.schema().returns().size();
+
+  std::bitset<64> levels_bitset;
+  std::vector<int64_t> batch_sizes;
+
+  auto args = torch::jit::pop(*stack, num_arguments);
+  std::tie(levels_bitset, batch_sizes) = broadcastBdimsAtFront(args);
+  auto total_batches = std::accumulate(
+      batch_sizes.begin(), batch_sizes.end(),
+      1, std::multiplies<int64_t>());
+
+  // Set up batch_size stacks, one for each unbatched computation.
+  std::vector<torch::jit::Stack> unbatched_stacks(total_batches);
+  auto pushToEachStack = [&](const auto& ivalue) {
+    for (auto& stack : unbatched_stacks) {
+      torch::jit::push(stack, ivalue);
+    }
+  };
+  for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+    std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+    for (const auto& ivalue : args) {
+      if (!ivalue.isTensor()) {
+        torch::jit::push(unbatched_stacks[linear_idx], ivalue);
+        continue;
+      }
+      auto tensor = ivalue.toTensor();
+      torch::jit::push(
+          unbatched_stacks[linear_idx],
+          torch::jit::IValue(selectAll(tensor, idx)));
+    }
+  }
+
+  // Call the op on each stack.
+  for (auto& stack : unbatched_stacks) {
+    callBoxedWorkaround(op, &stack);
+  }
+
+  // Only support num_returns == 1 for now. Also assume Tensor returns
+  TORCH_INTERNAL_ASSERT(num_returns == 1);
+  for (int64_t return_idx = 0; return_idx < num_returns; return_idx++) {
+    std::vector<Tensor> output_shards;
+    for (const auto& stack : unbatched_stacks) {
+      output_shards.push_back(stack[return_idx].toTensor());
+    }
+    auto flat_output = at::stack(output_shards);
+    std::vector<int64_t> output_sizes(batch_sizes);
+    output_sizes.insert(
+        output_sizes.end(),
+        flat_output.sizes().begin() + 1,
+        flat_output.sizes().end());
+    auto output = detail::make_tensor<BatchTensorImpl>(
+        flat_output.view(output_sizes),
+        computeFrontBatchDims(levels_bitset));
+    torch::jit::push(*stack, std::move(output));
+  }
+}
 // 
 // typedef std::pair<Tensor,optional<int64_t>> TensorAndBdim;
 // 
@@ -460,60 +554,6 @@ Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
 //   return { tensor.unsqueeze(actual_dim), new_batch_dim };
 // }
 // 
-// std::shared_ptr<torch::jit::script::CompilationUnit> module;
-// 
-// void init_module() {
-//   module = torch::jit::compile(R"JIT(
-// def broadcast_to(tensor: Tensor, ndim: int):
-//     old_sizes = tensor.size()
-//     if len(old_sizes) == ndim:
-//         return tensor
-//     assert len(old_sizes) <= ndim
-//     diff = ndim - len(old_sizes)
-//     for i in range(diff):
-//         tensor = tensor.unsqueeze(0)
-//     return tensor
-// 
-// def move_batch_dim_to_front(tensor: Tensor,
-//                             batch_dim: Optional[int],
-//                             result_dim: int):
-//     if batch_dim is None:
-//         return broadcast_to(tensor, result_dim)
-//     extra_dims = result_dim - tensor.dim()
-//     result = broadcast_to(tensor, result_dim)
-//     transpose_dim = batch_dim + extra_dims
-//     if transpose_dim is None:
-//         return result
-//     return result.transpose(0, batch_dim + extra_dims)
-// 
-// def min_result_dim(tensor: Tensor, batch_dim: Optional[int]) -> int:
-//     result = tensor.dim()
-//     if batch_dim is None:
-//         result += 1
-//     return result
-// 
-// def mul_batching_rule(self: Tensor, self_bdim: Optional[int],
-//                       other: Tensor, other_bdim: Optional[int]):
-//     self_dim = min_result_dim(self, self_bdim)
-//     other_dim = min_result_dim(other, other_bdim)
-//     result_dim = max(self_dim, other_dim)
-// 
-//     self = move_batch_dim_to_front(self, self_bdim, result_dim)
-//     other = move_batch_dim_to_front(other, other_bdim, result_dim)
-//     return self * other, 0
-// )JIT");
-// }
-// 
-// std::shared_ptr<torch::jit::script::CompilationUnit> get_module() {
-//   if (!module) {
-//     init_module();
-//   }
-//   return module;
-// }
-// 
-// // #define USE_TORCHSCRIPT_BATCHING_RULE
-// 
-// #ifndef USE_TORCHSCRIPT_BATCHING_RULE
 // std::pair<Tensor,optional<int64_t>> mul_batching_rule(
 //     const Tensor& self, optional<int64_t> self_bdim,
 //     const Tensor& other, optional<int64_t> other_bdim) {
@@ -569,9 +609,9 @@ Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
 // }
 // 
 
-void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
-  TORCH_CHECK(false, "Batching rule not implemented for ", op.schema());
-}
+// void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+//   TORCH_CHECK(false, "Batching rule not implemented for ", op.schema());
+// }
 
 // TODO: the fallback runs the un-batched kernel in a for loop.
 // However, in many cases, operators are composed of other operators.
