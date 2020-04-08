@@ -228,6 +228,7 @@ broadcastBdimsAtFront(torch::jit::Stack& stack) {
     std::tie(arg, bdims) = unpackBatched(ivalue.toTensor());
     auto arg_levels = createLevelsBitset(bdims);
     levels_bitset |= arg_levels;
+    if (!arg.defined()) continue;
     auto arg_sizes = arg.sizes();
     for (const auto& bdim : bdims) {
       if (level_to_size.count(bdim.level())) {
@@ -247,7 +248,7 @@ broadcastBdimsAtFront(torch::jit::Stack& stack) {
 
   // Get batch_sizes
   std::vector<int64_t> batch_sizes;
-  for (int64_t level = 0; level < max_level; level++) {
+  for (int64_t level = 0; level <= max_level; level++) {
     if (!levels_bitset[level]) {
       continue;
     }
@@ -257,22 +258,17 @@ broadcastBdimsAtFront(torch::jit::Stack& stack) {
   // Move all bdims to front, align them, and expand them.
   for (int64_t idx = 0; idx < stack.size(); idx++) {
     const auto& ivalue = stack[idx];
-    if (!ivalue.isTensor()) {
+    if (!ivalue.isTensor() || !ivalue.toTensor().defined()) {
       continue;
     }
-    std::cout << "---------------------" << std::endl;
     std::tie(arg, bdims) = unpackBatched(ivalue.toTensor());
-    std::cout << arg.sizes() << std::endl;
     arg = moveBdimsToFront(arg, bdims);
-    std::cout << arg.sizes() << std::endl;
     arg = alignTensorTo(arg, bdims, levels_bitset, max_level, arg.dim() - bdims.size());
-    std::cout << arg.sizes() << std::endl;
     std::vector<int64_t> expanded_sizes(batch_sizes);
     expanded_sizes.insert(
         expanded_sizes.end(),
         arg.sizes().begin() + batch_sizes.size(),
         arg.sizes().end());
-    std::cout << expanded_sizes << std::endl;
     stack[idx] = arg.expand(expanded_sizes);
   }
   return { levels_bitset, batch_sizes };
@@ -326,6 +322,7 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
       batch_sizes.begin(), batch_sizes.end(),
       1, std::multiplies<int64_t>());
 
+
   // Set up batch_size stacks, one for each unbatched computation.
   std::vector<torch::jit::Stack> unbatched_stacks(total_batches);
   auto pushToEachStack = [&](const auto& ivalue) {
@@ -336,11 +333,15 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
   for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
     std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
     for (const auto& ivalue : args) {
-      if (!ivalue.isTensor()) {
+      if (!ivalue.isTensor() || !ivalue.toTensor().defined()) {
         torch::jit::push(unbatched_stacks[linear_idx], ivalue);
         continue;
       }
       auto tensor = ivalue.toTensor();
+      if (!tensor.defined()) {
+        torch::jit::push(unbatched_stacks[linear_idx], ivalue);
+        continue;
+      }
       torch::jit::push(
           unbatched_stacks[linear_idx],
           torch::jit::IValue(selectAll(tensor, idx)));

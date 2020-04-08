@@ -79,10 +79,6 @@ Tensor alignTensorTo(
       tensor_bdims.size() == num_result_bdims) {
     return tensor;
   }
-  // TODO: should we do this?
-  if (tensor_bdims.size() == 0 && num_tensor_regular_dims <= num_result_regular_dims) {
-    return tensor;
-  }
 
   std::vector<int64_t> aligned_sizes(num_result_bdims + num_result_regular_dims, 1);
 
