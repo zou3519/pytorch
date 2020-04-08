@@ -59,6 +59,8 @@ def _make_batched(args, dims, level):
 
 
 def _unwrap_batched_single(output, batch_size):
+    if batch_size is None:
+        return output
     if isinstance(output, torch.Tensor):
         if torch._is_batched(output):
             return torch._unwrap_batched(output, 0)
