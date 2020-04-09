@@ -49,27 +49,51 @@ Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
   std::tie(weight_, weight_bdims) = unpackBatched(weight);
   std::tie(bias_, bias_bdims) = unpackBatched(bias);
 
-  if (weight_bdims.size() > 0) {
-    // TODO: call fallback
-    TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched weight");
-  }
-  if (bias_bdims.size() > 0) {
-    // TODO: call fallback
-    TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched bias");
-  }
-
-  input_ = moveBdimsToFront(input_, input_bdims);
-  auto result_bdims = moveBdimsToFront(input_bdims);
-
-  auto num_dims_to_flatten = input_bdims.size() + 1;
-  auto flat_input_ = input_.flatten(0, num_dims_to_flatten - 1);
-  auto flat_result = at::conv2d(flat_input_, weight_, bias_, stride, padding, dilation, groups);
-  auto result = flat_result.unflatten(
-      0, IntArrayRef(input_.sizes().begin(), input_.sizes().begin() + num_dims_to_flatten));
-
-  return detail::make_tensor<BatchTensorImpl>(result, result_bdims);
+  Tensor result_;
+  BatchDims result_bdims;
+  std::tie(result_, result_bdims) = conv2d_batching_rule(
+      input_, input_bdims,
+      weight_, weight_bdims,
+      bias_, bias_bdims,
+      stride, padding, dilation, groups);
+  return detail::make_tensor<BatchTensorImpl>(result_, result_bdims);
 }
 
+Tensor BatchedTensor_dropout(const Tensor& input, double p, bool train) {
+	Tensor input_, result_;
+	BatchDimsRef input_bdims;
+	BatchDims result_bdims;
+
+	std::tie(input_, input_bdims) = unpackBatched(input);
+  std::tie(result_, result_bdims) = dropout_batching_rule(input_, input_bdims, p, train);
+  return detail::make_tensor<BatchTensorImpl>(result_, result_bdims);
+}
+
+Tensor& BatchedTensor_dropout_(Tensor& self, double p, bool train) {
+	Tensor self_;
+	BatchDimsRef self_bdims;
+	std::tie(self_, self_bdims) = unpackBatched(self);
+  dropout__batching_rule(self_, self_bdims, p, train);
+  return self;
+}
+
+Tensor BatchedTensor_relu(const Tensor& input) {
+	Tensor input_, result_;
+	BatchDimsRef input_bdims;
+	BatchDims result_bdims;
+
+	std::tie(input_, input_bdims) = unpackBatched(input);
+  std::tie(result_, result_bdims) = unary_pw_batching_rule<at::relu>(input_, input_bdims);
+  return detail::make_tensor<BatchTensorImpl>(result_, result_bdims);
+}
+
+Tensor& BatchedTensor_relu_(Tensor& self) {
+	Tensor self_;
+	BatchDimsRef self_bdims;
+	std::tie(self_, self_bdims) = unpackBatched(self);
+  unary_pw_inplace_batching_rule<at::relu_>(self_, self_bdims);
+  return self;
+}
 
 
 // int64_t BatchTensorImpl::batch_size() const {
@@ -514,15 +538,22 @@ static auto batched_registry2 = torch::RegisterOperators()
   //           batched->level_);
   //     }))
   .op(torch::RegisterOperators::options()
+      .schema("aten::dropout(Tensor input, float p, bool train) -> Tensor")
+      .kernel(BatchTensorKey, &BatchedTensor_dropout))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::dropout_(Tensor(a!) self, float p, bool train) -> Tensor(a!)")
+      .impl_unboxedOnlyKernel<Tensor & (Tensor &, double, bool), &BatchedTensor_dropout_>(BatchTensorKey))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::relu(Tensor self) -> Tensor")
+      .kernel(BatchTensorKey, &BatchedTensor_relu))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::relu_(Tensor(a!) self) -> Tensor(a!)")
+      .impl_unboxedOnlyKernel<Tensor & (Tensor &), &BatchedTensor_relu_>(BatchTensorKey))
+  .op(torch::RegisterOperators::options()
       .schema("aten::_is_batched(Tensor self) -> bool")
       .kernel(BatchTensorKey, [] (const Tensor& self) -> bool {
         return true;
       }))
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::_batch_dim(Tensor self) -> int")
-  //     .kernel(BatchTensorKey, [] (const Tensor& self) -> int64_t {
-  //       return native::_batch_dim(self); // wut
-  //     }))
   .op(torch::RegisterOperators::options()
       .schema("aten::size.int(Tensor self, int dim) -> int")
       .kernel(BatchTensorKey, [] (const Tensor& self, int64_t dim) -> int64_t {
@@ -540,16 +571,6 @@ static auto batched_registry2 = torch::RegisterOperators()
   //       auto* batched = getBatched(self);
   //       return makeBatched(
   //           batched->rep_.detach(),
-  //           batched->batch_dim_,
-  //           batched->level_);
-  //     }))
-  // I don't know how to override the following
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::to.device(Tensor self, Device device, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> (Tensor)")
-  //     .kernel(BatchTensorKey, [] (const Tensor& self, Device device, ScalarType dtype, bool non_blocking, bool copy, optional<MemoryFormat> memory_format) -> Tensor {
-  //       auto* batched = getBatched(self);
-  //       return makeBatched(
-  //           batched->rep_.to(device, dtype, non_blocking, copy, memory_format),
   //           batched->batch_dim_,
   //           batched->level_);
   //     }))

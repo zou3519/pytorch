@@ -3,6 +3,7 @@ import torch
 from torch import vmap, Tensor
 from torch.autograd import gradcheck
 import torch.nn.functional as F
+import unittest
 
 
 def move_bdim(tensor, from_dim, to_dim):
@@ -80,6 +81,7 @@ class TestBatching(TestCase):
         jacobian = torch._unwrap_batched(result[0], 0)
         self.assertEqual(jacobian, torch.diagflat(y3))
 
+    @unittest.expectedFailure
     def test_hessian(self):
         # TODO: we probably want an API so the user isn't using BatchedTensor directly.
         def jacobian_ref(y, x, create_graph=False):
@@ -122,12 +124,14 @@ class TestBatching(TestCase):
         self.assertEqual(jac_bat, jac)
         self.assertEqual(hes_bat, hes)
 
+    @unittest.expectedFailure
     def test_batched_batched_inplace(self):
         y23 = torch.randn(2, 3)
         out = y23.clone()
         vmap(Tensor.mul_, [0, 0])(out, y23)
         self.assertEqual(out, y23 * y23)
 
+    @unittest.expectedFailure
     def test_batched_unbatched_inplace(self):
         y23 = torch.randn(2, 3)
         y3 = torch.randn(3)
@@ -135,6 +139,7 @@ class TestBatching(TestCase):
         vmap(Tensor.mul_, [0, None])(out, y3)
         self.assertEqual(out, y23 * y3)
 
+    @unittest.expectedFailure
     def test_aligned_broadcasting_inplace(self):
         y12 = torch.randn(1, 2)
         y23 = torch.randn(2, 3)
@@ -142,6 +147,7 @@ class TestBatching(TestCase):
         vmap(Tensor.mul_, [0, 1])(out, y12)
         self.assertEqual(out, y23 * y12.t())
 
+    @unittest.expectedFailure
     def test_nested_inplace(self):
         y573 = torch.randn(5, 7, 3)
         out = y573.clone()
@@ -187,6 +193,32 @@ class TestBatching(TestCase):
         running_var = torch.ones(C, dtype=torch.double)
         batched_batch_norm = vmap(F.batch_norm, (0, None, None))
         gradcheck(batched_batch_norm, [imgs, running_mean, running_var])
+
+    def test_dropout(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        output = vmap(F.dropout, (0, None))(imgs, 1.0)
+        self.assertEqual(output, torch.zeros_like(imgs))
+
+    def test_dropout_(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        output = vmap(F.dropout, (0, None, None, None))(imgs, 1.0, True, True)
+        self.assertEqual(output, torch.zeros_like(imgs))
+        self.assertEqual(imgs, torch.zeros_like(imgs))
+
+    def test_relu(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        output = vmap(F.relu, (0,))(imgs)
+        self.assertEqual(output, imgs.relu())
+
+    def test_relu_(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        expected_result = imgs.relu()
+        output = vmap(F.relu, (0, None))(imgs, True)
+        self.assertEqual(imgs, expected_result)
 
 
 if __name__ == '__main__':
