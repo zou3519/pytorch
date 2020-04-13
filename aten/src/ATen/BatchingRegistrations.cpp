@@ -95,6 +95,16 @@ Tensor& BatchedTensor_relu_(Tensor& self) {
   return self;
 }
 
+Tensor BatchedTensor_sum(const Tensor& self, IntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype) {
+  Tensor self_, result_;
+  BatchDimsRef self_bdims;
+  BatchDims result_bdims;
+
+  std::tie(self_, self_bdims) = unpackBatched(self);
+  std::tie(result_, result_bdims) = sum_batching_rule(self_, self_bdims, dim, keepdim, dtype);
+  return detail::make_tensor<BatchTensorImpl>(result_, result_bdims);
+}
+
 
 // int64_t BatchTensorImpl::batch_size() const {
 //   return rep_.sizes()[batch_dim_];
@@ -543,6 +553,9 @@ static auto batched_registry2 = torch::RegisterOperators()
   .op(torch::RegisterOperators::options()
       .schema("aten::dropout_(Tensor(a!) self, float p, bool train) -> Tensor(a!)")
       .impl_unboxedOnlyKernel<Tensor & (Tensor &, double, bool), &BatchedTensor_dropout_>(BatchTensorKey))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::sum.dim_IntList(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor")
+      .impl_unboxedOnlyKernel<Tensor (const Tensor &, IntArrayRef, bool, optional<ScalarType>), &BatchedTensor_sum>(BatchTensorKey))
   .op(torch::RegisterOperators::options()
       .schema("aten::relu(Tensor self) -> Tensor")
       .kernel(BatchTensorKey, &BatchedTensor_relu))

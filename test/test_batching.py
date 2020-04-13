@@ -154,6 +154,19 @@ class TestBatching(TestCase):
         vmap(vmap(Tensor.mul_, [0, 0]), [0, 0])(out, y573)
         self.assertEqual(out, y573 * y573)
 
+    def test_vmap_conv2d(self):
+        imgs = torch.randn(7, 3, 5, 5)
+        weight = torch.randn(3, 3, 2, 2)
+        expected = F.conv2d(imgs, weight)
+        output = vmap(F.conv2d, (0, None))(imgs, weight)
+        self.assertEqual(output, expected)
+
+        imgs = torch.randn(3, 7, 5, 5)
+        weight = torch.randn(3, 3, 2, 2)
+        expected = F.conv2d(imgs.transpose(0, 1), weight)
+        output = vmap(F.conv2d, (1, None))(imgs, weight)
+        self.assertEqual(output, expected)
+
     def test_vmap_conv2d_two_batch_dims(self):
         y25739 = torch.randn(2, 5, 7, 3, 9)
         weight = torch.randn(13, 7, 2, 2, requires_grad=True)
@@ -219,6 +232,21 @@ class TestBatching(TestCase):
         expected_result = imgs.relu()
         output = vmap(F.relu, (0, None))(imgs, True)
         self.assertEqual(imgs, expected_result)
+
+    def test_vmap_sum(self):
+        x235 = torch.randn(2, 3, 5)
+        self.assertEqual(vmap(torch.sum, (0, None))(x235, 0), x235.sum(1))
+        self.assertEqual(vmap(torch.sum, (0, None))(x235, [0, 1]), x235.sum([1, 2]))
+        self.assertEqual(vmap(torch.sum, (1, None))(x235, 0), move_bdim(x235, 0, 1).sum(1))
+        self.assertEqual(vmap(torch.sum, (1, None))(x235, 1), move_bdim(x235, 0, 1).sum(2))
+        # NB: full-reduce sum is pretty broken. It's a long story.
+
+    def test_vmap_sum_autograd(self):
+        x235 = torch.randn(2, 3, 5, requires_grad=True)
+        output = vmap(torch.sum, (0, None))(x235, 0)
+        grad_output = torch.rand_like(output)
+        output.backward(grad_output)
+        self.assertEqual(x235.grad, grad_output.view(2, 1, 5).expand(2, 3, 5))
 
 
 if __name__ == '__main__':
