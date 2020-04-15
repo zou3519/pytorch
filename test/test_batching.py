@@ -81,7 +81,6 @@ class TestBatching(TestCase):
         jacobian = torch._unwrap_batched(result[0], 0)
         self.assertEqual(jacobian, torch.diagflat(y3))
 
-    @unittest.expectedFailure
     def test_hessian(self):
         # TODO: we probably want an API so the user isn't using BatchedTensor directly.
         def jacobian_ref(y, x, create_graph=False):
@@ -232,6 +231,69 @@ class TestBatching(TestCase):
         expected_result = imgs.relu()
         output = vmap(F.relu, (0, None))(imgs, True)
         self.assertEqual(imgs, expected_result)
+
+    def test_transpose(self):
+        x235 = torch.randn(2, 3, 5)
+        output = vmap(torch.transpose, (1, None, None))(x235, 0, 1)
+        self.assertEqual(output, x235.permute(1, 2, 0))
+        self.assertEqual(output.data_ptr(), x235.data_ptr())
+
+        output = vmap(torch.t, (1,))(x235)
+        self.assertEqual(output, x235.permute(1, 2, 0))
+        self.assertEqual(output.data_ptr(), x235.data_ptr())
+
+    def test_detach(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W, requires_grad=True)
+        output = vmap(Tensor.detach, (0,))(imgs)
+        self.assertEqual(output, imgs)
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
+        self.assertFalse(output.requires_grad)
+
+    def test_squeeze(self):
+        N, C, H, W = (2, 1, 5, 7)
+        imgs = torch.randn(N, C, H, W, requires_grad=True)
+        output = vmap(torch.squeeze, (0, None))(imgs, 0)
+        self.assertEqual(output, imgs.squeeze(1))
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
+
+    def test_unsqueeze(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W, requires_grad=True)
+        output = vmap(torch.unsqueeze, (0, None))(imgs, 0)
+        self.assertEqual(output, imgs.unsqueeze(1))
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
+
+    def test_permute(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W, requires_grad=True)
+        output = vmap(Tensor.permute, (0, None))(imgs, [1, 2, 0])
+        self.assertEqual(output, imgs.permute(0, 2, 3, 1))
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
+
+    def test_T(self):
+        def call_T(x):
+            return x.T
+
+        x235 = torch.randn(2, 3, 5)
+        output = vmap(call_T, (1,))(x235)
+        self.assertEqual(output, x235.permute(1, 2, 0))
+        self.assertEqual(output.data_ptr(), x235.data_ptr())
+
+    def test_view(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W, requires_grad=True)
+        output = vmap(Tensor.reshape, (0, None))(imgs, [3 * 5 * 7])
+        self.assertEqual(output, imgs.reshape(2, 3 * 5 * 7))
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
+        # TODO: should test some view edge cases
+
+    def test_reshape(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W, requires_grad=True)
+        output = vmap(Tensor.reshape, (0, None))(imgs, [3 * 5 * 7])
+        self.assertEqual(output, imgs.reshape(2, 3 * 5 * 7))
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
 
     def test_vmap_sum(self):
         x235 = torch.randn(2, 3, 5)

@@ -102,4 +102,116 @@ std::pair<Tensor,BatchDims> sum_batching_rule(
   return { result, result_bdims };
 }
 
+std::pair<Tensor,BatchDims> transpose_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    int64_t dim0, int64_t dim1) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  dim0 = maybe_wrap_dim(dim0, ndims);
+  dim1 = maybe_wrap_dim(dim1, ndims);
+
+  auto result = at::transpose(self_, nbdims + dim0, nbdims + dim1);
+  return { result, result_bdims };
+}
+
+std::pair<Tensor,BatchDims> squeeze_dim_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    int64_t dim) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  dim = maybe_wrap_dim(dim, ndims);
+
+  auto result = at::squeeze(self_, nbdims + dim);
+  return { result, result_bdims };
+}
+
+std::pair<Tensor,BatchDims> unsqueeze_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    int64_t dim) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  dim = maybe_wrap_dim(dim, ndims);
+
+  auto result = at::unsqueeze(self_, nbdims + dim);
+  return { result, result_bdims };
+}
+
+std::pair<Tensor,BatchDims> permute_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    IntArrayRef dims) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+
+  std::vector<int64_t> actual_dims;
+  for (auto i = 0; i < self_bdims.size(); i++) {
+    actual_dims.push_back(i);
+  }
+  for (const auto& dim : dims) {
+    actual_dims.push_back(maybe_wrap_dim(dim, ndims) + self_bdims.size());
+  }
+
+  auto result = self_.permute(actual_dims);
+  return { result, result_bdims };
+}
+
+std::pair<Tensor,BatchDims> reshape_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    IntArrayRef shape) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  auto self_sizes = self.sizes();
+
+  std::vector<int64_t> actual_shape;
+  actual_shape.insert(
+      actual_shape.end(),
+      self_sizes.begin(),
+      self_sizes.begin() + self_bdims.size());
+  actual_shape.insert(
+      actual_shape.end(),
+      shape.begin(),
+      shape.end());
+
+  auto result = self_.reshape(actual_shape);
+  return { result, result_bdims };
+}
+
+std::pair<Tensor,BatchDims> view_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    IntArrayRef size) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  auto self_sizes = self.sizes();
+
+  std::vector<int64_t> actual_shape;
+  actual_shape.insert(
+      actual_shape.end(),
+      self_sizes.begin(),
+      self_sizes.begin() + self_bdims.size());
+  actual_shape.insert(
+      actual_shape.end(),
+      size.begin(),
+      size.end());
+
+  auto result = self_.view(actual_shape);
+  return { result, result_bdims };
+}
+
 } // namespace at
