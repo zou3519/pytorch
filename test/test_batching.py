@@ -295,6 +295,23 @@ class TestBatching(TestCase):
         self.assertEqual(output, imgs.reshape(2, 3 * 5 * 7))
         self.assertEqual(output.data_ptr(), imgs.data_ptr())
 
+    def test_slice(self):
+        def slice_fn(self, start, end):
+            return self[start:end]
+
+        N, C, H, W = (2, 11, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        output = vmap(slice_fn, (0, None, None, None))(imgs, 0, 4)
+        self.assertEqual(output, imgs[:, 0:4])
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
+
+    def test_select(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        output = vmap(Tensor.select, (0, None, None, None))(imgs, 0, 0)
+        self.assertEqual(output, imgs.select(1, 0))
+        self.assertEqual(output.data_ptr(), imgs.data_ptr())
+
     def test_vmap_sum(self):
         x235 = torch.randn(2, 3, 5)
         self.assertEqual(vmap(torch.sum, (0, None))(x235, 0), x235.sum(1))

@@ -214,4 +214,32 @@ std::pair<Tensor,BatchDims> view_batching_rule(
   return { result, result_bdims };
 }
 
+std::pair<Tensor,BatchDims> slice_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    int64_t dim, int64_t start, int64_t end, int64_t step) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  dim = maybe_wrap_dim(dim, ndims);
+
+  auto result = at::slice(self_, dim + nbdims, start, end, step);
+  return { result, result_bdims };
+}
+
+std::pair<Tensor,BatchDims> select_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    int64_t dim, int64_t index) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  dim = maybe_wrap_dim(dim, ndims);
+
+  auto result = at::select(self_, dim + nbdims, index);
+  return { result, result_bdims };
+}
+
 } // namespace at
