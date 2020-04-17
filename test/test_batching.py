@@ -175,6 +175,19 @@ class TestBatching(TestCase):
         expected = F.conv2d(y25739.view(10, 7, 3, 9), weight, bias).view(2, 5, 13, 2, 8)
         self.assertEqual(output, expected)
 
+    def test_vmap_conv2d_batched_weight(self):
+        imgs = torch.randn(5, 7, 3, 9)
+        weight = torch.randn(3, 13, 7, 2, 2, requires_grad=True)
+        bias = torch.randn(13, requires_grad=True)
+
+        output = vmap(F.conv2d, (None, 0, None))(imgs, weight, bias)
+        expected = torch.stack([
+            F.conv2d(imgs, weight[0], bias),
+            F.conv2d(imgs, weight[1], bias),
+            F.conv2d(imgs, weight[2], bias),
+        ])
+        self.assertEqual(output, expected)
+
     def test_vmap_conv2d_autograd(self):
         imgs = torch.randn(2, 5, 3, 3, 3, dtype=torch.double)
         weight = torch.randn(2, 3, 2, 2, requires_grad=True, dtype=torch.double)

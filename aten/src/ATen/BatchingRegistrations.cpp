@@ -9,6 +9,7 @@
 #include <torch/types.h>
 #include <bitset>
 #include <iostream>
+#include <utility>
 
 namespace at {
 
@@ -16,6 +17,8 @@ namespace at {
  * Operator Registrations for BatchedTensorKey.
  * Contains some glue to hook up the batching rules to BatchedTensorImpl.
  */
+
+void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack);
 
 Tensor BatchedTensor_mul(const Tensor& self, const Tensor& other) {
   Tensor self_, other_, result_;
@@ -44,6 +47,14 @@ Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
   Tensor input_, weight_, bias_;
   BatchDimsRef input_bdims, weight_bdims, bias_bdims;
   IntArrayRef unflatten_sizes;
+
+  if (isBatched(weight) || isBatched(bias)) {
+    auto maybe_ophandle = Dispatcher::singleton().findSchema(OperatorName("aten::conv2d", ""));
+    TORCH_INTERNAL_ASSERT(maybe_ophandle.has_value());
+    torch::jit::Stack stack = { input, weight, bias, stride, padding, dilation, groups };
+    batchTensorFallback(*maybe_ophandle, &stack);
+    return stack.back().toTensor();
+  }
 
   std::tie(input_, input_bdims) = unpackBatched(input);
   std::tie(weight_, weight_bdims) = unpackBatched(weight);
@@ -140,17 +151,14 @@ Tensor BatchedTensor_squeeze_dim(const Tensor& self, int64_t dim) {
   return detail::make_tensor<BatchTensorImpl>(result_, result_bdims);
 }
 
-//template <std::pair<Tensor,BatchDims>
-//          (*BatchingRule)(const Tensor&, BatchDimsRef, Types...)> 
-
 template<typename Func, typename... T>
-Tensor BatchedTensor_wrapper(const Func& batching_rule, const Tensor& self, T... other_args) {
+Tensor BatchedTensor_wrapper(const Func& batching_rule, const Tensor& self, T&&... args) {
   Tensor self_, result_;
   BatchDimsRef self_bdims;
   BatchDims result_bdims;
 
   std::tie(self_, self_bdims) = unpackBatched(self);
-  std::tie(result_, result_bdims) = batching_rule(self_, self_bdims, other_args...);
+  std::tie(result_, result_bdims) = batching_rule(self_, self_bdims, std::forward<T>(args)...);
   return detail::make_tensor<BatchTensorImpl>(result_, result_bdims);
 }
 

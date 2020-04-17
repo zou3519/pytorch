@@ -60,12 +60,10 @@ std::pair<Tensor,BatchDims> conv2d_batching_rule(
     IntArrayRef stride, IntArrayRef padding,
     IntArrayRef dilation, int64_t groups) {
   if (weight_bdims.size() > 0) {
-    // TODO: call fallback
-    TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched weight");
+    TORCH_INTERNAL_ASSERT(false);
   }
   if (bias_bdims.size() > 0) {
-    // TODO: call fallback
-    TORCH_CHECK(false, "NYI: conv2d_batching_rule for batched bias");
+    TORCH_INTERNAL_ASSERT(false);
   }
 
   auto input_ = moveBdimsToFront(input, input_bdims);
