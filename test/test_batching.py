@@ -35,6 +35,12 @@ class TestBatching(TestCase):
         output = vmap(torch.mul, [0, None])(x23, x573)
         self.assertEqual(output, x23.view(2, 1, 1, 3) * x573)
 
+    def test_nested_multiple(self):
+        x = torch.rand(2, 3)
+        y = torch.rand(2, 3)
+        result = vmap(vmap(torch.mul, [0, 0]), [0, 0])(x, y)
+        self.assertEqual(result, x * y)
+
     def test_nested(self):
         x23 = torch.randn(2, 3)
         x53 = torch.randn(5, 3)

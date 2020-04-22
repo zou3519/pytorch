@@ -125,7 +125,8 @@ inline Tensor makeBatched(const Tensor& tensor, optional<int64_t> batch_dim, int
   }
   const auto* batched = getBatched(tensor);
   auto new_bdims = batched->bdims();
-  new_bdims.push_back({batch_dim.value(), level});
+  auto actual_bdim = batched->actualDim(batch_dim.value(), /*wrap_dim=*/true);
+  new_bdims.push_back({actual_bdim, level});
   return at::detail::make_tensor<BatchTensorImpl>(batched->value(), std::move(new_bdims));
 }
 
