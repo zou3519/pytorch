@@ -41,6 +41,30 @@ class TestBatching(TestCase):
         result = vmap(vmap(torch.mul, [0, 0]), [0, 0])(x, y)
         self.assertEqual(result, x * y)
 
+    def test_nested_multiple_not_aligned(self):
+        x = torch.rand(5, 2, 3)
+        y = torch.rand(3, 5, 2)
+        result = vmap(vmap(vmap(torch.mul, [0, 0]), [1, 0]), [1, 2])(x, y)
+        self.assertEqual(result, x.permute(1, 2, 0) * y.permute(2, 0, 1))
+
+    def test_nested_multiple_fallback(self):
+        x = torch.rand(2, 3)
+        y = torch.rand(2, 3)
+        result = vmap(vmap(torch.sub, [0, 0]), [0, 0])(x, y)
+        self.assertEqual(result, x - y)
+
+    def test_nested_multiple_not_aligned_fallback_simple(self):
+        x = torch.rand(2, 3)
+        y = torch.rand(3, 2)
+        result = vmap(vmap(torch.sub, [0, 0]), [0, 1])(x, y)
+        self.assertEqual(result, x - y.t())
+
+    def test_nested_multiple_not_aligned_fallback_complex(self):
+        x = torch.rand(5, 2, 3)
+        y = torch.rand(3, 5, 2)
+        result = vmap(vmap(vmap(torch.sub, [0, 0]), [1, 0]), [1, 2])(x, y)
+        self.assertEqual(result, x.permute(1, 2, 0) - y.permute(2, 0, 1))
+
     def test_nested(self):
         x23 = torch.randn(2, 3)
         x53 = torch.randn(5, 3)

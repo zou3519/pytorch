@@ -398,8 +398,9 @@ std::vector<int64_t> computeIndex(int64_t linear_idx, IntArrayRef sizes) {
   std::vector<int64_t> result;
   result.reserve(sizes.size());
   for (auto it = sizes.rbegin(); it != sizes.rend(); it++) {
-    result.push_back(linear_idx % *it);
-    linear_idx -= *it;
+    auto remainder = linear_idx % *it;
+    result.push_back(remainder);
+    linear_idx -= remainder;
     linear_idx /= *it;
   }
   std::reverse(std::begin(result), std::end(result));
@@ -408,8 +409,9 @@ std::vector<int64_t> computeIndex(int64_t linear_idx, IntArrayRef sizes) {
 
 Tensor selectAll(const Tensor& tensor, IntArrayRef indices) {
   auto tensor_ = tensor;
+  // NB: there's probably a faster way of doing this.
   for (int64_t dim = 0; dim < indices.size(); dim++) {
-    tensor_ = tensor_.select(dim, indices[dim]); 
+    tensor_ = tensor_.select(0, indices[dim]);
   }
   return tensor_;
 }
