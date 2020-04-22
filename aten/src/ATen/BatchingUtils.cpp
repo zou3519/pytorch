@@ -29,8 +29,11 @@ BatchDims moveBdimsToFront(BatchDimsRef bdims) {
 }
 
 Tensor moveBdimsToFront(const Tensor& self, BatchDimsRef bdims) {
+  if (areBdimsAtFrontInOrder(bdims)) {
+    return self;
+  }
   auto self_sizes = self.sizes();
-  std::vector<int64_t> permutation(self_sizes.size(), 0);
+  SmallVector<int64_t,8> permutation(self_sizes.size(), 0);
   auto is_bdim = createIsBdimBitset(bdims);
   int64_t idx = 0;
   for (const auto& bdim : bdims) {
@@ -80,7 +83,7 @@ Tensor alignTensorTo(
     return tensor;
   }
 
-  std::vector<int64_t> aligned_sizes(num_result_bdims + num_result_regular_dims, 1);
+  SmallVector<int64_t,8> aligned_sizes(num_result_bdims + num_result_regular_dims, 1);
 
   // align the regular (non-bdims) first
   std::copy(

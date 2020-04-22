@@ -21,7 +21,7 @@ struct BatchDim {
   int64_t level_;
 };
 
-using BatchDims = std::vector<BatchDim>;
+using BatchDims = SmallVector<BatchDim, 5>;
 using BatchDimsRef = ArrayRef<BatchDim>;
 
 inline std::bitset<64> createIsBdimBitset(BatchDimsRef bdims) {

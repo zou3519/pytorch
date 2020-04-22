@@ -35,7 +35,7 @@ mul_batching_rule(
 
 template <Tensor (*Op)(const Tensor&)>
 std::pair<Tensor,BatchDims> unary_pw_batching_rule(const Tensor& self, BatchDimsRef self_bdims) {
-  return { Op(self), self_bdims.vec() };
+  return { Op(self), { self_bdims.begin(), self_bdims.end() } };
 }
 
 template <Tensor& (*Op)(Tensor&)>
@@ -45,12 +45,12 @@ void unary_pw_inplace_batching_rule(Tensor& self, BatchDimsRef self_bdims) {
 
 std::pair<Tensor,BatchDims>
 dropout_batching_rule(const Tensor& self, BatchDimsRef self_bdims, double p, bool train) {
-  return { at::dropout(self, p, train), self_bdims.vec() };
+  return { at::dropout(self, p, train), { self_bdims.begin(), self_bdims.end() } };
 }
 
 std::pair<Tensor,BatchDims>
 dropout__batching_rule(Tensor& self, BatchDimsRef self_bdims, double p, bool train) {
-  return { at::dropout_(self, p, train), self_bdims.vec() };
+  return { at::dropout_(self, p, train), { self_bdims.begin(), self_bdims.end() } };
 }
 
 std::pair<Tensor,BatchDims> conv2d_batching_rule(
@@ -91,7 +91,7 @@ std::pair<Tensor,BatchDims> sum_batching_rule(
   auto result_bdims = moveBdimsToFront(self_bdims);
 
   // Real dims to reduce over
-  std::vector<int64_t> actual_dims;
+  SmallVector<int64_t,8> actual_dims;
   for (int64_t dim : dims) {
     actual_dims.push_back(dim + self_bdims.size());
   }
@@ -152,7 +152,7 @@ std::pair<Tensor,BatchDims> permute_batching_rule(
   auto ndims = self.dim() - self_bdims.size();
   auto nbdims = self_bdims.size();
 
-  std::vector<int64_t> actual_dims;
+  SmallVector<int64_t,8> actual_dims;
   for (auto i = 0; i < self_bdims.size(); i++) {
     actual_dims.push_back(i);
   }
@@ -174,7 +174,7 @@ std::pair<Tensor,BatchDims> reshape_batching_rule(
   auto nbdims = self_bdims.size();
   auto self_sizes = self.sizes();
 
-  std::vector<int64_t> actual_shape;
+  SmallVector<int64_t,8> actual_shape;
   actual_shape.insert(
       actual_shape.end(),
       self_sizes.begin(),
@@ -198,7 +198,7 @@ std::pair<Tensor,BatchDims> view_batching_rule(
   auto nbdims = self_bdims.size();
   auto self_sizes = self.sizes();
 
-  std::vector<int64_t> actual_shape;
+  SmallVector<int64_t,8> actual_shape;
   actual_shape.insert(
       actual_shape.end(),
       self_sizes.begin(),
