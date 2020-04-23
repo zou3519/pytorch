@@ -103,22 +103,44 @@ Tensor BatchedTensor_relu(const Tensor& input) {
   return BatchedTensor_unary_pw_op<at::relu>(input);
 }
 
-template <Tensor (*Op)(const Tensor&)>
+template <Tensor& (Tensor::*Op)() const>
 Tensor& BatchedTensor_unary_pw_inplace_op(Tensor& input) {
 	Tensor input_;
 	BatchDimsRef input_bdims;
 
 	std::tie(input_, input_bdims) = unpackBatched(input);
-  unary_pw_inplace_batching_rule<Op>(input_, input_bdims);
+	(input_.*Op)();
   return input;
 }
 
-Tensor& BatchedTensor_relu_(Tensor& self) {
-	Tensor self_;
-	BatchDimsRef self_bdims;
-	std::tie(self_, self_bdims) = unpackBatched(self);
-  unary_pw_inplace_batching_rule<at::relu_>(self_, self_bdims);
-  return self;
+template <typename F, F Func, typename... Args>
+Tensor& BatchedTensor_unary_pw_inplace_fn_varargs(Tensor& input, Args... args) {
+	Tensor input_;
+	BatchDimsRef input_bdims;
+
+	std::tie(input_, input_bdims) = unpackBatched(input);
+	Func(input_, args...);
+  return input;
+}
+
+template <typename F, F Func, typename... Args>
+Tensor& BatchedTensor_unary_pw_inplace_meth_varargs(Tensor& input, Args... args) {
+	Tensor input_;
+	BatchDimsRef input_bdims;
+
+	std::tie(input_, input_bdims) = unpackBatched(input);
+	(input_.*Func)(args...);
+  return input;
+}
+
+template <Tensor& (*Op)(Tensor&)>
+Tensor& BatchedTensor_unary_pw_inplace_fn(Tensor& input) {
+	Tensor input_;
+	BatchDimsRef input_bdims;
+
+	std::tie(input_, input_bdims) = unpackBatched(input);
+	Op(input_);
+  return input;
 }
 
 Tensor BatchedTensor_sum(const Tensor& self, IntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype) {
@@ -615,8 +637,101 @@ TORCH_LIBRARY_IMPL(aten, TESTING_ONLY_GenericWrapper, m) {
   m.impl_UNBOXED("numpy_T", native::numpy_T);
 
   // in-place
-  m.impl_UNBOXED("dropout_", BatchedTensor_dropout_);
-  m.impl_UNBOXED("relu_", BatchedTensor_relu_);
-}
+
+  // pointwise unary inplace
+  m.impl_UNBOXED("abs_", BatchedTensor_unary_pw_inplace_op<&Tensor::abs_>);
+  m.impl_UNBOXED("acos_", BatchedTensor_unary_pw_inplace_op<&Tensor::acos_>);
+  m.impl_UNBOXED("asin_", BatchedTensor_unary_pw_inplace_op<&Tensor::asin_>);
+  m.impl_UNBOXED("atan_", BatchedTensor_unary_pw_inplace_op<&Tensor::atan_>);
+  m.impl_UNBOXED("bitwise_not_", BatchedTensor_unary_pw_inplace_op<&Tensor::bitwise_not_>);
+  m.impl_UNBOXED("logical_not_", BatchedTensor_unary_pw_inplace_op<&Tensor::logical_not_>);
+  m.impl_UNBOXED("ceil_", BatchedTensor_unary_pw_inplace_op<&Tensor::ceil_>);
+  m.impl_UNBOXED("cos_", BatchedTensor_unary_pw_inplace_op<&Tensor::cos_>);
+  m.impl_UNBOXED("cosh_", BatchedTensor_unary_pw_inplace_op<&Tensor::cosh_>);
+  m.impl_UNBOXED("erf_", BatchedTensor_unary_pw_inplace_op<&Tensor::erf_>);
+  m.impl_UNBOXED("erfc_", BatchedTensor_unary_pw_inplace_op<&Tensor::erfc_>);
+  m.impl_UNBOXED("exp_", BatchedTensor_unary_pw_inplace_op<&Tensor::exp_>);
+  m.impl_UNBOXED("expm1_", BatchedTensor_unary_pw_inplace_op<&Tensor::expm1_>);
+  m.impl_UNBOXED("floor_", BatchedTensor_unary_pw_inplace_op<&Tensor::floor_>);
+  m.impl_UNBOXED("frac_", BatchedTensor_unary_pw_inplace_op<&Tensor::frac_>);
+  m.impl_UNBOXED("log_", BatchedTensor_unary_pw_inplace_op<&Tensor::log_>);
+  m.impl_UNBOXED("log10_", BatchedTensor_unary_pw_inplace_op<&Tensor::log10_>);
+  m.impl_UNBOXED("log1p_", BatchedTensor_unary_pw_inplace_op<&Tensor::log1p_>);
+  m.impl_UNBOXED("log2_", BatchedTensor_unary_pw_inplace_op<&Tensor::log2_>);
+  m.impl_UNBOXED("reciprocal_", BatchedTensor_unary_pw_inplace_op<&Tensor::reciprocal_>);
+  m.impl_UNBOXED("neg_", BatchedTensor_unary_pw_inplace_op<&Tensor::neg_>);
+  m.impl_UNBOXED("round_", BatchedTensor_unary_pw_inplace_op<&Tensor::round_>);
+  m.impl_UNBOXED("relu_", BatchedTensor_unary_pw_inplace_op<&Tensor::relu_>);
+  m.impl_UNBOXED("rsqrt_", BatchedTensor_unary_pw_inplace_op<&Tensor::rsqrt_>);
+  // NB: selu_ has no method variant
+  m.impl_UNBOXED("selu_", BatchedTensor_unary_pw_inplace_fn<at::selu_>);
+  m.impl_UNBOXED("sigmoid_", BatchedTensor_unary_pw_inplace_op<&Tensor::sigmoid_>);
+  m.impl_UNBOXED("sin_", BatchedTensor_unary_pw_inplace_op<&Tensor::sin_>);
+  m.impl_UNBOXED("sinh_", BatchedTensor_unary_pw_inplace_op<&Tensor::sinh_>);
+  m.impl_UNBOXED("detach_", BatchedTensor_unary_pw_inplace_op<&Tensor::detach_>);
+  m.impl_UNBOXED("squeeze_", BatchedTensor_unary_pw_inplace_op<&Tensor::squeeze_>);
+  m.impl_UNBOXED("sqrt_", BatchedTensor_unary_pw_inplace_op<&Tensor::sqrt_>);
+  m.impl_UNBOXED("square_", BatchedTensor_unary_pw_inplace_op<&Tensor::square_>);
+  m.impl_UNBOXED("t_", BatchedTensor_unary_pw_inplace_op<&Tensor::t_>);
+  m.impl_UNBOXED("tan_", BatchedTensor_unary_pw_inplace_op<&Tensor::tan_>);
+  m.impl_UNBOXED("tanh_", BatchedTensor_unary_pw_inplace_op<&Tensor::tanh_>);
+  m.impl_UNBOXED("trunc_", BatchedTensor_unary_pw_inplace_op<&Tensor::trunc_>);
+  m.impl_UNBOXED("zero_", BatchedTensor_unary_pw_inplace_op<&Tensor::zero_>);
+  m.impl_UNBOXED("set_", BatchedTensor_unary_pw_inplace_op<&Tensor::set_>);
+  m.impl_UNBOXED("lgamma_", BatchedTensor_unary_pw_inplace_op<&Tensor::lgamma_>);
+  m.impl_UNBOXED("digamma_", BatchedTensor_unary_pw_inplace_op<&Tensor::digamma_>);
+  m.impl_UNBOXED("erfinv_", BatchedTensor_unary_pw_inplace_op<&Tensor::erfinv_>);
+  m.impl_UNBOXED("sign_", BatchedTensor_unary_pw_inplace_op<&Tensor::sign_>);
+
+  // pointwise unary inplace, extra arguments
+  m.impl_UNBOXED("clamp_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::clamp_), at::clamp_, optional<Scalar>, optional<Scalar>>);
+  m.impl_UNBOXED("clamp_max_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::clamp_max_), at::clamp_max_, Scalar>);
+  m.impl_UNBOXED("clamp_min_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::clamp_min_), at::clamp_min_, Scalar>);
+  m.impl_UNBOXED("hardtanh_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::hardtanh_), at::hardtanh_, Scalar, Scalar>);
+  m.impl_UNBOXED("requires_grad_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::requires_grad_), &Tensor::requires_grad_, bool>);
+  m.impl_UNBOXED("dropout_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::dropout_), at::dropout_, double, bool>);
+  m.impl_UNBOXED("feature_dropout_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::feature_dropout_), at::feature_dropout_, double, bool>);
+  m.impl_UNBOXED("alpha_dropout_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::alpha_dropout_), at::alpha_dropout_, double, bool>);
+  m.impl_UNBOXED("feature_alpha_dropout_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::feature_alpha_dropout_), at::feature_alpha_dropout_, double, bool>);
+  m.impl_UNBOXED("mvlgamma_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::mvlgamma_), &Tensor::mvlgamma_, int64_t>);
+  m.impl_UNBOXED("rrelu_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::rrelu_), &at::rrelu_, Scalar, Scalar, bool, optional<Generator>>);
+  m.impl_UNBOXED("threshold_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::threshold_), &at::threshold_, Scalar, Scalar>);
+  m.impl_UNBOXED("polygamma_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::polygamma_), &Tensor::polygamma_, int64_t>);
+  // TODO: random_ has like 3 overloads
+  // m.impl_UNBOXED("random_", BatchedTensor_unary_pw_inplace_meth_varargs<
+  //     decltype(&Tensor::random_), &Tensor::random_, optional<Generator>>);
+  m.impl_UNBOXED("uniform_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::uniform_), &Tensor::uniform_, double, double, optional<Generator>>);
+  m.impl_UNBOXED("cauchy_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::cauchy_), &Tensor::cauchy_, double, double, optional<Generator>>);
+  m.impl_UNBOXED("log_normal_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::log_normal_), &Tensor::log_normal_, double, double, optional<Generator>>);
+  m.impl_UNBOXED("exponential_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::exponential_), &Tensor::exponential_, double, optional<Generator>>);
+  m.impl_UNBOXED("geometric_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::geometric_), &Tensor::geometric_, double, optional<Generator>>);
+  m.impl_UNBOXED("normal_", BatchedTensor_unary_pw_inplace_meth_varargs<
+      decltype(&Tensor::normal_), &Tensor::normal_, double, double, optional<Generator>>);
+  m.impl_UNBOXED("elu_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::elu_), &at::elu_, Scalar, Scalar, Scalar>);
+  m.impl_UNBOXED("leaky_relu_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::leaky_relu_), &at::leaky_relu_, Scalar>);
+  m.impl_UNBOXED("celu_", BatchedTensor_unary_pw_inplace_fn_varargs<
+      decltype(&at::celu_), &at::celu_, Scalar>);
 
 }
+
+} // namespace at

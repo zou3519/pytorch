@@ -38,11 +38,6 @@ std::pair<Tensor,BatchDims> unary_pw_batching_rule(const Tensor& self, BatchDims
   return { Op(self), { self_bdims.begin(), self_bdims.end() } };
 }
 
-template <Tensor& (*Op)(Tensor&)>
-void unary_pw_inplace_batching_rule(Tensor& self, BatchDimsRef self_bdims) {
-  Op(self);
-}
-
 std::pair<Tensor,BatchDims>
 dropout_batching_rule(const Tensor& self, BatchDimsRef self_bdims, double p, bool train) {
   return { at::dropout(self, p, train), { self_bdims.begin(), self_bdims.end() } };

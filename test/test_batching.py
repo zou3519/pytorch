@@ -267,6 +267,13 @@ class TestBatching(TestCase):
         self.assertEqual(output, torch.zeros_like(imgs))
         self.assertEqual(imgs, torch.zeros_like(imgs))
 
+    def test_clamp_min_(self):
+        N, C, H, W = (2, 3, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        expected = imgs.clamp_min_(0.5)
+        output = vmap(Tensor.clamp_min_, (0, None))(imgs, 0)
+        self.assertEqual(output, expected)
+
     def test_relu(self):
         N, C, H, W = (2, 3, 5, 7)
         imgs = torch.randn(N, C, H, W)
