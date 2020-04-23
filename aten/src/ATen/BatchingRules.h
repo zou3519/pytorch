@@ -240,4 +240,47 @@ std::pair<Tensor,BatchDims> select_batching_rule(
   return { result, result_bdims };
 }
 
+// NB: Smallvector<5> or something (<= 5 vmap dims)
+std::vector<int64_t> computeIndex(int64_t linear_idx, IntArrayRef sizes) {
+  std::vector<int64_t> result;
+  result.reserve(sizes.size());
+  for (auto it = sizes.rbegin(); it != sizes.rend(); it++) {
+    auto remainder = linear_idx % *it;
+    result.push_back(remainder);
+    linear_idx -= remainder;
+    linear_idx /= *it;
+  }
+  std::reverse(std::begin(result), std::end(result));
+  return result;
+}
+
+
+inline Tensor selectAll(const Tensor& tensor, IntArrayRef indices) {
+  auto tensor_ = tensor;
+  // NB: there's probably a faster way of doing this.
+  for (int64_t dim = 0; dim < indices.size(); dim++) {
+    tensor_ = tensor_.select(0, indices[dim]);
+  }
+  return tensor_;
+}
+
+// // Only useful for fill_diagonal_, lol...
+// template <typename F, F Func, typename Args...>
+// void inplace_fallback_rule1(Tensor& self, BatchDimsRef self_bdims, Args... args) {
+//   auto self_ = moveBdimsToFront(self, self_bdims);
+//   auto result_bdims = moveBdimsToFront(self, self_bdims);
+//   auto self_sizes = self_.sizes();
+//   
+//   auto batch_sizes = IntArrayRef(self_sizes.begin(), self_sizes.begin() + result_bdims.size());
+//   auto total_batches = std::accumulate(
+//       batch_sizes.begin(), batch_sizes.end(),
+//       1, std::multiplies<int64_t>());
+// 
+//   for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+//     std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+//     auto tensor_slice = selectAll(self_, idx);
+//     Func(tensor_slice, args...);
+//   }
+// }
+
 } // namespace at

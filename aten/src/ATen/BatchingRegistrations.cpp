@@ -103,6 +103,16 @@ Tensor BatchedTensor_relu(const Tensor& input) {
   return BatchedTensor_unary_pw_op<at::relu>(input);
 }
 
+template <Tensor (*Op)(const Tensor&)>
+Tensor& BatchedTensor_unary_pw_inplace_op(Tensor& input) {
+	Tensor input_;
+	BatchDimsRef input_bdims;
+
+	std::tie(input_, input_bdims) = unpackBatched(input);
+  unary_pw_inplace_batching_rule<Op>(input_, input_bdims);
+  return input;
+}
+
 Tensor& BatchedTensor_relu_(Tensor& self) {
 	Tensor self_;
 	BatchDimsRef self_bdims;
@@ -394,28 +404,6 @@ broadcastBdimsAtFront(torch::jit::Stack& stack) {
   return { levels_bitset, batch_sizes };
 }
 
-std::vector<int64_t> computeIndex(int64_t linear_idx, IntArrayRef sizes) {
-  std::vector<int64_t> result;
-  result.reserve(sizes.size());
-  for (auto it = sizes.rbegin(); it != sizes.rend(); it++) {
-    auto remainder = linear_idx % *it;
-    result.push_back(remainder);
-    linear_idx -= remainder;
-    linear_idx /= *it;
-  }
-  std::reverse(std::begin(result), std::end(result));
-  return result;
-}
-
-Tensor selectAll(const Tensor& tensor, IntArrayRef indices) {
-  auto tensor_ = tensor;
-  // NB: there's probably a faster way of doing this.
-  for (int64_t dim = 0; dim < indices.size(); dim++) {
-    tensor_ = tensor_.select(0, indices[dim]);
-  }
-  return tensor_;
-}
-
 void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   const auto& schema = op.schema();
   TORCH_CHECK(
@@ -583,6 +571,9 @@ auto batched_registry = c10::Dispatcher::singleton().registerBackendFallbackKern
     BatchTensorKey,
     KernelFunction::makeFromBoxedFunction<&batchTensorFallback>()
 );
+
+// auto batched_library = MAKE_TORCH_LIBRARY_IMPL(aten, BatchTensorKey);
+// m.fallback(torch::CppFunction::makeFromBoxedFunction<&batchTensorFallback>());
 
 static auto batched_registry2 = torch::RegisterOperators()
   // Some operations need to be transformed to their batched versions
