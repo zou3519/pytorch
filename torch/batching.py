@@ -5,44 +5,44 @@ from typing import Optional
 
 VMAP_LEVEL = 0
 
-@torch.jit.script
-def broadcast_to(tensor: Tensor, ndim: int):
-    old_sizes = tensor.sizes()
-    if old_sizes == ndim:
-        return tensor
-    assert len(old_sizes) <= ndim
-    diff = ndim - len(old_sizes)
-    for i in range(diff):
-        tensor.unsqueeze(0)
-    return tensor
-
-@torch.jit.script
-def move_batch_dim_to_front(tensor: Tensor,
-                            batch_dim: Optional[int],
-                            result_dim: int):
-    if batch_dim is None:
-        return broadcast_to(tensor, result_dim)
-    extra_dims = result_dim - tensor.dim()
-    result = broadcast_to(tensor, result_dim)
-    return result.transpose(0, batch_dim + extra_dims)
-
-@torch.jit.script
-def min_result_dim(tensor: Tensor, batch_dim: Optional[int]) -> int:
-    result = tensor.dim()
-    if batch_dim is None:
-        result += 1
-    return result
-
-@torch.jit.script
-def mul_batching_rule(self: Tensor, self_bdim: Optional[int],
-                      other: Tensor, other_bdim: Optional[int]):
-    self_dim = min_result_dim(self, self_bdim)
-    other_dim = min_result_dim(other, other_bdim)
-    result_dim = max(self_dim, other_dim)
-
-    self = move_batch_dim_to_front(self, self_bdim, result_dim)
-    other = move_batch_dim_to_front(other, other_bdim, result_dim)
-    return self * other, 0
+# @torch.jit.script
+# def broadcast_to(tensor: Tensor, ndim: int):
+#     old_sizes = tensor.sizes()
+#     if old_sizes == ndim:
+#         return tensor
+#     assert len(old_sizes) <= ndim
+#     diff = ndim - len(old_sizes)
+#     for i in range(diff):
+#         tensor.unsqueeze(0)
+#     return tensor
+# 
+# @torch.jit.script
+# def move_batch_dim_to_front(tensor: Tensor,
+#                             batch_dim: Optional[int],
+#                             result_dim: int):
+#     if batch_dim is None:
+#         return broadcast_to(tensor, result_dim)
+#     extra_dims = result_dim - tensor.dim()
+#     result = broadcast_to(tensor, result_dim)
+#     return result.transpose(0, batch_dim + extra_dims)
+# 
+# @torch.jit.script
+# def min_result_dim(tensor: Tensor, batch_dim: Optional[int]) -> int:
+#     result = tensor.dim()
+#     if batch_dim is None:
+#         result += 1
+#     return result
+# 
+# @torch.jit.script
+# def mul_batching_rule(self: Tensor, self_bdim: Optional[int],
+#                       other: Tensor, other_bdim: Optional[int]):
+#     self_dim = min_result_dim(self, self_bdim)
+#     other_dim = min_result_dim(other, other_bdim)
+#     result_dim = max(self_dim, other_dim)
+# 
+#     self = move_batch_dim_to_front(self, self_bdim, result_dim)
+#     other = move_batch_dim_to_front(other, other_bdim, result_dim)
+#     return self * other, 0
 
 
 def _make_batched(args, dims, level):

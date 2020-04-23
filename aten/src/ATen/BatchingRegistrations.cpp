@@ -567,10 +567,14 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
 // However, in many cases, operators are composed of other operators.
 // If those operators have batched versions, then we don't need to
 // run our for-loop-fallback. There should probably be some way to specify that.
-auto batched_registry = c10::Dispatcher::singleton().registerBackendFallbackKernel(
-    BatchTensorKey,
-    KernelFunction::makeFromBoxedFunction<&batchTensorFallback>()
-);
+// auto batched_registry = c10::Dispatcher::singleton().registerFallback(
+//     BatchTensorKey,
+//     KernelFunction::makeFromBoxedFunction<&batchTensorFallback>()
+// );
+// NB: add BatchedTensorId
+TORCH_LIBRARY_IMPL(_, TESTING_ONLY_GenericWrapper, m) {
+  m.fallback(torch::CppFunction::makeFromBoxedFunction<&batchTensorFallback>());
+}
 
 // auto batched_library = MAKE_TORCH_LIBRARY_IMPL(aten, BatchTensorKey);
 // m.fallback(torch::CppFunction::makeFromBoxedFunction<&batchTensorFallback>());
@@ -583,55 +587,6 @@ static auto batched_registry2 = torch::RegisterOperators()
   .op(torch::RegisterOperators::options()
       .schema("aten::_unwrap_batched(Tensor self, int level) -> Tensor")
       .kernel(BatchTensorKey, &at::native::_unwrap_batched))
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::unsqueeze(Tensor(a) self, int dim) -> Tensor(a)")
-  //     .kernel(BatchTensorKey, [] (const Tensor& self, int64_t dim) -> Tensor {
-  //       TensorAndBdim unwrapped;
-  //       int64_t cur_level;
-  //       std::tie(unwrapped, cur_level) = unwrap(self);
-  //       auto result_with_batch = unsqueeze_batching_rule(unwrapped, dim);
-  //       return makeBatched(
-  //           result_with_batch.first,
-  //           result_with_batch.second,
-  //           cur_level);
-  //     }))
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::transpose.int(Tensor(a) self, int dim0, int dim1) -> Tensor(a)")
-  //     .kernel(BatchTensorKey, [] (const Tensor& self, int64_t dim0, int64_t dim1) -> Tensor {
-  //       // TODO: don't forget to wrap dim0 & dim1
-  //       auto* self_batched = getBatched(self);
-  //       auto batch_dim = self_batched->batch_dim_;
-  //       return makeBatched(
-  //         self_batched->rep_.transpose(
-  //           actualDim(dim0, batch_dim),
-  //           actualDim(dim1, batch_dim)),
-  //         batch_dim,
-  //         self_batched->level_);
-  //     }))
-  .op(torch::RegisterOperators::options()
-      .schema("aten::mul.Tensor(Tensor self, Tensor other) -> Tensor")
-      .kernel(BatchTensorKey, &BatchedTensor_mul))
-  // .op(torch::RegisterOperators::options()
-  //     .schema("aten::mul_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)")
-  //     .impl_unboxedOnlyKernel<Tensor & (Tensor &, const Tensor &), &BatchedTensor_mul_>(BatchTensorKey))
-  .op(torch::RegisterOperators::options()
-      .schema("aten::add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor")
-      .kernel(BatchTensorKey, &BatchedTensor_add))
-  .op(torch::RegisterOperators::options()
-      .schema("aten::dropout(Tensor input, float p, bool train) -> Tensor")
-      .kernel(BatchTensorKey, &BatchedTensor_dropout))
-  .op(torch::RegisterOperators::options()
-      .schema("aten::dropout_(Tensor(a!) self, float p, bool train) -> Tensor(a!)")
-      .impl_unboxedOnlyKernel<Tensor & (Tensor &, double, bool), &BatchedTensor_dropout_>(BatchTensorKey))
-  .op(torch::RegisterOperators::options()
-      .schema("aten::sum.dim_IntList(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor")
-      .impl_unboxedOnlyKernel<Tensor (const Tensor &, IntArrayRef, bool, optional<ScalarType>), &BatchedTensor_sum>(BatchTensorKey))
-  .op(torch::RegisterOperators::options()
-      .schema("aten::relu(Tensor self) -> Tensor")
-      .kernel(BatchTensorKey, &BatchedTensor_relu))
-  .op(torch::RegisterOperators::options()
-      .schema("aten::relu_(Tensor(a!) self) -> Tensor(a!)")
-      .impl_unboxedOnlyKernel<Tensor & (Tensor &), &BatchedTensor_relu_>(BatchTensorKey))
   .op(torch::RegisterOperators::options()
       .schema("aten::_is_batched(Tensor self) -> bool")
       .kernel(BatchTensorKey, [] (const Tensor& self) -> bool {
@@ -644,20 +599,41 @@ static auto batched_registry2 = torch::RegisterOperators()
         return self.sizes()[dim];
       }))
   .op(torch::RegisterOperators::options()
+      .schema("aten::mul.Tensor(Tensor self, Tensor other) -> Tensor")
+      .kernel(BatchTensorKey, &BatchedTensor_mul))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor")
+      .kernel(BatchTensorKey, &BatchedTensor_add))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::dropout(Tensor input, float p, bool train) -> Tensor")
+      .kernel(BatchTensorKey, &BatchedTensor_dropout))
+  .op(torch::RegisterOperators::options()
+       .schema("aten::dropout_(Tensor(a!) self, float p, bool train) -> Tensor(a!)")
+       .impl_unboxedOnlyKernel<Tensor & (Tensor &, double, bool), &BatchedTensor_dropout_>(BatchTensorKey))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::sum.dim_IntList(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor")
+      .impl_unboxedOnlyKernel<Tensor (const Tensor &, IntArrayRef, bool, optional<ScalarType>), &BatchedTensor_sum>(BatchTensorKey))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::relu(Tensor self) -> Tensor")
+      .kernel(BatchTensorKey, &BatchedTensor_relu))
+  .op(torch::RegisterOperators::options()
+      .schema("aten::relu_(Tensor(a!) self) -> Tensor(a!)")
+      .impl_unboxedOnlyKernel<Tensor & (Tensor &), &BatchedTensor_relu_>(BatchTensorKey))
+  .op(torch::RegisterOperators::options()
       .schema("aten::conv2d(Tensor input, Tensor weight, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] dilation=1, int groups=1) -> Tensor")
       .impl_unboxedOnlyKernel<Tensor (const Tensor&, const Tensor&, const Tensor&, IntArrayRef, IntArrayRef, IntArrayRef, int64_t), &BatchedTensor_conv2d>(BatchTensorKey))
 
   // Some view ops
   .op(torch::RegisterOperators::options()
       .schema("aten::transpose.int(Tensor(a) self, int dim0, int dim1) -> Tensor(a)")
-      .kernel(BatchTensorKey, &BatchedTensor_transpose))
+      .impl_unboxedOnlyKernel<decltype(BatchedTensor_transpose), &BatchedTensor_transpose>(BatchTensorKey))
   .op(torch::RegisterOperators::options()
       .schema("aten::transpose_(Tensor(a!) self, int dim0, int dim1) -> Tensor(a!)")
       .impl_unboxedOnlyKernel<Tensor& (Tensor&, int64_t, int64_t), &BatchedTensor_transpose_>(BatchTensorKey))
   // NB: composite op
   .op(torch::RegisterOperators::options()
       .schema("aten::t(Tensor(a) self) -> Tensor(a)")
-      .kernel(BatchTensorKey, &native::t))
+      .impl_unboxedOnlyKernel<decltype(native::t), &native::t>(BatchTensorKey))
   // NB: composite op
   .op(torch::RegisterOperators::options()
       .schema("aten::t_(Tensor(a!) self) -> Tensor(a!)")
@@ -665,19 +641,19 @@ static auto batched_registry2 = torch::RegisterOperators()
   // NB: composite op
   .op(torch::RegisterOperators::options()
       .schema("aten::numpy_T(Tensor(a) self) -> Tensor(a)")
-      .kernel(BatchTensorKey, &native::numpy_T))
+      .impl_unboxedOnlyKernel<decltype(native::numpy_T), &native::numpy_T>(BatchTensorKey))
   .op(torch::RegisterOperators::options()
       .schema("aten::detach(Tensor self) -> (Tensor)")
       .kernel(BatchTensorKey, &BatchedTensor_unary_pw_op<at::detach>))
   .op(torch::RegisterOperators::options()
       .schema("aten::squeeze(Tensor(a) self) -> Tensor(a)")
-      .kernel(BatchTensorKey, &BatchedTensor_squeeze))
+      .impl_unboxedOnlyKernel<decltype(BatchedTensor_squeeze), &BatchedTensor_squeeze>(BatchTensorKey))
   .op(torch::RegisterOperators::options()
       .schema("aten::squeeze.dim(Tensor(a) self, int dim) -> Tensor(a)")
-      .kernel(BatchTensorKey, &BatchedTensor_squeeze_dim))
+      .impl_unboxedOnlyKernel<decltype(BatchedTensor_squeeze_dim), &BatchedTensor_squeeze_dim>(BatchTensorKey))
   .op(torch::RegisterOperators::options()
       .schema("aten::unsqueeze(Tensor(a) self, int dim) -> Tensor(a)")
-      .kernel(BatchTensorKey, &BatchedTensor_unsqueeze))
+      .impl_unboxedOnlyKernel<decltype(BatchedTensor_unsqueeze), &BatchedTensor_unsqueeze>(BatchTensorKey))
   .op(torch::RegisterOperators::options()
       .schema("aten::permute(Tensor(a) self, int[] dims) -> Tensor(a)")
       .impl_unboxedOnlyKernel<decltype(BatchedTensor_permute), &BatchedTensor_permute>(BatchTensorKey))
@@ -687,9 +663,9 @@ static auto batched_registry2 = torch::RegisterOperators()
   .op(torch::RegisterOperators::options()
       .schema("aten::reshape(Tensor self, int[] shape) -> Tensor")
       .impl_unboxedOnlyKernel<decltype(BatchedTensor_reshape), &BatchedTensor_reshape>(BatchTensorKey))
-      // .schema("aten::view_as(Tensor self, Tensor other) -> Tensor")
-      // .schema("aten::reshape_as(Tensor self, Tensor other) -> Tensor")
-  // C++ only, used in indexing
+//       // .schema("aten::view_as(Tensor self, Tensor other) -> Tensor")
+//       // .schema("aten::reshape_as(Tensor self, Tensor other) -> Tensor")
+//   // C++ only, used in indexing
   .op(torch::RegisterOperators::options()
       .schema("aten::alias(Tensor(a) self) -> Tensor(a)")
       .impl_unboxedOnlyKernel<Tensor (const Tensor&), &BatchedTensor_unary_pw_op<at::alias>>(BatchTensorKey))

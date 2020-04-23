@@ -6,7 +6,7 @@
 namespace at {
 
 // TODO: use a real key
-constexpr auto BatchTensorKey = DispatchKey::TESTING_ONLY_GenericWrapperTensorId;
+constexpr auto BatchTensorKey = DispatchKey::TESTING_ONLY_GenericWrapper;
 
 struct BatchDim {
   BatchDim(int64_t index, int64_t level) : index_(index), level_(level) {}
