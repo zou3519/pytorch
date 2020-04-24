@@ -235,6 +235,26 @@ std::pair<Tensor,BatchDims> select_batching_rule(
   return { result, result_bdims };
 }
 
+std::pair<Tensor,BatchDims> index_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims, TensorList indices) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+
+  // It's sufficient to use ":" for each of the batch dims.
+  // For example, if the user did tensor[[0, 0], [2, 2]], all
+  // we have to do is index real_tensor[:, [0, 0], [2, 2]]
+  std::vector<Tensor> actual_indices;
+  for (const auto& bdim : result_bdims) {
+    actual_indices.push_back({});
+  }
+  actual_indices.insert(
+      actual_indices.end(),
+      indices.begin(),
+      indices.end());
+  auto result = at::index(self_, actual_indices);
+  return { result, result_bdims };
+}
+
 // NB: Smallvector<5> or something (<= 5 vmap dims)
 std::vector<int64_t> computeIndex(int64_t linear_idx, IntArrayRef sizes) {
   std::vector<int64_t> result;

@@ -367,6 +367,19 @@ class TestBatching(TestCase):
         self.assertEqual(output, imgs.select(1, 0))
         self.assertEqual(output.data_ptr(), imgs.data_ptr())
 
+    def test_adv_index(self):
+        N, C, H, W = (3, 5, 7, 2)
+        imgs = torch.randn(N, C, H, W)
+
+        def idx(x):
+            return x[[0, 1], [2, 3]]
+
+        output = vmap(idx, (0,))(imgs)
+        self.assertEqual(output, imgs[:, [0, 1], [2, 3]])
+
+        output = vmap(idx, (1,))(imgs)
+        self.assertEqual(output, imgs.permute(1, 0, 2, 3)[:, [0, 1], [2, 3]])
+
     def test_vmap_sum(self):
         x235 = torch.randn(2, 3, 5)
         self.assertEqual(vmap(torch.sum, (0, None))(x235, 0), x235.sum(1))

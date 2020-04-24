@@ -220,7 +220,7 @@ Tensor BatchedTensor_select(const Tensor& self, int64_t dim, int64_t index) {
 }
 
 Tensor BatchedTensor_index(const Tensor& self, TensorList indices) {
-  TORCH_INTERNAL_ASSERT(false, "NYI");
+  return BatchedTensor_wrapper(index_batching_rule, self, indices);
 }
 
 

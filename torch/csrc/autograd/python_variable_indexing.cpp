@@ -19,6 +19,7 @@
 #include <ATen/TensorIndexing.h>
 #include <c10/core/TensorOptions.h>
 #include <ATen/core/LegacyTypeDispatch.h>
+#include <ATen/Batching.h>
 
 #include <vector>
 #include <tuple>
@@ -165,9 +166,15 @@ static inline Variable applySlicing(
           }
           return at::indexing::TensorIndex(std::move(tensor));
         } else if (PySequence_Check(obj)) {
+          // NB: BatchedTensor holds something underlying...
+          auto dispatch_key = legacyExtractDispatchKey(self);
+          if (dispatch_key == DispatchKey::TESTING_ONLY_GenericWrapper) {
+            dispatch_key = legacyExtractDispatchKey(getBatched(self)->value());
+          }
+
           // TODO: Naughty naughty get out of jail free
           // (Fixing this means I have to fix the call chain though :/)
-          return at::indexing::TensorIndex(sequenceToVariable(legacyExtractDispatchKey(self), obj));
+          return at::indexing::TensorIndex(sequenceToVariable(dispatch_key, obj));
         } else {
           auto idx = THPObjectPtr(PyNumber_Index(obj));
           if (!idx) {
