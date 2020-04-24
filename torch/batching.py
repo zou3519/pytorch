@@ -2,6 +2,7 @@ import torch
 import functools
 from torch import Tensor
 from typing import Optional
+from collections import OrderedDict
 
 VMAP_LEVEL = 0
 
@@ -44,8 +45,78 @@ VMAP_LEVEL = 0
 #     other = move_batch_dim_to_front(other, other_bdim, result_dim)
 #     return self * other, 0
 
+EXPECTED_BDIM_MSG = (
+    'vmap: Expected None or a dim index to map over for arg {idx} but got {dim}'
+)
+
+NESTED_COLLECTION_MSG = (
+    'vmap: Got in_dim={dim} for arg {idx}, but arg {idx} is not a Tensor (got '
+    '{arg_type}) so it cannot be vmap\'ed over. If you were trying to vmap over a '
+    'Tensor inside a collection, we do not yet support that; otherwise, use None '
+    'as the respective in_dim.'
+)
+
+FLAT_TUPLE_MSG = (
+    'vmap: Expected `in_dims` to be a flat tuple of None or int but got in_dim={dim} '
+    'for arg {idx}. If you were trying to vmap over a Tensor inside a collection, we '
+    ' do not yet support that.'
+)
+
+NOT_TENSORS_MSG = (
+    'vmap: in_dims is {in_dims} so we attempted to vmap over dim {in_dims} for '
+    'all inputs. However, we can\'t do this for inputs that are not Tensors '
+    '(inputs at indices {indices} are not tensors). Perhaps you meant to use '
+    '`vmap(func, in_dims={suggested_in_dims}, ...)`.'
+)
+
+
+
+
+def _collection_has_tensors(collection):
+    if isinstance(collection, dict):
+        return _collection_has_tensors(collection.values())
+    if isinstance(collection, OrderedDict):
+        return _collection_has_tensors(collection.values())
+    if isinstance(collection, tuple):
+        pass
+    if isinstance(collection, list):
+        pass
+
+
+def _validate_in_dims(dims, args):
+    if isinstance(dims, int):
+        for idx, arg in enumerate(args):
+            if idx is None or isinstance(arg, Tensor):
+                continue
+            suggested_in_dims = tuple(dims if isinstance(arg, Tensor) else None for arg in args)
+            incorrect_idxs = [idx for idx, in_dim in zip(range(len(args)), suggested_in_dims)
+                              if in_dim is None]
+            raise ValueError(NOT_TENSORS_MSG.format(in_dims=dims,
+                                                    indices=incorrect_idxs,
+                                                    suggested_in_dims=suggested_in_dims))
+        return
+
+    if not isinstance(dims, tuple):
+        raise ValueError('vmap: Expected `in_dims` to be int or tuple, got: ' + str(type(dims)))
+
+    for idx, (dim, arg) in enumerate(zip(dims, args)):
+        if isinstance(arg, Tensor):
+            if dim is not None and not isinstance(dim, int):
+                raise ValueError(EXPECTED_BDIM_MSG.format(idx=idx, dim=dim))
+            continue
+        if dim is None:
+            continue
+        if isinstance(dim, int):
+            raise ValueError(NESTED_COLLECTION_MSG.format(dim=dim, idx=idx,
+                                                          arg_type=type(arg)))
+        raise ValueError(FLAT_TUPLE_MSG.format(dim=dim, idx=idx))
+
 
 def _make_batched(args, dims, level):
+    _validate_in_dims(dims, args)
+    if isinstance(dims, int):
+        dims = tuple(dims for _ in range(len(args)))
+
     batch_size = None
     batch_sizes = [arg.size(dim)
                    for arg, dim in zip(args, dims)
@@ -75,13 +146,13 @@ def _unwrapped_batched(batched_outputs, batch_size):
             for out in batched_outputs]
 
 
-def vmap(fn, in_axes):
+def vmap(fn, in_dims=0):
     @functools.wraps(fn)
     def wrapped(*args):
         global VMAP_LEVEL
         VMAP_LEVEL += 1
         try:
-            batched_inputs, batch_size = _make_batched(args, in_axes, VMAP_LEVEL)
+            batched_inputs, batch_size = _make_batched(args, in_dims, VMAP_LEVEL)
             batched_outputs = fn(*batched_inputs)
             # TODO: we assume only one output for now
             return _unwrap_batched_single(batched_outputs, batch_size)

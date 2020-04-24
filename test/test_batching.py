@@ -12,68 +12,76 @@ def move_bdim(tensor, from_dim, to_dim):
 
 class TestBatching(TestCase):
 
+    def test_defaults(self):
+        x23 = torch.randn(2, 3)
+        output = vmap(torch.add)(x23, x23)
+        self.assertEqual(output, x23 + x23)
+
+        with self.assertRaises(ValueError):
+            output = vmap(torch.sum)(x23, 0)
+
     def test_batched_batched(self):
         x23 = torch.randn(2, 3)
-        output = vmap(torch.add, [0, 0])(x23, x23)
+        output = vmap(torch.add, (0, 0))(x23, x23)
         self.assertEqual(output, x23 + x23)
 
     def test_add_0_2(self):
         x2357 = torch.randn(2, 3, 5, 7)
         y3527 = torch.randn(3, 5, 2, 7)
-        output = vmap(torch.add, [0, 2])(x2357, y3527)
+        output = vmap(torch.add, (0, 2))(x2357, y3527)
         self.assertEqual(output, x2357 + move_bdim(y3527, 2, 0))
 
     def test_batched_unbatched(self):
         x3 = torch.randn(3)
         x23 = torch.randn(2, 3)
-        output = vmap(torch.add, [0, None])(x23, x3)
+        output = vmap(torch.add, (0, None))(x23, x3)
         self.assertEqual(output, x23 + x3)
 
     def test_aligned_broadcasting(self):
         x23 = torch.randn(2, 3)
         x573 = torch.randn(5, 7, 3)
-        output = vmap(torch.mul, [0, None])(x23, x573)
+        output = vmap(torch.mul, (0, None))(x23, x573)
         self.assertEqual(output, x23.view(2, 1, 1, 3) * x573)
 
     def test_double_nest(self):
         x = torch.randn(2, 3)
-        result = vmap(vmap(torch.relu, [0]), [0])(x)
+        result = vmap(vmap(torch.relu, (0,)), (0,))(x)
         self.assertEqual(result, x.relu())
 
     def test_nested_multiple(self):
         x = torch.rand(2, 3)
         y = torch.rand(2, 3)
-        result = vmap(vmap(torch.mul, [0, 0]), [0, 0])(x, y)
+        result = vmap(vmap(torch.mul, (0, 0)), (0, 0))(x, y)
         self.assertEqual(result, x * y)
 
     def test_nested_multiple_not_aligned(self):
         x = torch.rand(5, 2, 3)
         y = torch.rand(3, 5, 2)
-        result = vmap(vmap(vmap(torch.mul, [0, 0]), [1, 0]), [1, 2])(x, y)
+        result = vmap(vmap(vmap(torch.mul, (0, 0)), (1, 0)), (1, 2))(x, y)
         self.assertEqual(result, x.permute(1, 2, 0) * y.permute(2, 0, 1))
 
     def test_nested_multiple_fallback(self):
         x = torch.rand(2, 3)
         y = torch.rand(2, 3)
-        result = vmap(vmap(torch.sub, [0, 0]), [0, 0])(x, y)
+        result = vmap(vmap(torch.sub, (0, 0)), (0, 0))(x, y)
         self.assertEqual(result, x - y)
 
     def test_nested_multiple_not_aligned_fallback_simple(self):
         x = torch.rand(2, 3)
         y = torch.rand(3, 2)
-        result = vmap(vmap(torch.sub, [0, 0]), [0, 1])(x, y)
+        result = vmap(vmap(torch.sub, (0, 0)), (0, 1))(x, y)
         self.assertEqual(result, x - y.t())
 
     def test_nested_multiple_not_aligned_fallback_complex(self):
         x = torch.rand(5, 2, 3)
         y = torch.rand(3, 5, 2)
-        result = vmap(vmap(vmap(torch.sub, [0, 0]), [1, 0]), [1, 2])(x, y)
+        result = vmap(vmap(vmap(torch.sub, (0, 0)), (1, 0)), (1, 2))(x, y)
         self.assertEqual(result, x.permute(1, 2, 0) - y.permute(2, 0, 1))
 
     def test_nested(self):
         x23 = torch.randn(2, 3)
         x53 = torch.randn(5, 3)
-        output = vmap(lambda xx: vmap(lambda yy: torch.add(xx, yy), [0])(x53), [0])(x23)
+        output = vmap(lambda xx: vmap(lambda yy: torch.add(xx, yy), (0,))(x53), (0,))(x23)
         self.assertEqual(output, x23.view(2, 1, 3) + x53)
 
     def test_nested_three_layers(self):
@@ -84,27 +92,27 @@ class TestBatching(TestCase):
                        vmap(lambda y:
                             vmap(lambda z:
                                  torch.add(torch.add(x, z), y),
-                                 [0])(x73),
-                            [0])(x53),
-                       [0])(x23))
+                                 (0,))(x73),
+                            (0,))(x53),
+                       (0,))(x23))
         expected = x23.view(2, 1, 1, 3) + x53.view(5, 1, 3) + x73
         self.assertEqual(output, expected)
 
     def test_batched_batched_fallback(self):
         # NB: sub is not implemented. TODO: test fallback warning
         x23 = torch.randn(2, 3)
-        output = vmap(torch.sub, [0, 0])(x23, x23)
+        output = vmap(torch.sub, (0, 0))(x23, x23)
         self.assertEqual(output, x23 - x23)
 
     def test_fallback(self):
         # NB: sum is not implemented. TODO: test fallback warning
         x23 = torch.randn(2, 3)
-        output = vmap(torch.sum, [0])(x23)
+        output = vmap(torch.sum, (0,))(x23)
         self.assertEqual(output, x23.sum(-1))
 
     def test_independent_output(self):
         x23 = torch.randn(2, 3)
-        output = vmap(lambda x: torch.tensor(1.), [0])(x23)
+        output = vmap(lambda x: torch.tensor(1.), (0,))(x23)
         self.assertEqual(output, torch.ones(2))
 
     def test_batched_jacobian(self):
