@@ -43,11 +43,6 @@ dropout_batching_rule(const Tensor& self, BatchDimsRef self_bdims, double p, boo
   return { at::dropout(self, p, train), { self_bdims.begin(), self_bdims.end() } };
 }
 
-std::pair<Tensor,BatchDims>
-dropout__batching_rule(Tensor& self, BatchDimsRef self_bdims, double p, bool train) {
-  return { at::dropout_(self, p, train), { self_bdims.begin(), self_bdims.end() } };
-}
-
 std::pair<Tensor,BatchDims> conv2d_batching_rule(
     const Tensor& input, BatchDimsRef input_bdims,
     const Tensor& weight, BatchDimsRef weight_bdims,

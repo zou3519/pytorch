@@ -80,14 +80,6 @@ Tensor BatchedTensor_dropout(const Tensor& input, double p, bool train) {
   return detail::make_tensor<BatchTensorImpl>(result_, result_bdims);
 }
 
-Tensor& BatchedTensor_dropout_(Tensor& self, double p, bool train) {
-	Tensor self_;
-	BatchDimsRef self_bdims;
-	std::tie(self_, self_bdims) = unpackBatched(self);
-  dropout__batching_rule(self_, self_bdims, p, train);
-  return self;
-}
-
 template <Tensor (*Op)(const Tensor&)>
 Tensor BatchedTensor_unary_pw_op(const Tensor& input) {
 	Tensor input_, result_;
@@ -223,121 +215,6 @@ Tensor BatchedTensor_index(const Tensor& self, TensorList indices) {
   return BatchedTensor_wrapper(index_batching_rule, self, indices);
 }
 
-
-// int64_t BatchTensorImpl::batch_size() const {
-//   return rep_.sizes()[batch_dim_];
-// }
-// 
-// 
-// int64_t maxLevel(const std::vector<Tensor>& maybeBatchTensors) {
-//   int64_t max = -1;
-//   auto it = maybeBatchTensors.begin();
-//   auto end_it = maybeBatchTensors.end();
-//   while (it != end_it) {
-//     it = std::find_if(it, end_it, isBatched);
-//     if (it != end_it) {
-//       const auto* batchTensor = static_cast<const BatchTensorImpl*>(it->unsafeGetTensorImpl());
-//       if (batchTensor->level_ > max) {
-//         max = batchTensor->level_;
-//       }
-//       it++;
-//     }
-//   }
-//   return max;
-// }
-// 
-// std::pair<Tensor,optional<int64_t>> unwrapAtLevel(const Tensor& tensor, int64_t level) {
-//   if (!isBatched(tensor)) {
-//     return { tensor, nullopt };
-//   }
-//   auto* batch_tensor = getBatched(tensor);
-//   if (batch_tensor->level_ != level) {
-//     TORCH_INTERNAL_ASSERT(batch_tensor->level_ < level);
-//     return { tensor, nullopt };
-//   }
-//   return { batch_tensor->rep_, batch_tensor->batch_dim_ };
-// }
-// 
-// Tensor broadcastTo(const Tensor& tensor, int64_t ndim) {
-//   auto old_sizes = tensor.sizes();
-//   if (old_sizes.size() == ndim) {
-//     return tensor;
-//   }
-//   TORCH_INTERNAL_ASSERT(old_sizes.size() <= ndim);
-//   // TODO: This is really slow, we should probably write a new operator for
-//   // this. Note that we can't call view because it is not "semantic" enough.
-//   // It might be possible to just call reshape here.
-//   int64_t diff = ndim - old_sizes.size();
-//   Tensor result = tensor;
-//   for (int64_t i = 0; i < diff; ++i) {
-//     result = result.unsqueeze(0);
-//   }
-//   return result;
-// }
-// 
-// Tensor moveBatchDimToFront(
-//     const Tensor& tensor,
-//     optional<int64_t> batch_dim,
-//     int64_t result_dim) {
-//   if (!batch_dim) {
-//     return broadcastTo(tensor, result_dim);
-//   }
-//   auto bdim = *batch_dim;
-//   auto extra_dims = result_dim - tensor.dim();
-//   auto result = broadcastTo(tensor, result_dim);
-//   auto actual_bdim = bdim + extra_dims;
-//   if (actual_bdim == 0) {
-//     return result;
-//   }
-//   // should be an op...
-//   std::vector<int64_t> permutation(result_dim);
-//   permutation[0] = actual_bdim;
-//   for (int64_t i = 1; i < result_dim; i++) {
-//     if (i <= actual_bdim) {
-//       permutation[i] = i - 1;
-//     } else {
-//       permutation[i] = i;
-//     }
-//   }
-//   result = result.permute(permutation);
-//   return result;
-// }
-// 
-// int64_t actualDim(int64_t dim, optional<int64_t> maybe_batch_dim) {
-//   if (maybe_batch_dim && dim >= *maybe_batch_dim) {
-//     return dim + 1;
-//   }
-//   return dim;
-// }
-// 
-// std::tuple<int64_t,int64_t>
-// discoverBatchSizeAndLevel(torch::jit::Stack* stack) {
-//   int64_t max_level = -1;
-//   int64_t batch_size = -1;
-//   for (auto& ivalue : *stack) {
-//     if (!ivalue.isTensor()) continue;
-//     auto tensor = ivalue.toTensor();
-//     if (!isBatched(tensor)) continue;
-//     auto* batched = getBatched(tensor);
-//     if (batched->level_ > max_level) {
-//       max_level = batched->level_;
-//       // TODO: should probably validate somewhere that the batch sizes are the same
-//       batch_size = batched->batch_size();
-//     }
-//   }
-//   TORCH_INTERNAL_ASSERT(batch_size != -1);
-//   TORCH_INTERNAL_ASSERT(max_level != -1);
-//   return { batch_size, max_level };
-// }
-// 
-// int64_t minDim(const Tensor& tensor, optional<int64_t> batch_dim) {
-//   auto result = tensor.dim(); 
-//   if (!batch_dim) {
-//     result += 1;
-//   }
-//   return result;
-// }
-// 
 // Copy pasta'ed from backed_fallback_test.cpp
 void callBoxedWorkaround(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   // This should just be op.callBoxed(stack), but that doesn't work for all ops yet.
@@ -504,100 +381,17 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
     torch::jit::push(*stack, std::move(output));
   }
 }
-// 
-// typedef std::pair<Tensor,optional<int64_t>> TensorAndBdim;
-// 
-// std::pair<TensorAndBdim,int64_t> unwrap(const Tensor& tensor) {
-//   auto* batch_tensor = getBatched(tensor);
-//   return { { batch_tensor->rep_, batch_tensor->batch_dim_ }, batch_tensor->level_ };
-// }
-// 
-// TensorAndBdim unsqueeze_batching_rule(const TensorAndBdim& self, int64_t dim) {
-//   const auto& tensor = self.first;
-//   const auto& maybe_batch_dim = self.second;
-// 
-//   dim = maybe_wrap_dim(dim, tensor.dim());
-//   auto actual_dim = actualDim(dim, maybe_batch_dim);
-//   optional<int64_t> new_batch_dim = nullopt;
-//   if (maybe_batch_dim) {
-//     auto bdim = *maybe_batch_dim;
-//     new_batch_dim = bdim < actual_dim ? bdim : bdim + 1;
-//   }
-//   return { tensor.unsqueeze(actual_dim), new_batch_dim };
-// }
-// 
-// std::pair<Tensor,optional<int64_t>> mul_batching_rule(
-//     const Tensor& self, optional<int64_t> self_bdim,
-//     const Tensor& other, optional<int64_t> other_bdim) {
-//   auto self_dim = minDim(self, self_bdim);
-//   auto other_dim = minDim(other, other_bdim);
-//   auto result_dim = std::max({self_dim, other_dim});
-// 
-//   auto self_value = moveBatchDimToFront(self, self_bdim, result_dim);
-//   auto other_value = moveBatchDimToFront(other, other_bdim, result_dim);
-//   return { at::mul(self_value, other_value), 0 };
-// }
-// #else
-// std::pair<Tensor,optional<int64_t>> mul_batching_rule(
-//     const Tensor& self, optional<int64_t> self_bdim,
-//     const Tensor& other, optional<int64_t> other_bdim) {
-//   auto result = get_module()->run_method(
-//       "mul_batching_rule",
-//       self, self_bdim, other, other_bdim).toTuple();
-//   auto res = result->elements()[0].toTensor();
-//   auto bdim = result->elements()[1].toOptional<int64_t>();
-//   return { res, bdim };
-// }
-// #endif
-// 
-// // TODO: it's not fine that we moved the batch dim,
-// // but that should be easy to fix.
-// std::pair<Tensor&,optional<int64_t>> mul__batching_rule(
-//     Tensor& self, optional<int64_t> self_bdim,
-//     const Tensor& other, optional<int64_t> other_bdim) {
-//   auto self_dim = minDim(self, self_bdim);
-//   auto other_dim = minDim(other, other_bdim);
-//   auto result_dim = std::max({self_dim, other_dim});
-// 
-//   // NB: Produces view
-//   auto self_value = moveBatchDimToFront(self, self_bdim, result_dim);
-//   auto other_value = moveBatchDimToFront(other, other_bdim, result_dim);
-// 
-//   // Probably want a nice error message here.
-//   self_value.mul_(other_value);
-//   return { self, 0 } ;
-// }
-// 
-// Tensor& BatchedTensor_mul_(Tensor& self, const Tensor& other) {
-//   // The following lines need to happen in each kernel
-//   auto cur_level = maxLevel({self, other});
-//   auto self_and_bdim = unwrapAtLevel(self, cur_level);
-//   auto other_and_bdim = unwrapAtLevel(other, cur_level);
-// 
-//   mul__batching_rule(
-//       self_and_bdim.first, self_and_bdim.second,
-//       other_and_bdim.first, other_and_bdim.second);
-//   return self;
-// }
-// 
+
 int64_t BatchedTensor_size(const Tensor& self, int64_t dim) {
   dim = maybe_wrap_dim(dim, self.dim());
   return self.sizes()[dim];
 }
 
-// void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
-//   TORCH_CHECK(false, "Batching rule not implemented for ", op.schema());
-// }
-
 // TODO: the fallback runs the un-batched kernel in a for loop.
 // However, in many cases, operators are composed of other operators.
 // If those operators have batched versions, then we don't need to
 // run our for-loop-fallback. There should probably be some way to specify that.
-// auto batched_registry = c10::Dispatcher::singleton().registerFallback(
-//     BatchTensorKey,
-//     KernelFunction::makeFromBoxedFunction<&batchTensorFallback>()
-// );
-// NB: add BatchedTensorId
+// TODO: add BatchedTensorId
 TORCH_LIBRARY_IMPL(_, TESTING_ONLY_GenericWrapper, m) {
   m.fallback(torch::CppFunction::makeFromBoxedFunction<&batchTensorFallback>());
 }
