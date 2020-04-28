@@ -146,7 +146,7 @@ inline Tensor unwrapBatched(Tensor tensor, int64_t ntimes=1) {
 }
 
 inline std::ostream& operator<<(std::ostream& out, const BatchDim& bdim) {
-  out << "(idx=" << bdim.index() << ", lvl=" << bdim.level() << ")";
+  out << "(lvl=" << bdim.level() << ", dim=" << bdim.index() << ")";
   return out;
 }
 

@@ -60,6 +60,12 @@ class TestBatching(TestCase):
         result = vmap(vmap(vmap(torch.mul, (0, 0)), (1, 0)), (1, 2))(x, y)
         self.assertEqual(result, x.permute(1, 2, 0) * y.permute(2, 0, 1))
 
+    def test_fallback_not_aligned(self):
+        x = torch.rand(2, 3)
+        y = torch.rand(3, 2)
+        result = vmap(torch.sub, (0, 1))(x, y)
+        self.assertEqual(result, x - y.t())
+
     def test_nested_multiple_fallback(self):
         x = torch.rand(2, 3)
         y = torch.rand(2, 3)
@@ -165,6 +171,20 @@ class TestBatching(TestCase):
         hes_bat = hessian(f(x), x)
         self.assertEqual(jac_bat, jac)
         self.assertEqual(hes_bat, hes)
+
+    def test_batched_batched_inplace_fallback(self):
+        inp = torch.randint(0, 1, [2, 3], dtype=torch.bool)
+        out = torch.randint(0, 1, [2, 3], dtype=torch.bool)
+        expected = torch.logical_xor(inp, out)
+        vmap(Tensor.logical_xor_)(out, inp)
+        self.assertEqual(out, expected)
+
+    def test_batched_batched_inplace_fallback_unaligned(self):
+        inp = torch.randint(0, 1, [2, 3], dtype=torch.bool)
+        out = torch.randint(0, 1, [3, 2], dtype=torch.bool)
+        expected = torch.logical_xor(inp.t(), out)
+        vmap(Tensor.logical_xor_, (1, 0))(out, inp)
+        self.assertEqual(out, expected)
 
     @unittest.expectedFailure
     def test_batched_batched_inplace(self):

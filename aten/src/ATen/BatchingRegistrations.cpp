@@ -387,6 +387,69 @@ int64_t BatchedTensor_size(const Tensor& self, int64_t dim) {
   return self.sizes()[dim];
 }
 
+template <typename F, F Method, typename... Args>
+Tensor& inplaceMethodFallback1(Tensor& input, Args... args) {
+	Tensor input_;
+	BatchDimsRef input_bdims;
+
+  std::tie(input_, input_bdims) = unpackBatched(input);
+  input_ = moveBdimsToFront(input_, input_bdims);
+  IntArrayRef batch_sizes = { input_.sizes().begin(), input_.sizes().begin() + input_bdims.size() };
+
+  auto total_batches = std::accumulate(
+      batch_sizes.begin(), batch_sizes.end(),
+      1, std::multiplies<int64_t>());
+  for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+    std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+    (selectAll(input_, idx).*Method)(args...);
+  }
+  return input;
+}
+
+template <typename F, F Method, typename... Args>
+Tensor& inplaceMethodFallback2(Tensor& input, const Tensor& other, Args... args) {
+	Tensor input_, other_;
+  std::vector<int64_t> batch_sizes;
+
+  // TODO: we don't really need torch::jit::Stack...
+  torch::jit::Stack tensors = { input, other };
+  std::tie(std::ignore, batch_sizes) = broadcastBdimsAtFront(tensors);
+  std::tie(input_, std::ignore) = unpackBatched(tensors[0].toTensor());
+  std::tie(other_, std::ignore) = unpackBatched(tensors[1].toTensor());
+
+  auto total_batches = std::accumulate(
+      batch_sizes.begin(), batch_sizes.end(),
+      1, std::multiplies<int64_t>());
+  for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+    std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+    (selectAll(input_, idx).*Method)(selectAll(other_, idx), args...);
+  }
+  return input;
+}
+
+template <typename F, F Method, typename... Args>
+Tensor& inplaceMethodFallback3(Tensor& input, const Tensor& second, const Tensor& third, Args... args) {
+	Tensor input_, second_, third_;
+  std::vector<int64_t> batch_sizes;
+
+  // TODO: we don't really need torch::jit::Stack...
+  torch::jit::Stack tensors = { input, second, third };
+  std::tie(std::ignore, batch_sizes) = broadcastBdimsAtFront(tensors);
+  std::tie(input_, std::ignore) = unpackBatched(tensors[0].toTensor());
+  std::tie(second_, std::ignore) = unpackBatched(tensors[1].toTensor());
+  std::tie(third_, std::ignore) = unpackBatched(tensors[2].toTensor());
+
+  auto total_batches = std::accumulate(
+      batch_sizes.begin(), batch_sizes.end(),
+      1, std::multiplies<int64_t>());
+  for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+    std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+    (selectAll(input_, idx).*Method)(selectAll(second_, idx), selectAll(third_, idx), args...);
+  }
+  return input;
+}
+
+
 // TODO: the fallback runs the un-batched kernel in a for loop.
 // However, in many cases, operators are composed of other operators.
 // If those operators have batched versions, then we don't need to
@@ -525,6 +588,33 @@ TORCH_LIBRARY_IMPL(aten, TESTING_ONLY_GenericWrapper, m) {
       decltype(&at::leaky_relu_), &at::leaky_relu_, Scalar>);
   m.impl_UNBOXED("celu_", BatchedTensor_unary_pw_inplace_fn_varargs<
       decltype(&at::celu_), &at::celu_, Scalar>);
+
+#define INPLACE_FALLBACK(NUM_TENSORS, NAME) \
+  m.impl_UNBOXED(#NAME, inplaceMethodFallback##NUM_TENSORS<decltype(&Tensor::NAME), &Tensor::NAME>);
+#define INPLACE_FALLBACKV(NUM_TENSORS, NAME, ...) \
+  m.impl_UNBOXED(#NAME, inplaceMethodFallback##NUM_TENSORS<decltype(&Tensor::NAME), &Tensor::NAME, __VA_ARGS__>);
+
+  INPLACE_FALLBACKV(1, tril_, int64_t);
+  INPLACE_FALLBACKV(1, triu_, int64_t);
+  INPLACE_FALLBACKV(1, fill_diagonal_, Scalar, int64_t);
+  INPLACE_FALLBACKV(1, renorm_, Scalar, int64_t, Scalar);
+  INPLACE_FALLBACKV(2, copy_, bool);
+  INPLACE_FALLBACKV(3, addcdiv_, Scalar);
+  INPLACE_FALLBACKV(3, addcmul_, Scalar);
+  INPLACE_FALLBACKV(3, addmv_, Scalar, Scalar);
+  INPLACE_FALLBACKV(3, addr_, Scalar, Scalar);
+  INPLACE_FALLBACKV(3, baddbmm_, Scalar, Scalar);
+  INPLACE_FALLBACKV(3, addmm_, Scalar, Scalar);
+  INPLACE_FALLBACKV(3, put_, bool);
+
+  INPLACE_FALLBACK(2, logical_xor_);
+  INPLACE_FALLBACK(2, logical_and_);
+  INPLACE_FALLBACK(2, logical_or_);
+  INPLACE_FALLBACK(3, masked_scatter_);
+
+
+#undef INPLACE_FALLBACK
+#undef INPLACE_FALLBACKV
 
 }
 
