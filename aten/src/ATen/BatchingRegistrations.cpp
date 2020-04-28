@@ -526,15 +526,12 @@ TORCH_LIBRARY_IMPL(aten, TESTING_ONLY_GenericWrapper, m) {
   m.impl_UNBOXED("sin_", BatchedTensor_unary_pw_inplace_op<&Tensor::sin_>);
   m.impl_UNBOXED("sinh_", BatchedTensor_unary_pw_inplace_op<&Tensor::sinh_>);
   m.impl_UNBOXED("detach_", BatchedTensor_unary_pw_inplace_op<&Tensor::detach_>);
-  m.impl_UNBOXED("squeeze_", BatchedTensor_unary_pw_inplace_op<&Tensor::squeeze_>);
   m.impl_UNBOXED("sqrt_", BatchedTensor_unary_pw_inplace_op<&Tensor::sqrt_>);
   m.impl_UNBOXED("square_", BatchedTensor_unary_pw_inplace_op<&Tensor::square_>);
-  m.impl_UNBOXED("t_", BatchedTensor_unary_pw_inplace_op<&Tensor::t_>);
   m.impl_UNBOXED("tan_", BatchedTensor_unary_pw_inplace_op<&Tensor::tan_>);
   m.impl_UNBOXED("tanh_", BatchedTensor_unary_pw_inplace_op<&Tensor::tanh_>);
   m.impl_UNBOXED("trunc_", BatchedTensor_unary_pw_inplace_op<&Tensor::trunc_>);
   m.impl_UNBOXED("zero_", BatchedTensor_unary_pw_inplace_op<&Tensor::zero_>);
-  m.impl_UNBOXED("set_", BatchedTensor_unary_pw_inplace_op<&Tensor::set_>);
   m.impl_UNBOXED("lgamma_", BatchedTensor_unary_pw_inplace_op<&Tensor::lgamma_>);
   m.impl_UNBOXED("digamma_", BatchedTensor_unary_pw_inplace_op<&Tensor::digamma_>);
   m.impl_UNBOXED("erfinv_", BatchedTensor_unary_pw_inplace_op<&Tensor::erfinv_>);
@@ -616,6 +613,40 @@ TORCH_LIBRARY_IMPL(aten, TESTING_ONLY_GenericWrapper, m) {
 #undef INPLACE_FALLBACK
 #undef INPLACE_FALLBACKV
 
+  m.impl_UNBOXED("add_.Tensor", inplaceMethodFallback2<
+      Tensor& (Tensor::*)(const Tensor&, Scalar) const,
+      static_cast<Tensor& (Tensor::*)(const Tensor&, Scalar) const>(&Tensor::add_),
+      Scalar>);
+  m.impl_UNBOXED("sub_.Tensor", inplaceMethodFallback2<
+      Tensor& (Tensor::*)(const Tensor&, Scalar) const,
+      static_cast<Tensor& (Tensor::*)(const Tensor&, Scalar) const>(&Tensor::sub_),
+      Scalar>);
+
+#define BINARY_INPLACE_FALLBACK(NAME) \
+  m.impl_UNBOXED(#NAME".Tensor", inplaceMethodFallback2< \
+      Tensor& (Tensor::*)(const Tensor&) const, \
+      static_cast<Tensor& (Tensor::*)(const Tensor&) const>(&Tensor::NAME)>); \
+  m.impl_UNBOXED(#NAME".Scalar", inplaceMethodFallback1< \
+      Tensor& (Tensor::*)(Scalar) const, \
+      static_cast<Tensor& (Tensor::*)(Scalar) const>(&Tensor::NAME), \
+      Scalar>);
+
+
+  BINARY_INPLACE_FALLBACK(mul_);
+  BINARY_INPLACE_FALLBACK(div_);
+  BINARY_INPLACE_FALLBACK(lt_);
+  BINARY_INPLACE_FALLBACK(le_);
+  BINARY_INPLACE_FALLBACK(gt_);
+  BINARY_INPLACE_FALLBACK(ge_);
+  BINARY_INPLACE_FALLBACK(eq_);
+  BINARY_INPLACE_FALLBACK(ne_);
+  BINARY_INPLACE_FALLBACK(bitwise_and_);
+  BINARY_INPLACE_FALLBACK(bitwise_or_);
+  BINARY_INPLACE_FALLBACK(bitwise_xor_);
+  BINARY_INPLACE_FALLBACK(pow_);
+  BINARY_INPLACE_FALLBACK(fmod_);
+  BINARY_INPLACE_FALLBACK(remainder_);
+#undef BINARY_INPLACE_FALLBACK
 }
 
 } // namespace at

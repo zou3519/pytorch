@@ -186,34 +186,48 @@ class TestBatching(TestCase):
         vmap(Tensor.logical_xor_, (1, 0))(out, inp)
         self.assertEqual(out, expected)
 
-    @unittest.expectedFailure
+    def test_fallback_scalar(self):
+        y23 = torch.randn(2, 3)
+        out = y23.clone()
+        vmap(Tensor.mul_, (0, None))(out, 2)
+        self.assertEqual(out, y23 * 2)
+
+    def test_comparison_scalar(self):
+        y23 = torch.randn(2, 3)
+        out = y23.clone()
+        vmap(Tensor.lt_, (0, None))(out, 0)
+        self.assertEqual(out, y23 < 0)
+
+    def test_pow_scalar(self):
+        y23 = torch.randn(2, 3)
+        out = y23.clone()
+        vmap(Tensor.pow_, (0, None))(out, 2)
+        self.assertEqual(out, y23 ** 2)
+
     def test_batched_batched_inplace(self):
         y23 = torch.randn(2, 3)
         out = y23.clone()
-        vmap(Tensor.mul_, [0, 0])(out, y23)
+        vmap(Tensor.mul_)(out, y23)
         self.assertEqual(out, y23 * y23)
 
-    @unittest.expectedFailure
     def test_batched_unbatched_inplace(self):
         y23 = torch.randn(2, 3)
         y3 = torch.randn(3)
         out = y23.clone()
-        vmap(Tensor.mul_, [0, None])(out, y3)
+        vmap(Tensor.mul_, (0, None))(out, y3)
         self.assertEqual(out, y23 * y3)
 
-    @unittest.expectedFailure
     def test_aligned_broadcasting_inplace(self):
         y12 = torch.randn(1, 2)
         y23 = torch.randn(2, 3)
         out = y23.clone()
-        vmap(Tensor.mul_, [0, 1])(out, y12)
+        vmap(Tensor.mul_, (0, 1))(out, y12)
         self.assertEqual(out, y23 * y12.t())
 
-    @unittest.expectedFailure
     def test_nested_inplace(self):
         y573 = torch.randn(5, 7, 3)
         out = y573.clone()
-        vmap(vmap(Tensor.mul_, [0, 0]), [0, 0])(out, y573)
+        vmap(vmap(Tensor.mul_))(out, y573)
         self.assertEqual(out, y573 * y573)
 
     def test_vmap_conv2d(self):
