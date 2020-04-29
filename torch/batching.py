@@ -87,9 +87,33 @@ def _unwrap_batched_single(output, batch_size):
         assert False  # NYI
 
 
-def _unwrapped_batched(batched_outputs, batch_size):
-    return [_unwrap_batched_single(out, batch_size)
-            for out in batched_outputs]
+def _unwrap_batched(batched_outputs, batch_size):
+    if isinstance(batched_outputs, Tensor):
+        return _unwrap_batched_single(batched_outputs, batch_size)
+    return tuple(_unwrap_batched_single(out, batch_size)
+                 for out in batched_outputs)
+
+
+OUTPUT_MSG = (
+    'vmap({fn}, ...): `{fn}` must return a Tensor or a flat sequence of tensors, got '
+    '{out} for return {idx}.'
+)
+
+OUTPUT_MSG2 = (
+    'vmap({fn}, ...): `{fn}` must return a Tensor or a flat sequence of tensors, got '
+    '{out} as the return.'
+)
+
+
+def _validate_outputs(outputs, fn_name):
+    if isinstance(outputs, Tensor):
+        return
+    if not hasattr(outputs, '__iter__'):
+        raise ValueError(OUTPUT_MSG2.format(fn=fn_name, out=type(outputs)))
+    for idx, output in enumerate(outputs):
+        if isinstance(output, Tensor):
+            continue
+        raise ValueError(OUTPUT_MSG.format(fn=fn_name, out=type(output), idx=idx))
 
 
 def vmap(fn, in_dims=0):
@@ -101,8 +125,8 @@ def vmap(fn, in_dims=0):
             _validate_in_dims(in_dims, args)
             batched_inputs, batch_size = _make_batched(args, in_dims, VMAP_LEVEL)
             batched_outputs = fn(*batched_inputs)
-            # TODO: we assume only one output for now
-            return _unwrap_batched_single(batched_outputs, batch_size)
+            _validate_outputs(batched_outputs, fn.__name__)
+            return _unwrap_batched(batched_outputs, batch_size)
         finally:
             VMAP_LEVEL -= 1
     return wrapped

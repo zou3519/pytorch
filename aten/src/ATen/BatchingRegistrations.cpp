@@ -215,6 +215,20 @@ Tensor BatchedTensor_index(const Tensor& self, TensorList indices) {
   return BatchedTensor_wrapper(index_batching_rule, self, indices);
 }
 
+std::vector<Tensor> BatchedTensor_chunk(const Tensor& self, int64_t chunks, int64_t dim) {
+  Tensor self_;
+  BatchDimsRef self_bdims;
+  std::vector<Tensor> result;
+  BatchDims result_bdims;
+
+  std::tie(self_, self_bdims) = unpackBatched(self);
+  std::tie(result, result_bdims) = chunk_batching_rule(self_, self_bdims, chunks, dim);
+  for (int64_t i = 0; i < result.size(); i++) {
+    result[i] = detail::make_tensor<BatchTensorImpl>(result[i], result_bdims);
+  }
+  return result;
+}
+
 // Copy pasta'ed from backed_fallback_test.cpp
 void callBoxedWorkaround(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   // This should just be op.callBoxed(stack), but that doesn't work for all ops yet.
@@ -488,6 +502,7 @@ TORCH_LIBRARY_IMPL(aten, TESTING_ONLY_GenericWrapper, m) {
   m.impl_UNBOXED("slice.Tensor", BatchedTensor_slice);
   m.impl_UNBOXED("index.Tensor", BatchedTensor_index);
   m.impl("detach", BatchedTensor_unary_pw_op<at::detach>);
+  m.impl_UNBOXED("chunk", BatchedTensor_chunk);
 
   // composite
   m.impl_UNBOXED("t", native::t);

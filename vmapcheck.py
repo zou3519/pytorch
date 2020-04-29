@@ -3,6 +3,7 @@ import torch
 from torch import vmap
 import random
 import itertools
+import copy
 
 OperatorMetadata = namedtuple('OperatorMetadata', [
     'has_single_output',
@@ -120,3 +121,83 @@ x = torch.randn(2, 3, 5)
 y = torch.randn(2, 3, 5)
 vmap_test(torch.add, [x, y], [True, True], opmeta())
 # vmap_test(foo, [x, y], [True, True], opmeta(has_single_output=False))
+
+def add_dim(shape, dim, size):
+    result = list(shape)
+    result.insert(dim, size)
+    return tuple(result)
+
+def maybe_broadcast(thing, size):
+    if hasattr(thing, '__iter__'):
+        assert len(thing) == size
+    return [thing] * size
+
+def should_create_tensor_from(arg):
+    return isinstance(arg, tuple)
+
+def get_inputs(bdim_size, bdims, inputs_or_shapes, dtypes, device, input_fns):
+    result = []
+    for bdim, input_or_shape, dtype, input_fn, in zip(bdims, inputs_or_shapes, dtypes, input_fns):
+        if bdim is not None:
+            assert should_create_tensor_from(input_or_shape)
+            input_or_shape = add_dim(input_or_shape, bdim, bdim_size)
+        if should_create_tensor_from(input_or_shape):
+            inp = input_fn(input_or_shape, dtype=dtype, device=device)
+        else:
+            inp = input_or_shape
+        result.append(inp)
+    return tuple(result)
+
+def slice_inputs(inputs, bdims, i):
+    result = []
+    for inp, bdim in zip(inputs, bdims):
+        if bdim is None:
+            result.append(inp)
+        else:
+            result.append(inp.select(bdim, i))
+    return tuple(result)
+
+def check_vmap(op, bdim_size, bdims, inputs_or_shapes,
+               dtypes=torch.float, device='cpu', input_fns=torch.rand):
+    num_inputs = len(bdims)
+    assert len(inputs_or_shapes) == num_inputs
+    dtypes = maybe_broadcast(dtypes, num_inputs)
+    input_fns = maybe_broadcast(input_fns, num_inputs)
+
+    inputs = get_inputs(bdim_size, bdims, inputs_or_shapes, dtypes, device, input_fns)
+    output = vmap(op, bdims)(*inputs)
+    expected = torch.stack([op(*slice_inputs(inputs, bdims, i)) for i in range(bdim_size)])
+    assert torch.allclose(output, expected)
+
+def check_vmap_inplace(op, bdim_size, bdims, inputs_or_shapes,
+                       dtypes=torch.float, device='cpu', input_fns=torch.rand):
+    num_inputs = len(bdims)
+    assert len(inputs_or_shapes) == num_inputs
+    dtypes = maybe_broadcast(dtypes, num_inputs)
+    input_fns = maybe_broadcast(input_fns, num_inputs)
+
+    inputs = get_inputs(bdim_size, bdims, inputs_or_shapes, dtypes, device, input_fns)
+    inputs_clone = copy.deepcopy(inputs)
+
+    output = vmap(op, bdims)(*inputs)
+
+    # NB: The output of an in-place operation is usually the first argument.
+    torch.stack([op(*slice_inputs(inputs_clone, bdims, i)) for i in range(bdim_size)])
+    expected = inputs_clone[0]
+
+    assert torch.allclose(output, expected)
+
+from torch import Tensor
+check_vmap(torch.add, 3, bdims=(0, 1), inputs_or_shapes=((5,), (5,)))
+check_vmap(torch.add, 3, bdims=(None, 1), inputs_or_shapes=((5,), (5,)))
+check_vmap(torch.add, 3, bdims=(1, None), inputs_or_shapes=((5,), (5,)))
+
+check_vmap_nested(torch.add, outer_bdims, inner_bdims, outer_bdim_size, inner_bdim_size, examples_or_shapes)
+
+check_vmap_inplace(Tensor.add_, 3, bdims=(0, 0), inputs_or_shapes=((5,), (5,)))
+
+# requirements:
+# - su
+# check_vmap(torch.sum, 3, (0, None), ((5,), (5,), 1))
+# check_vmap_inplace(op, bdim_size, bdims, shapes, dtypes, device, input_fn)
+# check_vmap_view(op, bdim_size, bdims, shapes, dtypes, device, input_fn)

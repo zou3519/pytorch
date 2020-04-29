@@ -250,6 +250,16 @@ std::pair<Tensor,BatchDims> index_batching_rule(
   return { result, result_bdims };
 }
 
+std::pair<std::vector<Tensor>,BatchDims> chunk_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims, int64_t chunks, int64_t dim) {
+  auto self_ = moveBdimsToFront(self, self_bdims);
+  auto result_bdims = moveBdimsToFront(self_bdims);
+  
+  dim = maybe_wrap_dim(dim, self_.dim());
+  auto chunked = self_.chunk(chunks, dim + self_bdims.size());
+  return { chunked, result_bdims };
+}
+
 // NB: Smallvector<5> or something (<= 5 vmap dims)
 std::vector<int64_t> computeIndex(int64_t linear_idx, IntArrayRef sizes) {
   std::vector<int64_t> result;

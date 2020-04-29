@@ -4,13 +4,142 @@ from torch import vmap, Tensor
 from torch.autograd import gradcheck
 import torch.nn.functional as F
 import unittest
-
+from collections import namedtuple
+import itertools
+import copy
 
 def move_bdim(tensor, from_dim, to_dim):
     return torch.stack(tensor.unbind(from_dim), to_dim)
 
 
+def add_dim(shape, dim, size):
+    result = list(shape)
+    result.insert(dim, size)
+    return tuple(result)
+
+
+def maybe_broadcast(thing, size):
+    if hasattr(thing, '__iter__'):
+        assert len(thing) == size
+    return [thing] * size
+
+
+def add_bdims(bdim_size, bdims, inputs_or_example_shapes):
+    return tuple(example_or_shape if bdim is None else add_dim(example_or_shape, bdim, bdim_size)
+                 for bdim, example_or_shape in zip(bdims, inputs_or_example_shapes))
+
+
+def get_inputs(outer_bdim_size, outer_bdims,
+               inner_bdim_size, inner_bdims,
+               inputs_or_example_shapes, dtypes, device, input_fns):
+    if inner_bdim_size is not None:
+        inputs_or_example_shapes = add_bdims(inner_bdim_size, inner_bdims, inputs_or_example_shapes)
+    inputs_or_shapes = add_bdims(outer_bdim_size, outer_bdims, inputs_or_example_shapes)
+    result = []
+    for input_or_shape, dtype, input_fn, in zip(inputs_or_shapes, dtypes, input_fns):
+        if isinstance(input_or_shape, tuple):
+            inp = input_fn(input_or_shape, dtype=dtype, device=device)
+        else:
+            inp = input_or_shape
+        result.append(inp)
+    return tuple(result)
+
+
+def slice_inputs(inputs, bdims, i):
+    result = []
+    for inp, bdim in zip(inputs, bdims):
+        if bdim is None:
+            result.append(inp)
+        else:
+            result.append(inp.select(bdim, i))
+    return tuple(result)
+
+
+def fake_vmap(op, bdims, bdim_size, *inputs):
+    return torch.stack([op(*slice_inputs(inputs, bdims, i)) for i in range(bdim_size)])
+
+
+def fake_vmapvmap(op, outer_bdims, outer_bdim_size,
+                  inner_bdims, inner_bdim_size, *inputs):
+    results = []
+    for outer in range(outer_bdim_size):
+        for inner in range(inner_bdim_size):
+            examples = slice_inputs(slice_inputs(inputs, outer_bdims, outer), inner_bdims, inner)
+            results.append(op(*examples))
+    flat_result = torch.stack(results)
+    return flat_result.view(outer_bdim_size, inner_bdim_size, *flat_result.shape[1:])
+
+
+def randp1(shape, dtype, device):
+    return torch.rand(shape, dtype=dtype, device=device) + 1
+
+
 class TestBatching(TestCase):
+
+    def check_vmap(self, op, bdims, inputs_or_example_shapes,
+                   bdim_size=3, inplace=False,
+                   dtypes=torch.float, device='cpu', input_fns=torch.rand):
+        """Tests vmap(op, bdims)(*inputs).
+
+        [NOTE: input generation]
+        We generate one input for each element of `inputs_or_example_shapes`.
+        For each element:
+        - If it is a tuple, then we treat it as an "example shape", add the
+          bdims to the shape, and then create a tensor from said shape,
+          using the corresponding `input_fn`, device, and dtype.
+        - Otherwise, it is used directly as the input.
+        """
+        num_inputs = len(bdims)
+        assert len(inputs_or_example_shapes) == num_inputs
+        dtypes = maybe_broadcast(dtypes, num_inputs)
+        input_fns = maybe_broadcast(input_fns, num_inputs)
+
+        inputs = get_inputs(bdim_size, bdims,
+                            None, None,
+                            inputs_or_example_shapes, dtypes, device, input_fns)
+        if inplace:
+            inputs_clone = copy.deepcopy(inputs)
+            output = vmap(op, bdims)(*inputs)
+            # NB: The output of an in-place operation is usually the first argument.
+            fake_vmap(op, bdims, bdim_size, *inputs_clone)
+            expected = inputs_clone[0]
+            self.assertEqual(output, expected)
+            self.assertEqual(output.data_ptr(), inputs[0].data_ptr())
+        else:
+            output = vmap(op, bdims)(*inputs)
+            expected = fake_vmap(op, bdims, bdim_size, *inputs)
+            self.assertEqual(output, expected)
+
+    def check_vmapvmap(self, op, outer_bdims, inner_bdims, inputs_or_example_shapes,
+                       outer_bdim_size=3, inner_bdim_size=5, inplace=False,
+                       dtypes=torch.float, device='cpu', input_fns=torch.rand):
+        """Tests vmap(vmap(op, inner_bdims), outer_bdims)(*inputs).
+        See [NOTE: input generation] for how we generate the inputs.
+        """
+        num_inputs = len(outer_bdims)
+        assert len(inner_bdims) == num_inputs
+        assert len(inputs_or_example_shapes) == num_inputs
+        dtypes = maybe_broadcast(dtypes, num_inputs)
+        input_fns = maybe_broadcast(input_fns, num_inputs)
+
+        inputs = get_inputs(outer_bdim_size, outer_bdims,
+                            inner_bdim_size, inner_bdims,
+                            inputs_or_example_shapes, dtypes, device, input_fns)
+        if inplace:
+            inputs_clone = copy.deepcopy(inputs)
+            output = vmap(vmap(op, inner_bdims), outer_bdims)(*inputs)
+            # NB: The output of an in-place operation is usually the first argument.
+            fake_vmapvmap(op, outer_bdims, outer_bdim_size,
+                          inner_bdims, inner_bdim_size, *inputs_clone)
+            expected = inputs_clone[0]
+            self.assertEqual(output, expected)
+            self.assertEqual(output.data_ptr(), inputs[0].data_ptr())
+        else:
+            output = vmap(vmap(op, inner_bdims), outer_bdims)(*inputs)
+            expected = fake_vmapvmap(op, outer_bdims, outer_bdim_size,
+                                     inner_bdims, inner_bdim_size, *inputs)
+            self.assertEqual(output, expected)
+
 
     def test_defaults(self):
         x23 = torch.randn(2, 3)
@@ -19,23 +148,6 @@ class TestBatching(TestCase):
 
         with self.assertRaises(ValueError):
             output = vmap(torch.sum)(x23, 0)
-
-    def test_batched_batched(self):
-        x23 = torch.randn(2, 3)
-        output = vmap(torch.add, (0, 0))(x23, x23)
-        self.assertEqual(output, x23 + x23)
-
-    def test_add_0_2(self):
-        x2357 = torch.randn(2, 3, 5, 7)
-        y3527 = torch.randn(3, 5, 2, 7)
-        output = vmap(torch.add, (0, 2))(x2357, y3527)
-        self.assertEqual(output, x2357 + move_bdim(y3527, 2, 0))
-
-    def test_batched_unbatched(self):
-        x3 = torch.randn(3)
-        x23 = torch.randn(2, 3)
-        output = vmap(torch.add, (0, None))(x23, x3)
-        self.assertEqual(output, x23 + x3)
 
     def test_aligned_broadcasting(self):
         x23 = torch.randn(2, 3)
@@ -409,6 +521,14 @@ class TestBatching(TestCase):
         self.assertEqual(output, imgs.select(1, 0))
         self.assertEqual(output.data_ptr(), imgs.data_ptr())
 
+    def test_chunk(self):
+        N, C, H, W = (2, 12, 5, 7)
+        imgs = torch.randn(N, C, H, W)
+        output = vmap(torch.chunk, (0, None, None))(imgs, 4, 0)
+        expected = imgs.chunk(4, 1)
+        self.assertEqual(output, expected)
+        self.assertEqual(output[0].data_ptr(), imgs.data_ptr())
+
     def test_adv_index(self):
         N, C, H, W = (3, 5, 7, 2)
         imgs = torch.randn(N, C, H, W)
@@ -436,6 +556,78 @@ class TestBatching(TestCase):
         grad_output = torch.rand_like(output)
         output.backward(grad_output)
         self.assertEqual(x235.grad, grad_output.view(2, 1, 5).expand(2, 3, 5))
+
+    def _test_binary_pointwise(self, op, input_fn):
+        shape = (2, 7)
+
+        # Basic vmap test
+        self.check_vmap(op, (0, 2), (shape, shape), input_fns=input_fn)
+        self.check_vmap(op, (1, None), (shape, shape), input_fns=input_fn)
+        self.check_vmap(op, (None, 1), (shape, shape), input_fns=input_fn)
+
+        # vmap alignment test
+        self.check_vmap(op, (1, 1), ((2, 11, 7), (7,)), input_fns=input_fn)
+
+        # Nested vmap test
+        self.check_vmapvmap(op, (1, 1), (0, 2), (shape, shape), input_fns=input_fn)
+        self.check_vmapvmap(op, (1, None), (None, 1), (shape, shape), input_fns=input_fn)
+
+        # Nested vmap alignment test
+        self.check_vmapvmap(op, (1, 1), (0, 1), ((2, 11, 7), (7,)), input_fns=input_fn)
+
+    def test_binary_pointwise(self):
+        table = [
+            (torch.add, torch.rand),
+            (torch.sub, torch.rand),
+            (torch.mul, torch.rand),
+            (torch.div, randp1),
+        ]
+        for op, input_fn in table:
+            self._test_binary_pointwise(op, input_fn)
+
+
+def V(name, op, bdims, inputs_or_example_shapes,
+      bdim_size=3, inplace=False, dtypes=torch.float, device='cpu',
+      input_fns=torch.rand, xfail=False):
+    def fn(self):
+        return self.check_vmap(op, bdims, inputs_or_example_shapes,
+                               bdim_size, inplace, dtypes, device,
+                               input_fns)
+    fn.__name__ == name
+    if xfail:
+        fn = unittest.expectedFailure(fn)
+    setattr(TestBatching, name, fn)
+
+def VV(name, op, outer_bdims, inner_bdims, inputs_or_example_shapes,
+       outer_bdim_size=3, inner_bdim_size=4, inplace=False,
+       dtypes=torch.float, device='cpu',
+       input_fns=torch.rand, xfail=False):
+    def fn(self):
+        return self.check_vmapvmap(op, outer_bdims, inner_bdims,
+                                   inputs_or_example_shapes,
+                                   outer_bdim_size, inner_bdim_size,
+                                   inplace, dtypes, device,
+                                   input_fns)
+    fn.__name__ == name
+    if xfail:
+        fn = unittest.expectedFailure(fn)
+    setattr(TestBatching, name, fn)
+
+
+coverage_tests = [
+    VV('test_vmap_abs0', torch.abs, (1,), (1,), ((2,),)),
+    VV('test_vmap_abs1', Tensor.abs, (1,), (1,), ((2,),)),
+    VV('test_vmap_abs2', Tensor.abs_, (1,), (1,), ((2,),), inplace=True),
+    VV('test_vmap_acos0', torch.acos, (1,), (1,), ((2,),)),
+    VV('test_vmap_acos1', Tensor.acos, (1,), (1,), ((2,),)),
+    VV('test_vmap_acos2', Tensor.acos_, (1,), (1,), ((2,),), inplace=True),
+    V('test_vmap_acos3', Tensor.acos_, (1,), ((2,),), inplace=True),
+
+    V('test_vmap_add_all', torch.add, (0, 2), ((2, 7), (2, 7))),
+    V('test_vmap_add_lhs', torch.add, (1, None), ((2, 7), (2, 7))),
+    V('test_vmap_add_rhs', torch.add, (None, 1), ((2, 7), (2, 7))),
+    V('test_vmap_add_alignment', torch.add, (1, 1), ((2, 7), (7,))),
+]
 
 
 if __name__ == '__main__':
