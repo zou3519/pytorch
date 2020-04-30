@@ -6,7 +6,7 @@
 namespace at {
 
 // TODO: use a real key
-constexpr auto BatchTensorKey = DispatchKey::TESTING_ONLY_GenericWrapper;
+constexpr auto BatchTensorKey = DispatchKey::Vmap;
 
 struct BatchDim {
   BatchDim(int64_t index, int64_t level) : index_(index), level_(level) {}
@@ -149,6 +149,33 @@ inline std::ostream& operator<<(std::ostream& out, const BatchDim& bdim) {
   out << "(lvl=" << bdim.level() << ", dim=" << bdim.index() << ")";
   return out;
 }
+
+using VmapLevel = int64_t;
+
+struct VmapState {
+  VmapLevel addLevel(int64_t batch_size) {
+    cur_level_++;
+    stack_.push_back({cur_level_, batch_size});
+    return cur_level_;
+  }
+
+  std::pair<VmapLevel,int64_t> popLevel() {
+    TORCH_INTERNAL_ASSERT(cur_level_ > 0);
+    auto result = stack_[stack_.size() - 1];
+    stack_.pop_back();
+    cur_level_--;
+    return result;
+  }
+
+ private:
+  VmapLevel cur_level_;
+  std::vector<std::pair<VmapLevel,int64_t>> stack_;
+};
+
+VmapState* getVmapState();
+
+CAFFE2_API VmapLevel enterVmapLevel(int64_t batch_size);
+CAFFE2_API int64_t exitVmapLevel();
 
 
 // 

@@ -13,6 +13,43 @@
 
 namespace at {
 
+#if !defined(C10_MOBILE) || defined(FEATURE_TORCH_MOBILE)
+
+thread_local VmapState vmap_state;
+
+VmapLevel enterVmapLevel(int64_t batch_size) {
+  return vmap_state.addLevel(batch_size);
+}
+
+int64_t exitVmapLevel() {
+  auto result = vmap_state.popLevel();
+  return result.second;
+}
+
+VmapState* getVmapState() {
+  return &vmap_state;
+}
+
+#else
+
+void enterVmapLevel(int64_t batch_size) {
+  throw std::runtime_error("vmap is not supported on mobile");
+}
+
+int64_t exitVmapLevel() {
+  throw std::runtime_error("vmap is not supported on mobile");
+}
+
+VmapState* getVmapState() {
+  return nullptr;
+}
+
+
+#endif
+
+
+
+
 /*
  * Operator Registrations for BatchedTensorKey.
  * Contains some glue to hook up the batching rules to BatchedTensorImpl.
@@ -469,11 +506,11 @@ Tensor& inplaceMethodFallback3(Tensor& input, const Tensor& second, const Tensor
 // If those operators have batched versions, then we don't need to
 // run our for-loop-fallback. There should probably be some way to specify that.
 // TODO: add BatchedTensorId
-TORCH_LIBRARY_IMPL(_, TESTING_ONLY_GenericWrapper, m) {
+TORCH_LIBRARY_IMPL(_, Vmap, m) {
   m.fallback(torch::CppFunction::makeFromBoxedFunction<&batchTensorFallback>());
 }
 
-TORCH_LIBRARY_IMPL(aten, TESTING_ONLY_GenericWrapper, m) {
+TORCH_LIBRARY_IMPL(aten, Vmap, m) {
   // vmap-specific things
   m.impl("_make_batched", at::native::_make_batched);
   m.impl("_unwrap_batched", native::_unwrap_batched);

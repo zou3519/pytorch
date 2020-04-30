@@ -59,6 +59,20 @@ def _validate_in_dims(dims, args):
         raise ValueError(FLAT_TUPLE_MSG.format(dim=dim, idx=idx))
 
 
+def _get_batch_size(args, dims):
+    if isinstance(dims, int):
+        dims = tuple(dims for _ in range(len(args)))
+
+    batch_size = None
+    batch_sizes = [arg.size(dim)
+                   for arg, dim in zip(args, dims)
+                   if isinstance(arg, Tensor) and dim is not None]
+    if batch_sizes:
+        batch_size = batch_sizes[0]
+        assert all([size == batch_size for size in batch_sizes])
+    return batch_size
+
+
 def _make_batched(args, dims, level):
     if isinstance(dims, int):
         dims = tuple(dims for _ in range(len(args)))
@@ -119,14 +133,18 @@ def _validate_outputs(outputs, fn_name):
 def vmap(fn, in_dims=0):
     @functools.wraps(fn)
     def wrapped(*args):
-        global VMAP_LEVEL
-        VMAP_LEVEL += 1
+        _validate_in_dims(in_dims, args)
+        batch_size = _get_batch_size(args, in_dims)
+        if batch_size is not None:
+            vmap_level = torch._C.enter_vmap_level(batch_size)
+        else:
+            vmap_level = -1
         try:
-            _validate_in_dims(in_dims, args)
-            batched_inputs, batch_size = _make_batched(args, in_dims, VMAP_LEVEL)
+            batched_inputs, batch_size = _make_batched(args, in_dims, vmap_level)
             batched_outputs = fn(*batched_inputs)
             _validate_outputs(batched_outputs, fn.__name__)
             return _unwrap_batched(batched_outputs, batch_size)
         finally:
-            VMAP_LEVEL -= 1
+            if batch_size is not None:
+                torch._C.exit_vmap_level()
     return wrapped

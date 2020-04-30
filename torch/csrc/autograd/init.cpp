@@ -11,6 +11,7 @@
 #ifdef USE_DISTRIBUTED
 #include <torch/csrc/distributed/rpc/message.h>
 #endif
+#include <ATen/Batching.h>
 
 PyObject* THPAutograd_initExtension(PyObject* _unused, PyObject *unused) {
   using namespace torch::autograd::profiler;
@@ -151,10 +152,29 @@ static PyObject * is_anomaly_mode_enabled(PyObject* _unused, PyObject *arg) {
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject * enter_vmap_level(PyObject* _unused, PyObject *arg) {
+  HANDLE_TH_ERRORS
+  if (!THPUtils_checkLong(arg)) {
+    throw TypeError("Expected int (got %s)", Py_TYPE(arg)->tp_name);
+  }
+  auto result = at::enterVmapLevel(THPUtils_unpackLong(arg));
+  return THPUtils_packInt64(result);
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject * exit_vmap_level(PyObject* _unused) {
+  HANDLE_TH_ERRORS
+  auto result = at::exitVmapLevel();
+  return THPUtils_packInt64(result);
+  END_HANDLE_TH_ERRORS
+}
+
 // autograd methods on torch._C
 static PyMethodDef methods[] = {
   {"set_grad_enabled", (PyCFunction)set_grad_enabled, METH_O, nullptr},
   {"is_grad_enabled", (PyCFunction)is_grad_enabled, METH_NOARGS, nullptr},
+  {"enter_vmap_level", (PyCFunction)enter_vmap_level, METH_O, nullptr},
+  {"exit_vmap_level", (PyCFunction)exit_vmap_level, METH_NOARGS, nullptr},
   {"set_autocast_enabled", (PyCFunction)set_autocast_enabled, METH_O, nullptr},
   {"is_autocast_enabled", (PyCFunction)is_autocast_enabled, METH_NOARGS, nullptr},
   {"clear_autocast_cache", (PyCFunction)clear_autocast_cache, METH_NOARGS, nullptr},
