@@ -542,6 +542,14 @@ class TestBatching(TestCase):
         output = vmap(idx, (1,))(imgs)
         self.assertEqual(output, imgs.permute(1, 0, 2, 3)[:, [0, 1], [2, 3]])
 
+    def test_rand(self):
+        def foo(x):
+            return torch.rand(3)
+
+        output = vmap(foo)(torch.ones(2))
+        self.assertEqual(output.shape, [2, 3])
+        self.assertNotEqual(output[0], output[1])
+
     def test_vmap_sum(self):
         x235 = torch.randn(2, 3, 5)
         self.assertEqual(vmap(torch.sum, (0, None))(x235, 0), x235.sum(1))

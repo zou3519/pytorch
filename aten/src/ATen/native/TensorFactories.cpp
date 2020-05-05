@@ -21,6 +21,8 @@
 #include <c10/util/Exception.h>
 #include <ATen/NamedTensorUtils.h>
 
+#include <iostream>
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -470,6 +472,7 @@ Tensor scalar_tensor(Scalar s, const TensorOptions& options) {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ rand ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor rand(IntArrayRef size, const TensorOptions& options) {
+  std::cout << "rand" << std::endl;
   return native::rand(size, static_cast<c10::optional<Generator>>(c10::nullopt), options);
 }
 

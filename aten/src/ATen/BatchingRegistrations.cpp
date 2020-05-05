@@ -18,11 +18,20 @@ namespace at {
 thread_local VmapState vmap_state;
 
 VmapLevel enterVmapLevel(int64_t batch_size) {
-  return vmap_state.addLevel(batch_size);
+  auto result = vmap_state.addLevel(batch_size);
+  if (result == 1) {
+    c10::impl::tls_set_dispatch_key_included(DispatchKey::VmapMode, true);
+    std::cout << "Enter VmapMode" << std::endl;
+  }
+  return result;
 }
 
 int64_t exitVmapLevel() {
   auto result = vmap_state.popLevel();
+  if (result.first == 1) {
+    c10::impl::tls_set_dispatch_key_included(DispatchKey::VmapMode, false);
+    std::cout << "Exit VmapMode" << std::endl;
+  }
   return result.second;
 }
 
@@ -58,6 +67,7 @@ VmapState* getVmapState() {
 void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack);
 
 Tensor BatchedTensor_mul(const Tensor& self, const Tensor& other) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_, other_, result_;
   BatchDimsRef self_bdims, other_bdims;
   BatchDims result_bdims;
@@ -68,6 +78,7 @@ Tensor BatchedTensor_mul(const Tensor& self, const Tensor& other) {
 }
 
 Tensor BatchedTensor_add(const Tensor& self, const Tensor& other, Scalar alpha) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_, other_, result_;
   BatchDimsRef self_bdims, other_bdims;
   BatchDims result_bdims;
@@ -81,6 +92,7 @@ Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
                             const Tensor& bias, IntArrayRef stride,
                             IntArrayRef padding, IntArrayRef dilation,
                             int64_t groups) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor input_, weight_, bias_;
   BatchDimsRef input_bdims, weight_bdims, bias_bdims;
   IntArrayRef unflatten_sizes;
@@ -108,6 +120,7 @@ Tensor BatchedTensor_conv2d(const Tensor& input, const Tensor& weight,
 }
 
 Tensor BatchedTensor_dropout(const Tensor& input, double p, bool train) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_, result_;
 	BatchDimsRef input_bdims;
 	BatchDims result_bdims;
@@ -119,6 +132,7 @@ Tensor BatchedTensor_dropout(const Tensor& input, double p, bool train) {
 
 template <Tensor (*Op)(const Tensor&)>
 Tensor BatchedTensor_unary_pw_op(const Tensor& input) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_, result_;
 	BatchDimsRef input_bdims;
 	BatchDims result_bdims;
@@ -129,11 +143,13 @@ Tensor BatchedTensor_unary_pw_op(const Tensor& input) {
 }
 
 Tensor BatchedTensor_relu(const Tensor& input) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_unary_pw_op<at::relu>(input);
 }
 
 template <Tensor& (Tensor::*Op)() const>
 Tensor& BatchedTensor_unary_pw_inplace_op(Tensor& input) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_;
 	BatchDimsRef input_bdims;
 
@@ -144,6 +160,7 @@ Tensor& BatchedTensor_unary_pw_inplace_op(Tensor& input) {
 
 template <typename F, F Func, typename... Args>
 Tensor& BatchedTensor_unary_pw_inplace_fn_varargs(Tensor& input, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_;
 	BatchDimsRef input_bdims;
 
@@ -154,6 +171,7 @@ Tensor& BatchedTensor_unary_pw_inplace_fn_varargs(Tensor& input, Args... args) {
 
 template <typename F, F Func, typename... Args>
 Tensor& BatchedTensor_unary_pw_inplace_meth_varargs(Tensor& input, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_;
 	BatchDimsRef input_bdims;
 
@@ -164,6 +182,7 @@ Tensor& BatchedTensor_unary_pw_inplace_meth_varargs(Tensor& input, Args... args)
 
 template <Tensor& (*Op)(Tensor&)>
 Tensor& BatchedTensor_unary_pw_inplace_fn(Tensor& input) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_;
 	BatchDimsRef input_bdims;
 
@@ -173,6 +192,7 @@ Tensor& BatchedTensor_unary_pw_inplace_fn(Tensor& input) {
 }
 
 Tensor BatchedTensor_sum(const Tensor& self, IntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_, result_;
   BatchDimsRef self_bdims;
   BatchDims result_bdims;
@@ -183,6 +203,7 @@ Tensor BatchedTensor_sum(const Tensor& self, IntArrayRef dim, bool keepdim, c10:
 }
 
 Tensor BatchedTensor_transpose(const Tensor & self, int64_t dim0, int64_t dim1) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_, result_;
   BatchDimsRef self_bdims;
   BatchDims result_bdims;
@@ -193,16 +214,19 @@ Tensor BatchedTensor_transpose(const Tensor & self, int64_t dim0, int64_t dim1) 
 }
 
 Tensor& BatchedTensor_transpose_(Tensor & self, int64_t dim0, int64_t dim1) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   // NB: need some clever bookkeeping for htis
   TORCH_INTERNAL_ASSERT(false, "NYI");
 }
 
 Tensor BatchedTensor_squeeze(const Tensor& self) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   // NB: need some clever bookkeeping (reuse inferSqueezeGeometry) for this
   TORCH_INTERNAL_ASSERT(false, "NYI");
 }
 
 Tensor BatchedTensor_squeeze_dim(const Tensor& self, int64_t dim) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_, result_;
   BatchDimsRef self_bdims;
   BatchDims result_bdims;
@@ -214,6 +238,7 @@ Tensor BatchedTensor_squeeze_dim(const Tensor& self, int64_t dim) {
 
 template<typename Func, typename... T>
 Tensor BatchedTensor_wrapper(const Func& batching_rule, const Tensor& self, T&&... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_, result_;
   BatchDimsRef self_bdims;
   BatchDims result_bdims;
@@ -225,34 +250,42 @@ Tensor BatchedTensor_wrapper(const Func& batching_rule, const Tensor& self, T&&.
 
 // NB: We can save 4 LOC if we figure out how to pass the batching rule as a template parameter...
 Tensor BatchedTensor_unsqueeze(const Tensor& self, int64_t dim) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(unsqueeze_batching_rule, self, dim);
 }
 
 Tensor BatchedTensor_permute(const Tensor& self, IntArrayRef dims) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(permute_batching_rule, self, dims);
 }
 
 Tensor BatchedTensor_view(const Tensor& self, IntArrayRef size) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(view_batching_rule, self, size);
 }
 
 Tensor BatchedTensor_reshape(const Tensor& self, IntArrayRef shape) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(reshape_batching_rule, self, shape);
 }
 
 Tensor BatchedTensor_slice(const Tensor& self, int64_t dim, int64_t start, int64_t end, int64_t step) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(slice_batching_rule, self, dim, start, end, step);
 }
 
 Tensor BatchedTensor_select(const Tensor& self, int64_t dim, int64_t index) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(select_batching_rule, self, dim, index);
 }
 
 Tensor BatchedTensor_index(const Tensor& self, TensorList indices) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(index_batching_rule, self, indices);
 }
 
 std::vector<Tensor> BatchedTensor_chunk(const Tensor& self, int64_t chunks, int64_t dim) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_;
   BatchDimsRef self_bdims;
   std::vector<Tensor> result;
@@ -268,6 +301,7 @@ std::vector<Tensor> BatchedTensor_chunk(const Tensor& self, int64_t chunks, int6
 
 // Copy pasta'ed from backed_fallback_test.cpp
 void callBoxedWorkaround(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   // This should just be op.callBoxed(stack), but that doesn't work for all ops yet.
   // Note: If op.callBoxed(stack) works for you, then that is preferrable because
   // it's much faster and doesn't come with a dependency on JIT code.
@@ -356,6 +390,7 @@ broadcastBdimsAtFront(torch::jit::Stack& stack) {
 
 void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   const auto& schema = op.schema();
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   TORCH_CHECK(
       !schema.is_mutable() && !schema.hasAnyAliasInfo(),
       "Batching rule not implemented for ", schema, "; ",
@@ -440,6 +475,7 @@ int64_t BatchedTensor_size(const Tensor& self, int64_t dim) {
 
 template <typename F, F Method, typename... Args>
 Tensor& inplaceMethodFallback1(Tensor& input, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_;
 	BatchDimsRef input_bdims;
 
@@ -459,6 +495,7 @@ Tensor& inplaceMethodFallback1(Tensor& input, Args... args) {
 
 template <typename F, F Method, typename... Args>
 Tensor& inplaceMethodFallback2(Tensor& input, const Tensor& other, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_, other_;
   std::vector<int64_t> batch_sizes;
 
@@ -480,6 +517,7 @@ Tensor& inplaceMethodFallback2(Tensor& input, const Tensor& other, Args... args)
 
 template <typename F, F Method, typename... Args>
 Tensor& inplaceMethodFallback3(Tensor& input, const Tensor& second, const Tensor& third, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
 	Tensor input_, second_, third_;
   std::vector<int64_t> batch_sizes;
 
@@ -700,5 +738,32 @@ TORCH_LIBRARY_IMPL(aten, Vmap, m) {
   BINARY_INPLACE_FALLBACK(remainder_);
 #undef BINARY_INPLACE_FALLBACK
 }
+
+Tensor BatchedTensor_rand(IntArrayRef size, const TensorOptions& options) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
+  auto* vmap_state = getVmapState();
+  auto& stack = vmap_state->stack();
+  std::vector<int64_t> new_sizes;
+  BatchDims new_bdims;
+  for (auto idx = 0; idx < stack.size(); idx++) {
+    auto& level_and_size = stack[idx];
+    new_sizes.push_back(level_and_size.second);
+    new_bdims.push_back({idx, level_and_size.first});
+  }
+  new_sizes.insert(
+      new_sizes.end(),
+      size.begin(),
+      size.end());
+  return detail::make_tensor<BatchTensorImpl>(at::rand(new_sizes, options), new_bdims);
+}
+
+TORCH_LIBRARY_IMPL(_, VmapMode, m) {
+  m.fallback(torch::CppFunction::makeFallthrough());
+}
+
+TORCH_LIBRARY_IMPL(aten, VmapMode, m) {
+  m.impl_UNBOXED("rand", BatchedTensor_rand);
+}
+
 
 } // namespace at
