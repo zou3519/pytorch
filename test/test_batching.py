@@ -635,6 +635,11 @@ coverage_tests = [
     V('test_vmap_add_lhs', torch.add, (1, None), ((2, 7), (2, 7))),
     V('test_vmap_add_rhs', torch.add, (None, 1), ((2, 7), (2, 7))),
     V('test_vmap_add_alignment', torch.add, (1, 1), ((2, 7), (7,))),
+
+    # Fallback and unboxed
+    V('test_vmap_bitwise_and', torch.bitwise_and, (0, 2), ((2, 7), (2, 7)), dtypes=torch.bool, input_fns=torch.zeros),
+
+    V('test_vmap_mul_', Tensor.mul_, (0, 2), ((2, 7), (2, 7))),
 ]
 
 
