@@ -106,4 +106,33 @@ Tensor addBatchDim(const Tensor& tensor, int64_t level, int64_t dim) {
   return makeBatched(batched->value(), std::move(new_bdims));
 }
 
+static bool has_level(const Tensor& self, int64_t level) {
+  if (!isBatched(self)) {
+    return false;
+  }
+  const auto* batched = getBatched(self);
+  auto bdims = batched->bdims();
+  auto* it = std::find_if(bdims.begin(), bdims.end(), [&](const BatchDim& bdim) {
+    return bdim.level() == level;
+  });
+  return it != bdims.end();
+}
+
+Tensor removeBatchDim(const Tensor& tensor, int64_t level, int64_t batch_size, int64_t out_dim) {
+  if (!has_level(tensor, level)) {
+    auto expanded_sizes = tensor.sizes().vec();
+    expanded_sizes.insert(expanded_sizes.begin() + out_dim, batch_size);
+    return tensor.expand(expanded_sizes);
+  }
+
+  const auto* batched = getBatched(tensor);
+  auto bdims = batched->bdims();
+  BatchDims new_bdims;
+  new_bdims.reserve(bdims.size() - 1);
+  std::copy_if(bdims.begin(), bdims.end(), std::back_inserter(new_bdims),
+               [&](const BatchDim& bdim) { return bdim.level() != level; });
+  return makeBatched(batched->value(), std::move(new_bdims));
+}
+
+
 } // namespace at

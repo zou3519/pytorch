@@ -126,6 +126,7 @@ inline Tensor makeBatched(const Tensor& tensor, BatchDims bdims) {
 
 // Adds a batch dim to `tensor`, returning a Tensor backed by a BatchedTensorImpl.
 TORCH_API Tensor addBatchDim(const Tensor& tensor, int64_t level, int64_t dim);
+TORCH_API Tensor removeBatchDim(const Tensor& tensor, int64_t level, int64_t batch_size, int64_t out_dim);
 
 
 }
