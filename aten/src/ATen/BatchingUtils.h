@@ -47,6 +47,10 @@ TORCH_API BatchDims moveBatchDimsToFront(BatchDimsRef bdims);
 //
 // NB: needs TORCH_API for aten/src/ATen/test/vmap_test.cpp
 TORCH_API std::pair<Tensor, BatchDimsRef> unpackBatched(const Tensor& self);
+std::bitset<kVmapMaxTensorDims> createLevelsBitset(BatchDimsRef bdims);
+BatchDims moveBatchDimsToFront(BatchDimsRef bdims);
+Tensor moveBatchDimsToFront(const Tensor& self, BatchDimsRef bdims);
+std::pair<Tensor, BatchDimsRef> unpackBatched(const Tensor& self);
 
 // Moves all the batch dims to the front of both tensors, aligns those dims
 // in order of level, and returns the aligned tensors as well as the new
@@ -73,5 +77,7 @@ Tensor alignTensorTo(
     std::bitset<kVmapMaxTensorDims> result_levels,
     int64_t max_result_level,
     int64_t num_result_regular_dims);
+
+BatchDims computeFrontBatchDims(std::bitset<kVmapMaxTensorDims> levels_bitset);
 
 }

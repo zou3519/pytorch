@@ -127,6 +127,9 @@ Tensor removeBatchDim(const Tensor& tensor, int64_t level, int64_t batch_size, i
 
   const auto* batched = getBatched(tensor);
   auto bdims = batched->bdims();
+  if (bdims.size() == 1) {
+    return batched->value();
+  }
   BatchDims new_bdims;
   new_bdims.reserve(bdims.size() - 1);
   std::copy_if(bdims.begin(), bdims.end(), std::back_inserter(new_bdims),

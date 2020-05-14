@@ -459,6 +459,8 @@ from torch.multiprocessing._atfork import register_after_fork
 register_after_fork(torch.get_num_threads)
 del register_after_fork
 
+from .batching import vmap
+
 # Import tools that require fully imported torch (for applying
 # torch.jit.script as a decorator, for instance):
 from ._lobpcg import lobpcg
