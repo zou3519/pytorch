@@ -12,7 +12,7 @@ Tensor _make_batched(const Tensor& self, optional<int64_t> batch_dim, int64_t le
 static Tensor unwrapBatched(Tensor tensor, int64_t ntimes=1) {
   for (auto time = 0; time < ntimes; time++) {
     TORCH_INTERNAL_ASSERT(isBatched(tensor));
-    const auto* batched = getBatched(tensor);
+    const auto* batched = unsafeGetBatched(tensor);
     BatchDims new_bdims = { batched->bdims().begin(), batched->bdims().end() };
     new_bdims.pop_back();
     if (new_bdims.size() > 0) {

@@ -110,7 +110,7 @@ static bool has_level(const Tensor& self, int64_t level) {
   if (!isBatched(self)) {
     return false;
   }
-  const auto* batched = getBatched(self);
+  const auto* batched = unsafeGetBatched(self);
   auto bdims = batched->bdims();
   auto* it = std::find_if(bdims.begin(), bdims.end(), [&](const BatchDim& bdim) {
     return bdim.level() == level;
@@ -119,13 +119,16 @@ static bool has_level(const Tensor& self, int64_t level) {
 }
 
 Tensor removeBatchDim(const Tensor& tensor, int64_t level, int64_t batch_size, int64_t out_dim) {
+  // TODO: out_dim
   if (!has_level(tensor, level)) {
+    // NB: workaround for expand batching rule
+    auto result = tensor.unsqueeze(0);
     auto expanded_sizes = tensor.sizes().vec();
-    expanded_sizes.insert(expanded_sizes.begin() + out_dim, batch_size);
-    return tensor.expand(expanded_sizes);
+    expanded_sizes.insert(expanded_sizes.begin(), batch_size);
+    return result.expand(expanded_sizes);
   }
 
-  const auto* batched = getBatched(tensor);
+  const auto* batched = unsafeGetBatched(tensor);
   auto bdims = batched->bdims();
   if (bdims.size() == 1) {
     return batched->value();

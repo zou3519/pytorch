@@ -50,17 +50,18 @@ std::pair<Tensor, BatchDimsRef> unpackBatched(const Tensor& self) {
   return { self, {} };
 }
 
-<<<<<<< HEAD
 std::bitset<kVmapMaxTensorDims> createLevelsBitset(BatchDimsRef bdims) {
   std::bitset<kVmapMaxTensorDims> result;
   for (const auto& bdim : bdims) {
     result.set(bdim.level());
-=======
+  }
+  return result;
+}
+
 Tensor unsqueezeMultiple(const Tensor& self, int64_t before_dim, int64_t ndims) {
   auto result = self;
   for (int64_t i = 0; i < ndims; i++) {
     result = result.unsqueeze(before_dim);
->>>>>>> f996e64a03... Checkpoint
   }
   return result;
 }

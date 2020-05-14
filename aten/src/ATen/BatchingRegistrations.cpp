@@ -208,17 +208,6 @@ Tensor& BatchedTensor_unary_pw_inplace_fn(Tensor& input) {
   return input;
 }
 
-Tensor BatchedTensor_sum(const Tensor& self, IntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype) {
-  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
-  Tensor self_, result_;
-  BatchDimsRef self_bdims;
-  BatchDims result_bdims;
-
-  std::tie(self_, self_bdims) = unpackBatched(self);
-  std::tie(result_, result_bdims) = sum_batching_rule(self_, self_bdims, dim, keepdim, dtype);
-  return detail::make_tensor<BatchedTensorImpl>(result_, result_bdims);
-}
-
 Tensor BatchedTensor_transpose(const Tensor & self, int64_t dim0, int64_t dim1) {
   c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   Tensor self_, result_;
@@ -279,6 +268,11 @@ Tensor BatchedTensor_permute(const Tensor& self, IntArrayRef dims) {
 Tensor BatchedTensor_view(const Tensor& self, IntArrayRef size) {
   c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
   return BatchedTensor_wrapper(view_batching_rule, self, size);
+}
+
+Tensor BatchedTensor_expand(const Tensor& self, IntArrayRef size) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
+  return BatchedTensor_wrapper(expand_batching_rule, self, size);
 }
 
 Tensor BatchedTensor_reshape(const Tensor& self, IntArrayRef shape) {
@@ -587,6 +581,7 @@ TORCH_LIBRARY_IMPL(aten, BatchedTensorKey, m) {
   m.impl_UNBOXED("unsqueeze", BatchedTensor_unsqueeze);
   m.impl_UNBOXED("permute", BatchedTensor_permute);
   m.impl_UNBOXED("view", BatchedTensor_view);
+  m.impl_UNBOXED("expand", BatchedTensor_expand);
   m.impl_UNBOXED("reshape", BatchedTensor_reshape);
   m.impl_UNBOXED("alias", BatchedTensor_unary_pw_op<at::alias>);
   m.impl_UNBOXED("select.int", BatchedTensor_select);

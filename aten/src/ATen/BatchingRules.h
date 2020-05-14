@@ -195,6 +195,30 @@ inline std::pair<Tensor,BatchDims> view_batching_rule(
   return { result, result_bdims };
 }
 
+inline std::pair<Tensor,BatchDims> expand_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    IntArrayRef size) {
+  auto self_ = moveBatchDimsToFront(self, self_bdims);
+  auto result_bdims = moveBatchDimsToFront(self_bdims);
+
+  auto ndims = self.dim() - self_bdims.size();
+  auto nbdims = self_bdims.size();
+  auto self_sizes = self.sizes();
+
+  SmallVector<int64_t,8> actual_shape;
+  actual_shape.insert(
+      actual_shape.end(),
+      self_sizes.begin(),
+      self_sizes.begin() + self_bdims.size());
+  actual_shape.insert(
+      actual_shape.end(),
+      size.begin(),
+      size.end());
+
+  auto result = self_.expand(actual_shape);
+  return { result, result_bdims };
+}
+
 inline std::pair<Tensor,BatchDims> slice_batching_rule(
     const Tensor& self, BatchDimsRef self_bdims,
     int64_t dim, int64_t start, int64_t end, int64_t step) {

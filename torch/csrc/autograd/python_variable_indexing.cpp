@@ -171,8 +171,8 @@ static inline Variable applySlicing(
         } else if (PySequence_Check(obj)) {
           // NB: BatchedTensor holds something underlying...
           auto dispatch_key = legacyExtractDispatchKey(self);
-          if (dispatch_key == DispatchKey::Vmap) {
-            dispatch_key = legacyExtractDispatchKey(getBatched(self)->value());
+          if (dispatch_key == DispatchKey::BatchedTensorKey) {
+            dispatch_key = legacyExtractDispatchKey(unsafeGetBatched(self)->value());
           }
 
           // TODO: Naughty naughty get out of jail free
