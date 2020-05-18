@@ -2,6 +2,7 @@
 
 #include <ATen/ATen.h>
 #include <ATen/BatchedTensorImpl.h>
+#include <ATen/BatchingUtils.h>
 
 using namespace at;
 
@@ -125,6 +126,55 @@ TEST(VmapTest, TestBatchedTensorActualDim) {
     ASSERT_EQ(
         batched_impl->actualDim(-1),
         kVmapMaxTensorDims - 1);
+  }
+}
+// // Basic test for BatchedTensor::sum.
+// // NB: We don't need to write tests in C++ for batching rules if we can test them
+// // in Python via the vmap API. These are just here for bootstrapping that process.
+TEST(VmapTest, TestBatchedTensorSum) {
+  {
+    // Simple: single batch dim, single reduce dim
+    Tensor x = at::randn({2, 3, 5, 7});
+    Tensor out;
+
+    Tensor batched_x = makeBatched(x, {{/*lvl*/1, /*dim*/0}});
+    Tensor batched_out = batched_x.sum(0);
+    std::tie(out, std::ignore) = unpackBatched(batched_out);
+
+    ASSERT_TRUE(at::allclose(out, x.sum(1)));
+  }
+  {
+    // single batch dim, -1 reduce dim handling
+    Tensor x = at::randn({2, 3});
+    Tensor out;
+
+    Tensor batched_x = makeBatched(x, {{/*lvl*/1, /*dim*/1}});
+    Tensor batched_out = batched_x.sum(-1);
+    std::tie(out, std::ignore) = unpackBatched(batched_out);
+
+    ASSERT_TRUE(at::allclose(out, x.sum(0)));
+  }
+  {
+    // single batch dim, multiple reduce dim
+    Tensor x = at::randn({2, 3, 5, 7});
+    Tensor out;
+
+    Tensor batched_x = makeBatched(x, {{/*lvl*/1, /*dim*/1}});
+    Tensor batched_out = batched_x.sum(std::vector<int64_t>{0, 1});
+    std::tie(out, std::ignore) = unpackBatched(batched_out);
+
+    ASSERT_TRUE(at::allclose(out, x.sum(std::vector<int64_t>{0, 2})));
+  }
+  {
+    // multiple batch dim, multiple reduce dim
+    Tensor x = at::randn({2, 3, 5, 7});
+    Tensor out;
+
+    Tensor batched_x = makeBatched(x, {{/*lvl*/1, /*dim*/0}, {/*lvl*/2, /*dim*/1}});
+    Tensor batched_out = batched_x.sum(std::vector<int64_t>{0, 1});
+    std::tie(out, std::ignore) = unpackBatched(batched_out);
+
+    ASSERT_TRUE(at::allclose(out, x.sum(std::vector<int64_t>{2, 3})));
   }
 }
 
