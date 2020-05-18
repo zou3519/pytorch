@@ -178,4 +178,71 @@ TEST(VmapTest, TestBatchedTensorSum) {
   }
 }
 
+// Basic test for BatchedTensor::mul.
+TEST(VmapTest, TestBatchedTensorMul) {
+  {
+    // batched * batched
+    Tensor x = at::randn({2, 3});
+    Tensor y = at::randn({2, 3});
+    Tensor out;
+
+    Tensor Bx = addBatchDim(x, /*lvl*/1, /*dim*/0);
+    Tensor By = addBatchDim(y, /*lvl*/1, /*dim*/0);
+    Tensor Bout = Bx * By;
+    
+    std::tie(out, std::ignore) = unpackBatched(Bout);
+    std::vector<int64_t> expected_size = {2, 3};
+    ASSERT_EQ(out.sizes(), expected_size);
+    ASSERT_TRUE(at::allclose(out, x * y));
+  }
+  {
+    // batched * unbatched
+    Tensor x = at::randn({2, 3});
+    Tensor y = at::randn({3});
+    Tensor out;
+
+    Tensor Bx = addBatchDim(x, /*lvl*/1, /*dim*/0);
+    Tensor Bout = Bx * y;
+    std::tie(out, std::ignore) = unpackBatched(Bout);
+    std::vector<int64_t> expected_size = {2, 3};
+    ASSERT_EQ(out.sizes(), expected_size);
+    ASSERT_TRUE(at::allclose(out, x * y));
+  }
+  {
+    // batched (level 1) * batched (level 2)
+    Tensor x = at::randn({2, 3});
+    Tensor y = at::randn({5, 3});
+    Tensor out;
+
+    Tensor Bx = addBatchDim(x, /*lvl*/1, /*dim*/0);
+    Tensor By = addBatchDim(y, /*lvl*/2, /*dim*/0);
+    Tensor Bout = Bx * By;
+    
+    // We get a doubly wrapped BatchTensor...
+    std::tie(out, std::ignore) = unpackBatched(Bout);
+    std::vector<int64_t> expected_size = {2, 5, 3};
+    ASSERT_EQ(out.sizes(), expected_size);
+    ASSERT_TRUE(at::allclose(out, x.unsqueeze(1) * y));
+  }
+  {
+    // batched (level 2, 3, 4) * batched (level 3, 1, 2)
+    Tensor x = at::randn({3, 5, 7});
+    Tensor y = at::randn({5, 2, 3});
+    Tensor out;
+
+    // Each BatchDim is constructed in {dim, level} format.
+    Tensor Bx = makeBatched(x, {{2, 0}, {3, 1}, {4, 2}});
+    Tensor By = makeBatched(y, {{1, 1}, {2, 2}, {3, 0}});
+    Tensor Bout = Bx * By;
+
+    std::tie(out, std::ignore) = unpackBatched(Bout);
+
+    // The batching rule aligns dimensions in the order of their `level`.
+    // It just happened that we chose sizes to be in the same order as the level.
+    std::vector<int64_t> expected_size = {2, 3, 5, 7};
+    ASSERT_EQ(out.sizes(), expected_size);
+    ASSERT_TRUE(at::allclose(out, x * y.permute({1, 2, 0}).unsqueeze(3)));
+  }
+}
+
 }

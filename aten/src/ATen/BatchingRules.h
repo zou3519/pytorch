@@ -22,4 +22,9 @@ std::pair<Tensor,BatchDims> sum_batching_rule(
     const Tensor& self, BatchDimsRef self_bdims,
     IntArrayRef dims, bool keepdim, c10::optional<ScalarType> dtype);
 
+std::pair<Tensor,BatchDims>
+mul_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    const Tensor& other, BatchDimsRef other_bdims);
+
 }

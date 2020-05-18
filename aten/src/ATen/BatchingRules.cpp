@@ -26,5 +26,15 @@ std::pair<Tensor,BatchDims> sum_batching_rule(
   return { result, result_bdims };
 }
 
+std::pair<Tensor,BatchDims>
+mul_batching_rule(
+    const Tensor& self, BatchDimsRef self_bdims,
+    const Tensor& other, BatchDimsRef other_bdims) {
+  Tensor self_, other_;
+  BatchDims result_bdims;
+  std::tie(self_, other_, result_bdims) = alignBatchDimsAtFront(self, self_bdims, other, other_bdims);
+  return { at::mul(self_, other_), result_bdims };
+}
+
 }
 
