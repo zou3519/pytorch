@@ -1,72 +1,134 @@
 import re
+import csv
 import copy
 import json
 import argparse
 import os
+import textwrap
 from common import dict_to_features, categories, subcategories, get_features
 
-def readlines(path):
-    with open(path, 'r') as f:
-        lines = f.readlines()
-        lines = [line.split('#')[0] for line in lines]
-        lines = [line.strip() for line in lines]
-        lines = [line for line in lines if len(line) > 0]
-        return lines
+class CommitDataCache:
+    def __init__(self, path):
+        self.path = path
+        self.data = {}
+        if os.path.exists(path):
+            self.data = self.read_from_disk()
+
+    def get(self, commit):
+        if commit not in self.data.keys():
+            # Fetch and cache the data
+            self.data[commit] = get_features(commit)
+            self.write_to_disk()
+        return self.data[commit]
+
+    def read_from_disk(self):
+        with open(self.path, 'r') as f:
+            data = json.load(f)
+            data = {commit: dict_to_features(dct)
+                    for commit, dct in data.items()}
+        return data
+
+    def write_to_disk(self):
+        data = {commit: features._asdict() for commit, features in self.data.items()}
+        with open(self.path, 'w') as f:
+            json.dump(data, f)
+
+class Commit:
+    def __init__(self, hash, category):
+        self.hash = hash
+        if category == '':
+            self.category = 'Uncategorized'
+        else:
+            self.category = category
+
+    def serialize(self, cache=None):
+        title = None
+        if cache is not None:
+            title = cache.get(self.hash).title
+        return [self.hash, self.category, title]
+
+    def has_category(self):
+        return self.category is not None
+
+class CommitList:
+    def __init__(self, path, cache=None):
+        # We assume the data is stored in a csv file in commit_hash,category
+        # pairs.
+        self.path = path
+        self.commits = self.read_from_disk()
+        self.cache = cache
+
+    def read_from_disk(self):
+        path = self.path
+        with open(path) as csvfile:
+            reader = csv.reader(csvfile)
+            rows = list(row for row in reader)
+        assert all(len(row) >= 2 for row in rows)
+        return [Commit(*row[:2]) for row in rows]
+
+    def write_to_disk(self):
+        path = self.path
+        rows = [commit.serialize() for commit in self.commits]
+        with open(path, 'w') as csvfile:
+            writer = csv.writer(csvfile)
+            for row in rows:
+                writer.writerow(row)
+
+    def uncategorized(self):
+        return [commit for commit in self.commits if not commit.has_category()]
+
+    def filter(self, category='All'):
+        if category == 'All':
+            return self.commits
+        return [commit for commit in self.commits if commit.category == category]
 
 
 class Categorizer:
-    def __init__(self, path):
-        path_pattern = r'results/(.*)\.txt'
-        matches = re.findall(path_pattern, path)
-        assert len(matches) == 1
+    def __init__(self, path, category='Uncategorized'):
+        self.cache = CommitDataCache('data.json')
+        self.commits = CommitList(path)
 
-        self.path = path
-        self.category = matches[0]
-        with open('data.json', 'r') as f:
-            data = json.load(f)
-            self.data = {commit: dict_to_features(dct)
-                         for commit, dct in data.items()}
-
-        self.commits = readlines(path)
+        # Special categories: 'Uncategorized', 'All'
+        # All other categories must be real
+        self.category = category
 
     def categorize(self):
+        commits = self.commits.filter(self.category)
         i = 0
-        while i < len(self.commits):
-            cur_commit = self.commits[i]
-            next_commit = self.commits[i + 1] if i + 1 < len(self.commits) else None
-            jump_to = self.handle_commit(cur_commit, i + 1, len(self.commits))
+        while i < len(commits):
+            cur_commit = commits[i]
+            next_commit = commits[i + 1] if i + 1 < len(commits) else None
+            jump_to = self.handle_commit(cur_commit, i + 1, len(commits))
 
             # Increment counter
             if jump_to is not None:
                 i = jump_to
             elif next_commit is None:
-                i = len(self.commits)
+                i = len(commits)
             else:
-                i = self.commits.index(next_commit)
+                i = commits.index(next_commit)
 
     def features(self, commit):
-        if commit in self.data.keys():
-            return self.data[commit]
-        else:
-            # We didn't preproces it, so just get it now
-            # TODO: maybe cache
-            return get_features(commit)
+        return self.cache.get(commit.hash)
 
     def handle_commit(self, commit, i, total):
         all_categories = categories + subcategories
         features = self.features(commit)
         os.system('clear')
-        print(f'[{i}/{total}]')
-        print('=' * 80)
-        print(features.title)
-        print('\n')
-        print(features.body)
-        print('\n')
-        print('Labels:', features.labels)
-        print('Files changed:', features.files_changed)
-        print('\n')
-        print("Select from:", ', '.join(all_categories))
-        print('\n')
+        view = textwrap.dedent(f'''\
+[{i}/{total}]
+================================================================================
+{features.title}
+
+{features.body}
+
+Labels: {features.labels}
+Files changed: {features.files_changed}
+
+Select from: {', '.join(all_categories)}
+
+        ''')
+        print(view)
         choice = None
         while choice is None:
             value = input('category> ')
@@ -82,31 +144,25 @@ class Categorizer:
                 continue
             choice = choices[0]
         print(f'\nSelected: {choice}')
-        self.assign_category(commit, choice, features)
+        self.assign_category(commit, choice)
         return None
 
-    def assign_category(self, commit, category, features):
-        if category == self.category:
+    def assign_category(self, commit, category):
+        if category == commit.category:
             return
 
-        # Write to the category file
-        with open(f'results/{category}.txt', 'a') as f:
-            metadata = features.title
-            f.write(f'{commit}  # {metadata}\n')
-
-        # Remove from the current category file
-        self.commits = [com for com in self.commits
-                        if not com.startswith(commit)]
-        with open(f'{self.path}', 'w+') as f:
-            lines = [f'{commit}  # {features.title}' for commit in self.commits]
-            f.write('\n'.join(lines) + '\n')
-
+        # Assign the category, write the category out to disk
+        commit.category = category
+        self.commits.write_to_disk()
 
 def main():
-    parser = argparse.ArgumentParser(description='Re-categorize commits from file')
-    parser.add_argument('file', help='which file to re-categorize. Must look like results/{category}.txt')
+    parser = argparse.ArgumentParser(description='Tool to help categorize commits')
+    parser.add_argument('--category', type=str, default='Uncategorized',
+                        help='Which category to filter by. "Uncategorized", "All", or a category name')
+    parser.add_argument('file', help='The location of the commits CSV')
+
     args = parser.parse_args()
-    categorizer = Categorizer(args.file)
+    categorizer = Categorizer(args.file, args.category)
     categorizer.categorize()
 
 
