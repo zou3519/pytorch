@@ -5,7 +5,7 @@ import json
 import argparse
 import os
 import textwrap
-from common import dict_to_features, categories, subcategories, get_features
+from common import dict_to_features, categories, subcategories, get_features, run
 
 class CommitDataCache:
     def __init__(self, path):
@@ -36,30 +36,30 @@ class CommitDataCache:
 class Commit:
     def __init__(self, hash, category):
         self.hash = hash
-        if category == '':
-            self.category = 'Uncategorized'
-        else:
-            self.category = category
+        self.category = 'Uncategorized' if not category else category
 
-    def serialize(self, cache=None):
-        title = None
-        if cache is not None:
-            title = cache.get(self.hash).title
-        return [self.hash, self.category, title]
-
-    def has_category(self):
-        return self.category is not None
+    def serialize(self):
+        return [self.hash, self.category]
 
 class CommitList:
-    def __init__(self, path, cache=None):
-        # We assume the data is stored in a csv file in commit_hash,category
-        # pairs.
+    # NB: Private ctor. Use `from_existing` or `create_new`.
+    def __init__(self, path, commits):
         self.path = path
-        self.commits = self.read_from_disk()
-        self.cache = cache
+        self.commits = commits
 
-    def read_from_disk(self):
-        path = self.path
+    @staticmethod
+    def from_existing(path):
+        commits = CommitList.read_from_disk(path)
+        return CommitList(path, commits)
+
+    @staticmethod
+    def create_new(path, base_version, new_version):
+        hashes = CommitList.get_commits_between(base_version, new_version)
+        commits = [Commit(h, 'Uncategorized') for h in hashes]
+        return CommitList(path, commits)
+
+    @staticmethod
+    def read_from_disk(path):
         with open(path) as csvfile:
             reader = csv.reader(csvfile)
             rows = list(row for row in reader)
@@ -74,19 +74,33 @@ class CommitList:
             for row in rows:
                 writer.writerow(row)
 
-    def uncategorized(self):
-        return [commit for commit in self.commits if not commit.has_category()]
+    @staticmethod
+    def get_commits_between(base_version, new_version):
+        cmd = f'git merge-base {base_version} {new_version}'
+        rc, merge_base, _ = run(cmd)
+        assert rc == 0
+
+        cmd = f'git log --reverse --oneline {merge_base}..{new_version} | cut -d " " -f 1'
+        rc, commits, _ = run(cmd)
+        assert rc == 0
+        hashes = commits.split('\n')
+        return hashes
 
     def filter(self, category='All'):
         if category == 'All':
             return self.commits
         return [commit for commit in self.commits if commit.category == category]
+ 
+    def update(self, new_version):
+        last_hash = self.commits[-1].hash
+        hashes = CommitList.get_commits_between(last_hash, new_version)
+        self.commits += [Commit(hash, 'Uncategorized') for hash in hashes[1:]]
 
 
 class Categorizer:
     def __init__(self, path, category='Uncategorized'):
-        self.cache = CommitDataCache('data.json')
-        self.commits = CommitList(path)
+        self.cache = CommitDataCache('results/data.json')
+        self.commits = CommitList.from_existing(path)
 
         # Special categories: 'Uncategorized', 'All'
         # All other categories must be real
@@ -125,6 +139,8 @@ class Categorizer:
 Labels: {features.labels}
 Files changed: {features.files_changed}
 
+Current category: {commit.category}
+
 Select from: {', '.join(all_categories)}
 
         ''')
@@ -133,7 +149,7 @@ Select from: {', '.join(all_categories)}
         while choice is None:
             value = input('category> ')
             if len(value) == 0:
-                choice = self.category
+                choice = commit.category
                 continue
             if value.isnumeric():
                 return int(value) - 1
@@ -150,8 +166,6 @@ Select from: {', '.join(all_categories)}
     def assign_category(self, commit, category):
         if category == commit.category:
             return
-
-        # Assign the category, write the category out to disk
         commit.category = category
         self.commits.write_to_disk()
 
@@ -159,11 +173,13 @@ def main():
     parser = argparse.ArgumentParser(description='Tool to help categorize commits')
     parser.add_argument('--category', type=str, default='Uncategorized',
                         help='Which category to filter by. "Uncategorized", "All", or a category name')
-    parser.add_argument('file', help='The location of the commits CSV')
+    parser.add_argument('--file', help='The location of the commits CSV',
+                        default='results/commitlist.csv')
 
     args = parser.parse_args()
     categorizer = Categorizer(args.file, args.category)
     categorizer.categorize()
 
 
-main()
+if __name__ == '__main__':
+    main()

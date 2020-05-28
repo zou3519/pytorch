@@ -1,5 +1,0 @@
-f2a2fec47c  # CUDA-strided-complex Binary and Unary Op support (#30295)
-13e4ee7883  # Added tensor.is_complex(), is_complex and dtype.is_complex py binding, tensor printing, and dixed the scalar type returned for complex float (#33268)
-e5cf7afd0a  # torch.tensor can infer complex dtype now (#33361)
-ba4cff2ffc  # [dtype inference] Following pytorch default for float vs double (#33713)
-fbc9c61c81  # randn and normal_ for complex tensors (#34037)

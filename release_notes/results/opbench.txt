@@ -1,6 +1,0 @@
-b68d1fc316  # add small input shapes to some ops (#30617)
-b7c148013f  # fix torch square_ benchmark runtime error (#31221)
-d401ba1417  # benchmark binary ops in binary_test (#31326)
-c6a8f884d8  # add copy_ operator the op bench (#31327)
-f9010d7648  # remove wipe cache from op bench (#31334)
-52f8f031ac  # add diag into pt operator microbenchmark (#32597)
