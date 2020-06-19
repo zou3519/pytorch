@@ -107,6 +107,8 @@ enum class DispatchKey : uint8_t {
   // correct backend.
   BackendSelect,
 
+  Vmap,
+
 
 
   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ AUTOGRAD ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -148,7 +150,6 @@ enum class DispatchKey : uint8_t {
   // There are a number of alternative modes which may want to handle before
   // autograd; for example, error checking, tracing, profiling or vmap.  They
   // go here.
-  Vmap,
   VmapMode,
 
   // TESTING: This is intended to be a generic testing tensor type id.

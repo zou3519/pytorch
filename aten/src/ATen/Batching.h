@@ -69,6 +69,19 @@ struct BatchTensorImpl : public c10::TensorImpl {
   const BatchDims& bdims() const { return bdims_; }
   const Tensor& value() const { return value_; };
 
+  c10::intrusive_ptr<TensorImpl> shallow_copy_and_detach(
+      const c10::VariableVersion& version_counter,
+      bool allow_tensor_metadata_change) const override {
+    auto impl = c10::make_intrusive<BatchTensorImpl>(value_, bdims_);
+    // copy_tensor_metadata(
+    //   /*src_impl=*/this,
+    //   /*dest_impl=*/impl.get(),
+    //   /*version_counter=*/version_counter,
+    //   /*allow_tensor_metadata_change=*/allow_tensor_metadata_change);
+    // impl->refresh_numel();
+    return impl;
+  }
+
  private:
   void initSizes() {
     const auto public_dims = value_.dim() - bdims_.size();

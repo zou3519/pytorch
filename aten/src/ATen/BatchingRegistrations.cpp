@@ -11,6 +11,7 @@
 #include <iostream>
 #include <utility>
 
+
 namespace at {
 
 #if !defined(C10_MOBILE) || defined(FEATURE_TORCH_MOBILE)
@@ -21,7 +22,6 @@ VmapLevel enterVmapLevel(int64_t batch_size) {
   auto result = vmap_state.addLevel(batch_size);
   if (result == 1) {
     c10::impl::tls_set_dispatch_key_included(DispatchKey::VmapMode, true);
-    std::cout << "Enter VmapMode" << std::endl;
   }
   return result;
 }
@@ -30,7 +30,6 @@ int64_t exitVmapLevel() {
   auto result = vmap_state.popLevel();
   if (result.first == 1) {
     c10::impl::tls_set_dispatch_key_included(DispatchKey::VmapMode, false);
-    std::cout << "Exit VmapMode" << std::endl;
   }
   return result.second;
 }
@@ -55,6 +54,15 @@ VmapState* getVmapState() {
 
 
 #endif
+
+int64_t BatchedTensor_output_nr(const Tensor & self) {
+  if (torch::autograd::impl::get_autograd_meta(self)) {
+    return torch::autograd::impl::get_autograd_meta(self)->output_nr_;
+  } else {
+    return 0;
+  }
+}
+
 
 
 
@@ -449,7 +457,7 @@ void batchTensorFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack
   }
 
   // Only support num_returns == 1 for now. Also assume Tensor returns
-  TORCH_INTERNAL_ASSERT(num_returns == 1);
+  TORCH_INTERNAL_ASSERT(num_returns == 1, "Not supported: multipe returns: ", schema);
   for (int64_t return_idx = 0; return_idx < num_returns; return_idx++) {
     std::vector<Tensor> output_shards;
     for (const auto& stack : unbatched_stacks) {
@@ -473,6 +481,27 @@ int64_t BatchedTensor_size(const Tensor& self, int64_t dim) {
   return self.sizes()[dim];
 }
 
+template <typename F, F Func, typename... Args>
+Tensor& inplaceFuncFallback1(Tensor& input, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
+	Tensor input_;
+	BatchDimsRef input_bdims;
+
+  std::tie(input_, input_bdims) = unpackBatched(input);
+  input_ = moveBdimsToFront(input_, input_bdims);
+  IntArrayRef batch_sizes = { input_.sizes().begin(), input_.sizes().begin() + input_bdims.size() };
+
+  auto total_batches = std::accumulate(
+      batch_sizes.begin(), batch_sizes.end(),
+      1, std::multiplies<int64_t>());
+  for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+    std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+    auto sliced = selectAll(input_, idx);
+    Func(sliced, args...);
+  }
+  return input;
+}
+
 template <typename F, F Method, typename... Args>
 Tensor& inplaceMethodFallback1(Tensor& input, Args... args) {
   c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
@@ -489,6 +518,29 @@ Tensor& inplaceMethodFallback1(Tensor& input, Args... args) {
   for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
     std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
     (selectAll(input_, idx).*Method)(args...);
+  }
+  return input;
+}
+
+template <typename F, F Func, typename... Args>
+Tensor& inplaceFuncFallback2(Tensor& input, const Tensor& other, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
+	Tensor input_, other_;
+  std::vector<int64_t> batch_sizes;
+
+  // TODO: we don't really need torch::jit::Stack...
+  torch::jit::Stack tensors = { input, other };
+  std::tie(std::ignore, batch_sizes) = broadcastBdimsAtFront(tensors);
+  std::tie(input_, std::ignore) = unpackBatched(tensors[0].toTensor());
+  std::tie(other_, std::ignore) = unpackBatched(tensors[1].toTensor());
+
+  auto total_batches = std::accumulate(
+      batch_sizes.begin(), batch_sizes.end(),
+      1, std::multiplies<int64_t>());
+  for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+    std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+    auto sliced = selectAll(input_, idx);
+    Func(sliced, selectAll(other_, idx), args...);
   }
   return input;
 }
@@ -515,6 +567,31 @@ Tensor& inplaceMethodFallback2(Tensor& input, const Tensor& other, Args... args)
   return input;
 }
 
+template <typename F, F Func, typename... Args>
+Tensor& inplaceFuncFallback3(Tensor& input, const Tensor& second, const Tensor& third, Args... args) {
+  c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
+	Tensor input_, second_, third_;
+  std::vector<int64_t> batch_sizes;
+
+  // TODO: we don't really need torch::jit::Stack...
+  torch::jit::Stack tensors = { input, second, third };
+  std::tie(std::ignore, batch_sizes) = broadcastBdimsAtFront(tensors);
+  std::tie(input_, std::ignore) = unpackBatched(tensors[0].toTensor());
+  std::tie(second_, std::ignore) = unpackBatched(tensors[1].toTensor());
+  std::tie(third_, std::ignore) = unpackBatched(tensors[2].toTensor());
+
+  auto total_batches = std::accumulate(
+      batch_sizes.begin(), batch_sizes.end(),
+      1, std::multiplies<int64_t>());
+  for (int64_t linear_idx = 0; linear_idx < total_batches; linear_idx++) {
+    std::vector<int64_t> idx = computeIndex(linear_idx, batch_sizes);
+    auto sliced = selectAll(input_, idx);
+    Func(sliced, selectAll(second_, idx), selectAll(third_, idx), args...);
+  }
+  return input;
+}
+
+
 template <typename F, F Method, typename... Args>
 Tensor& inplaceMethodFallback3(Tensor& input, const Tensor& second, const Tensor& third, Args... args) {
   c10::impl::ExcludeDispatchKeyGuard guard(DispatchKey::VmapMode);
@@ -538,6 +615,18 @@ Tensor& inplaceMethodFallback3(Tensor& input, const Tensor& second, const Tensor
   return input;
 }
 
+Tensor& BatchedTensor_requires_grad_(Tensor& self, bool requires_grad) {
+    TORCH_CHECK(0, "foobar");
+}
+
+bool BatchedTensor_is_leaf(const Tensor& self) {
+  if (torch::autograd::impl::get_autograd_meta(self)) {
+    return torch::autograd::impl::get_autograd_meta(self)->grad_fn_ == nullptr;
+  } else {
+    return true;
+  }
+}
+
 
 // TODO: the fallback runs the un-batched kernel in a for loop.
 // However, in many cases, operators are composed of other operators.
@@ -554,6 +643,7 @@ TORCH_LIBRARY_IMPL(aten, Vmap, m) {
   m.impl("_unwrap_batched", native::_unwrap_batched);
   m.impl("_is_batched", native::_is_batched);
   m.impl("size.int", BatchedTensor_size);
+  m.impl("output_nr", BatchedTensor_output_nr);
 
   // operators
   m.impl("mul.Tensor", BatchedTensor_mul);
@@ -562,6 +652,9 @@ TORCH_LIBRARY_IMPL(aten, Vmap, m) {
   m.impl("relu", BatchedTensor_relu);
   m.impl_UNBOXED("sum.dim_IntList", BatchedTensor_sum);
   m.impl_UNBOXED("conv2d", BatchedTensor_conv2d);
+
+  // m.impl_UNBOXED("requires_grad_", BatchedTensor_requires_grad_);
+  m.impl("is_leaf", BatchedTensor_is_leaf);
 
   // views
   m.impl_UNBOXED("transpose.int", BatchedTensor_transpose);
@@ -737,6 +830,20 @@ TORCH_LIBRARY_IMPL(aten, Vmap, m) {
   BINARY_INPLACE_FALLBACK(fmod_);
   BINARY_INPLACE_FALLBACK(remainder_);
 #undef BINARY_INPLACE_FALLBACK
+
+// {
+// 
+// static constexpr auto tensors_at_front_index_copy_ = [](Tensor & self, const Tensor & index, const Tensor & source, int64_t dim) -> Tensor & {
+//   return self.index_copy_(dim, index, source);
+// };
+// 
+// m.impl_UNBOXED("index_copy_", inplaceFuncFallback3<
+//   Tensor & (*)(Tensor &, const Tensor &, const Tensor &, int64_t),
+//   static_cast<Tensor & (*)(Tensor &, const Tensor &, const Tensor &, int64_t)>(tensors_at_front_index_copy_), int64_t
+//   >);
+// 
+// }
+
 }
 
 Tensor BatchedTensor_rand(IntArrayRef size, const TensorOptions& options) {

@@ -21,9 +21,13 @@ struct CAFFE2_API NamedTensorMeta : public c10::NamedTensorMetaInterface {
     : names_(std::vector<Dimname>(num_names, Dimname::wildcard())) {}
 
   explicit NamedTensorMeta(DimnameList names)
-    : names_(names.vec()) {}
+    : names_(names.vec()) {
+      std::cout << names << std::endl;
+    }
   explicit NamedTensorMeta(std::vector<Dimname>&& names)
-    : names_(std::move(names)) {}
+    : names_(std::move(names)) {
+      std::cout << names << std::endl;
+    }
 
   std::unique_ptr<c10::NamedTensorMetaInterface> clone() const override {
     return std::make_unique<NamedTensorMeta>(names_);
@@ -39,11 +43,13 @@ struct CAFFE2_API NamedTensorMeta : public c10::NamedTensorMetaInterface {
 
   void set_names(DimnameList new_names) {
     TORCH_INTERNAL_ASSERT(new_names.size() == names_.size());
+    std::cout << new_names << std::endl;
     std::copy(new_names.begin(), new_names.end(), names_.begin());
   }
 
   void set_names(std::vector<Dimname>&& new_names) {
     TORCH_INTERNAL_ASSERT(new_names.size() == names_.size());
+    std::cout << new_names << std::endl;
     names_ = std::move(new_names);
   }
 

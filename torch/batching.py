@@ -89,22 +89,22 @@ def _make_batched(args, dims, level):
             for arg, dim in zip(args, dims)], batch_size
 
 
-def _unwrap_batched_single(output, batch_size):
+def _unwrap_batched_single(output, batch_size, vmap_level):
     if batch_size is None:
         return output
     if isinstance(output, torch.Tensor):
         if torch._is_batched(output):
-            return torch._unwrap_batched(output, 0)
+            return torch._unwrap_batched(output, vmap_level)
         output = output.expand(batch_size, *output.shape)
         return output
     else:
         assert False  # NYI
 
 
-def _unwrap_batched(batched_outputs, batch_size):
+def _unwrap_batched(batched_outputs, batch_size, vmap_level):
     if isinstance(batched_outputs, Tensor):
-        return _unwrap_batched_single(batched_outputs, batch_size)
-    return tuple(_unwrap_batched_single(out, batch_size)
+        return _unwrap_batched_single(batched_outputs, batch_size, vmap_level)
+    return tuple(_unwrap_batched_single(out, batch_size, vmap_level)
                  for out in batched_outputs)
 
 
@@ -143,7 +143,7 @@ def vmap(fn, in_dims=0):
             batched_inputs, batch_size = _make_batched(args, in_dims, vmap_level)
             batched_outputs = fn(*batched_inputs)
             _validate_outputs(batched_outputs, fn.__name__)
-            return _unwrap_batched(batched_outputs, batch_size)
+            return _unwrap_batched(batched_outputs, batch_size, vmap_level)
         finally:
             if batch_size is not None:
                 torch._C.exit_vmap_level()

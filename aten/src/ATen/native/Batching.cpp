@@ -3,11 +3,13 @@
 namespace at { namespace native {
 
 Tensor _make_batched(const Tensor& self, optional<int64_t> batch_dim, int64_t level) {
+  std::cout << "make batched; isBatched(self) = " << isBatched(self) << std::endl;
   return makeBatched(self, *batch_dim, level);
 }
 
 Tensor _unwrap_batched(const Tensor& self, int64_t level) {
   // TODO: it probably matters if the level is different
+  std::cout << "unwrap batched; self.bdims() = " << getBatched(self)->bdims() << std::endl;
   return unwrapBatched(self);
 }
 

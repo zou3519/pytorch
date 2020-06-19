@@ -107,6 +107,14 @@
 #
 # NB: The parameter names here MUST be consistent with the parameter names
 # in Decalarations.yaml
+
+- name: _make_batched(Tensor self, int? batch_dim, int level) -> Tensor
+  self: "batch_dim.has_value() ? _unwrap_batched(grad, level) : grad"
+
+
+- name: _unwrap_batched(Tensor self, int level) -> Tensor
+  self: _make_batched(grad, 0, level)
+
 - name: abs(Tensor self) -> Tensor
   self: grad * self.sign()
 
