@@ -6,6 +6,10 @@ from torch.overrides import is_tensor_like
 from itertools import product
 import warnings
 from typing import Callable, Union, Optional, Iterable, List
+import os
+
+GRADCHECK_MODE = os.environ.get('GRADCHECK_MODE', None)
+assert GRADCHECK_MODE in [None, 'jacobian', 'hessian', 'doublebatched'] 
 
 def zero_gradients(x):
     if isinstance(x, torch.Tensor):
@@ -199,6 +203,20 @@ def get_analytical_jacobian(input, output, nondet_tol=0.0, grad_out=1.0):
         if jacobian_x.numel() != 0 and (jacobian_x - jacobian_reentrant_x).abs().max() > nondet_tol:
             reentrant = False
 
+    def vjp(v):
+        results = torch.autograd.grad(output, diff_input_list, v,
+                                      allow_unused=True, retain_graph=True)
+        results = tuple(r if r is not None else
+                        torch.zeros([], dtype=output.dtype, device=output.device).expand(inp.shape)
+                        for r, inp in zip(results, diff_input_list))
+        return results
+
+    grad_output = torch.eye(output.numel(), dtype=output.dtype, device=output.device).view(output.numel(), *output.shape)
+    jacobian_vmap = [j.contiguous().view(output.numel(), inp.numel()) for inp, j in zip(diff_input_list, torch.vmap(vjp)(grad_output))]
+    for jac_vmap, jac in zip(jacobian_vmap, jacobian):
+        if not torch.allclose(jac_vmap.t(), jac):
+            raise RuntimeError("vmap jacobian didn't match regular jac")
+
     return jacobian, reentrant, correct_grad_sizes, correct_grad_types
 
 
@@ -224,7 +242,15 @@ def _differentiable_outputs(x):
 # the '...' first argument of Callable can be replaced with VarArg(Tensor).
 # For now, we permit any input.
 
-def gradcheck(
+def gradcheck(*args, **kwargs) -> bool:
+    if not GRADCHECK_MODE:
+        return True
+    if GRADCHECK_MODE != 'jacobian':
+        return True
+    return _gradcheck_jacobian(*args, **kwargs)
+
+
+def _gradcheck_jacobian(
     func: Callable[..., Union[_TensorOrTensors]],  # See Note [VarArg of Tensors]
     inputs: _TensorOrTensors,
     eps: float = 1e-6,
@@ -341,6 +367,7 @@ def gradcheck(
         analytical, reentrant, correct_grad_sizes, correct_grad_types = get_analytical_jacobian(tupled_inputs,
                                                                                                 o,
                                                                                                 nondet_tol=nondet_tol)
+        continue
         numerical = get_numerical_jacobian(fn, tupled_inputs, eps=eps)
 
         out_is_complex = o.is_complex()
@@ -400,6 +427,8 @@ def gradcheck(
 
         if out_is_complex and not reentrant_with_imag_grad_out:
             return not_reentrant_error(' (calculated using complex valued grad output)')
+
+    return True
 
     # check if the backward multiplies by grad_output
     output = _differentiable_outputs(func(*tupled_inputs))
@@ -549,6 +578,10 @@ def gradgradcheck(
     Returns:
         True if all differences satisfy allclose condition
     """
+    if not GRADCHECK_MODE:
+        return True
+    if GRADCHECK_MODE == 'jacobian':
+        return True
     tupled_inputs = _as_tuple(inputs)
 
     if grad_outputs is None:
@@ -565,6 +598,10 @@ def gradgradcheck(
     else:
         tupled_grad_outputs = _as_tuple(grad_outputs)
 
+    if GRADCHECK_MODE == 'hessian':
+        # NB: Hessian computaiton doesn't necessitate that the v requires grad
+        tupled_grad_outputs = tuple(t.requires_grad_(False) for t in tupled_grad_outputs)
+
     num_outputs = len(tupled_grad_outputs)
 
     def new_func(*args):
@@ -575,6 +612,7 @@ def gradgradcheck(
         grad_inputs = torch.autograd.grad(outputs, input_args, grad_outputs, create_graph=True)
         return grad_inputs
 
-    return gradcheck(new_func, tupled_inputs + tupled_grad_outputs, eps, atol, rtol, raise_exception,
-                     nondet_tol=nondet_tol, check_undefined_grad=check_undefined_grad,
-                     check_grad_dtypes=check_grad_dtypes)
+    return _gradcheck_jacobian(
+        new_func, tupled_inputs + tupled_grad_outputs, eps, atol, rtol, raise_exception,
+        nondet_tol=nondet_tol, check_undefined_grad=check_undefined_grad,
+        check_grad_dtypes=check_grad_dtypes)
