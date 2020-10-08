@@ -1,4 +1,5 @@
 import torch
+from torch._vmap_internals import vmap
 
 # Utility functions
 
@@ -363,7 +364,7 @@ def jvp(func, inputs, v=None, create_graph=False, strict=False):
     return _tuple_postprocess(outputs, is_outputs_tuple), _tuple_postprocess(jvp, is_outputs_tuple)
 
 
-def jacobian(func, inputs, create_graph=False, strict=False):
+def jacobian(func, inputs, create_graph=False, strict=False, vectorize=False):
     r"""Function that computes the Jacobian of a given function.
 
     Args:
@@ -427,6 +428,37 @@ def jacobian(func, inputs, create_graph=False, strict=False):
                                           "jacobian")
     _check_requires_grad(outputs, "outputs", strict=strict)
 
+    if vectorize:
+        jacobian = tuple()
+        for i, out in enumerate(outputs):
+            flat_out = out.reshape(-1)
+
+            def vjp(tangent):
+                mj = _autograd_grad((flat_out,), inputs, (tangent,),
+                                    retain_graph=True, create_graph=create_graph)
+                mj = list(mj)
+                for el_idx, mj_el in enumerate(mj):
+                    if mj_el is not None:
+                        if strict and create_graph and not mj_el.requires_grad:
+                            msg = ("The jacobian of the user-provided function is "
+                                   f"independent of input {el_idx}. This is not allowed in "
+                                   "strict mode when create_graph=True.")
+                            raise RuntimeError(msg)
+                    else:
+                        if strict:
+                            msg = (f"Output {i} of the user-provided function is "
+                                   f"independent of input {el_idx}. This is not allowed in "
+                                   "strict mode.")
+                            raise RuntimeError(msg)
+                        mj[el_idx] = torch.zeros_like(inputs[el_idx])
+                return tuple(mj)
+
+            basis_vectors = torch.eye(flat_out.numel(), dtype=flat_out.dtype, device=flat_out.device)
+            jac = vmap(vjp)(basis_vectors)
+            jacobian += (jac,)
+        jacobian = _grad_postprocess(jacobian, create_graph)
+        return _tuple_postprocess(jacobian, (is_outputs_tuple, is_inputs_tuple))
+
     jacobian = tuple()
     for i, out in enumerate(outputs):
 
@@ -459,7 +491,7 @@ def jacobian(func, inputs, create_graph=False, strict=False):
     return _tuple_postprocess(jacobian, (is_outputs_tuple, is_inputs_tuple))
 
 
-def hessian(func, inputs, create_graph=False, strict=False):
+def hessian(func, inputs, create_graph=False, strict=False, vectorize=False):
     r"""Function that computes the Hessian of a given scalar function.
 
     Args:
@@ -543,7 +575,7 @@ def hessian(func, inputs, create_graph=False, strict=False):
         _check_requires_grad(jac, "jacobian", strict=strict)
         return jac
 
-    res = jacobian(jac_func, inputs, create_graph=create_graph, strict=strict)
+    res = jacobian(jac_func, inputs, create_graph=create_graph, strict=strict, vectorize=vectorize)
     return _tuple_postprocess(res, (is_inputs_tuple, is_inputs_tuple))
 
 
