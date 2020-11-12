@@ -1,12 +1,13 @@
 import torch
 
 
-# The dispatcher holds a stack of interpreters
-# When a primitive operation is called, it is sent to the topmost interpreter.
-# That interpreter will lower the operation by calling operations in the next
-# interpreter.
-# This continues recursively until we run out of interpreters, at which point
-# we run the operations in standard pytorch.
+# The dispatcher holds a stack of interpreters.
+# When a primitive operation is called:
+# - the dispatcher sends the operation to the topmost interpreter
+# - the interpreter will "lower the operation to the next interpreter" by
+#   calling operations in the next interpreter.
+# - This continues recursively until we run out of interpreters. The last
+#   interpreter lowers the operations to standard pytorch operations.
 class DispatcherSingleton():
     def __init__(self):
         self.interpreter_stack = []
@@ -32,7 +33,7 @@ class DispatcherSingleton():
         args = tuple(interpreter.lift_value(arg) for arg in args)
         kwargs = {k: interpreter.lift_value(v) for k, v in kwargs.items()}
 
-        result = interpreter.call_primitive(func, *args, **kwargs)
+        result = interpreter.lower_primitive(func, *args, **kwargs)
         self.interpreter_stack.append(interpreter)
         return result
 
@@ -40,13 +41,14 @@ dispatcher_singleton = DispatcherSingleton()
 ilevel = 0
 
 
+# Base class for interpreters
 class Interpreter():
     def __init__(self):
         global ilevel
         self.ilevel = ilevel
         ilevel += 1
 
-    def call_primitive(self, func, *args, **kwargs):
+    def lower_primitive(self, func, *args, **kwargs):
         raise NotImplementedError('abstract')
 
     def lift_value(self, value):
@@ -56,11 +58,14 @@ class Interpreter():
         return f'I{self.ilevel}'
 
 
+# Base class for interpreter values. An interpreter can only operate on its
+# correspondingly defined InterpreterValues.
 class InterpreterValue():
     def __init__(self, value, interpreter):
         self.interpreter = interpreter
         self.value = value
 
+    # TODO: this unfortunately doesn't handle factory functions
     def __torch_function__(self, func, types, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
@@ -70,13 +75,117 @@ class InterpreterValue():
     def dim(self):
         return dispatcher_singleton.call_primitive(torch.Tensor.dim, (self,))
 
+    def __mul__(self, other):
+        return dispatcher_singleton.call_primitive(torch.mul, (self, other))
+
+    def __add__(self, other):
+        return dispatcher_singleton.call_primitive(torch.add, (self, other))
+
+    def __sub__(self, other):
+        return dispatcher_singleton.call_primitive(torch.sub, (self, other))
+
+    def __pow__(self, other):
+        return dispatcher_singleton.call_primitive(torch.pow, (self, other))
+
+# ----------------------------- forward ad things -------------------------------
+
+forward_formulas = {}
+
+class ForwardADInterpreter(Interpreter):
+    def lower_primitive(self, func, *args, **kwargs):
+        if func not in forward_formulas.keys():
+            raise RuntimeError(f'NYI: {func}')
+        return forward_formulas[func](*args, **kwargs)
+
+    def lift_value(self, value):
+        if isinstance(value, torch.Tensor):
+            return ForwardADInterpreterValue(value, torch.zeros_like(value), self)
+        if isinstance(value, InterpreterValue):
+            if value.interpreter is self:
+                return value
+            return ForwardADInterpreterValue(value, torch.zeros_like(value), self)
+        return value
+
+
+class ForwardADInterpreterValue(InterpreterValue):
+    def __init__(self, value, dual, interpreter):
+        super().__init__(self, interpreter)
+        self.value = value
+        self.dual = dual
+
+    def __repr__(self):
+        if isinstance(self.value, torch.Tensor):
+            val = 'Tensor'
+        else:
+            val = self.value
+        if isinstance(self.dual, torch.Tensor):
+            dual = 'Tensor'
+        else:
+            dual = self.dual
+        return f'ForwardADInterpreterValue({val}, {dual}, {self.interpreter})'
+
+
+def add_jvp_rule(x, y):
+    return ForwardADInterpreterValue(
+        x.value + y.value,
+        x.dual + y.dual,
+        x.interpreter)
+
+def sub_jvp_rule(x, y):
+    return ForwardADInterpreterValue(
+        x.value - y.value,
+        x.dual - y.dual,
+        x.interpreter)
+
+def mul_jvp_rule(x, y):
+    return ForwardADInterpreterValue(
+        x.value * y.value,
+        y * x.dual + x * y.dual,
+        x.interpreter)
+
+def pow_jvp_rule(x, y):
+    exp = x.value ** y.value
+    return ForwardADInterpreterValue(
+        exp,
+        y.value * x.value ** (y.value - 1) * x.dual + exp * torch.log(x.value) * y.dual,
+        x.interpreter)
+
+def log_jvp_rule(x):
+    return ForwardADInterpreterValue(
+        torch.log(x.value),
+        torch.div(torch.tensor(1.), x.value) * x.dual,
+        x.interpreter)
+
+forward_formulas[torch.add] = add_jvp_rule
+forward_formulas[torch.sub] = sub_jvp_rule
+forward_formulas[torch.mul] = mul_jvp_rule
+forward_formulas[torch.pow] = pow_jvp_rule
+forward_formulas[torch.log] = log_jvp_rule
+
+def jvp(func, primals, tangents):
+    interpreter = ForwardADInterpreter()
+    dispatcher_singleton.push_interpreter(interpreter)
+    values = tuple(ForwardADInterpreterValue(primal, tangent, interpreter)
+                   for primal, tangent in zip(primals, tangents))
+    result = func(*values)
+    dispatcher_singleton.pop_interpreter()
+    if isinstance(result, ForwardADInterpreterValue):
+        return result.value, result.dual
+    return tuple(val.value for val in result), tuple(val.dual for val in result)
+
+primal = torch.tensor(3.)
+tangent = torch.tensor(1.)
+expected = 1 / primal * tangent
+_, dual = jvp(torch.log, [primal], [tangent])
+assert torch.allclose(dual, expected)
+
 # ----------------------------- vmap things -------------------------------
 
 batch_rules = {}
 
 
 class VmapInterpreter(Interpreter):
-    def call_primitive(self, func, *args, **kwargs):
+    def lower_primitive(self, func, *args, **kwargs):
         if func not in batch_rules.keys():
             raise RuntimeError(f'NYI: {func}')
         return batch_rules[func](*args, **kwargs)
@@ -102,7 +211,7 @@ class VmapInterpreterValue(InterpreterValue):
             val = 'Tensor'
         else:
             val = self.value
-        return f'VmapIValue(val, {self.bdim}, {self.interpreter})'
+        return f'VmapIValue({val}, {self.bdim}, {self.interpreter})'
 
 
 def ndim_batch_rule(x):
@@ -153,7 +262,11 @@ def unsqueeze_batch_rule(x, dim):
     z_ = torch.unsqueeze(x_, dim + 1)
     return VmapInterpreterValue(z_, 0, x.interpreter)
 
+def log_batch_rule(x):
+    return VmapInterpreterValue(torch.log(x.value), x.bdim, x.interpreter)
 
+
+batch_rules[torch.log] = binary_pw_batch_rule(torch.log)
 batch_rules[torch.add] = binary_pw_batch_rule(torch.add)
 batch_rules[torch.sub] = binary_pw_batch_rule(torch.sub)
 batch_rules[torch.mul] = binary_pw_batch_rule(torch.mul)
