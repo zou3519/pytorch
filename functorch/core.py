@@ -69,6 +69,9 @@ class InterpreterValue():
     def dim(self):
         return dispatcher_singleton.call_primitive(th.Tensor.dim, (self,))
 
+    def sum(self, dim=None):
+        return dispatcher_singleton.call_primitive(th.sum, (self, dim))
+
     def __mul__(self, other):
         return dispatcher_singleton.call_primitive(th.mul, (self, other))
 
@@ -109,8 +112,8 @@ def log(x):
     return dispatcher_singleton.call_primitive(th.log, (x,))
 
 
-def sum(x):
-    return dispatcher_singleton.call_primitive(th.sum, (x,))
+def sum(x, dim=None):
+    return dispatcher_singleton.call_primitive(th.sum, (x, dim))
 
 
 def movedim(x, from_dim, to_dim):
@@ -416,7 +419,7 @@ def log_batch_rule(x):
 def sum_batch_rule(x, dim=None):
     x_ = move_bdim_to_front(x.value, x.bdim)
     if dim is None:
-        reduce_dims = list(range(1, x.dim()))
+        reduce_dims = list(range(1, x_.dim()))
         result = sum(x_, reduce_dims)
     elif isinstance(dim, int):
         result = sum(x_, dim + 1)
@@ -431,7 +434,7 @@ batch_rules[th.sub] = binary_pw_batch_rule(sub)
 batch_rules[th.mul] = binary_pw_batch_rule(mul)
 batch_rules[th.div] = binary_pw_batch_rule(div)
 batch_rules[th.pow] = binary_pw_batch_rule(pow)
-batch_rules[th.sum] = binary_pw_batch_rule(sum)
+batch_rules[th.sum] = sum_batch_rule
 batch_rules[th.Tensor.dim] = ndim_batch_rule
 batch_rules[th.movedim] = movedim_batch_rule
 batch_rules[th.unsqueeze] = unsqueeze_batch_rule
@@ -480,4 +483,13 @@ x = th.rand(2, 3)
 t = th.rand(3)
 expected = mse(x, t)
 result = vmap(mse, in_axes=(0, None))(x, t)
+assert th.allclose(result, expected)
+
+def mse_loss(x, t):
+    return ((x - t) ** th.tensor(2)).sum()
+
+x = th.rand(2, 3)
+t = th.rand(2, 3)
+expected = mse(x, t).sum(-1)
+result = vmap(mse_loss, in_axes=(0, 0))(x, t)
 assert th.allclose(result, expected)
