@@ -1,4 +1,4 @@
-import torch
+import torch as th
 
 
 # The dispatcher holds a stack of interpreters.
@@ -24,7 +24,7 @@ class DispatcherSingleton():
 
         # No interpreters in the stack: call standard pytorch
         if not self.interpreter_stack:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
 
         interpreter = self.interpreter_stack.pop()
 
@@ -65,27 +65,57 @@ class InterpreterValue():
         self.interpreter = interpreter
         self.value = value
 
-    # TODO: this unfortunately doesn't handle factory functions
-    def __torch_function__(self, func, types, args=(), kwargs=None):
-        if kwargs is None:
-            kwargs = {}
-        return dispatcher_singleton.call_primitive(func, args, kwargs)
-
     # TODO: Can __torch_function__ handle methods?
     def dim(self):
-        return dispatcher_singleton.call_primitive(torch.Tensor.dim, (self,))
+        return dispatcher_singleton.call_primitive(th.Tensor.dim, (self,))
 
     def __mul__(self, other):
-        return dispatcher_singleton.call_primitive(torch.mul, (self, other))
+        return dispatcher_singleton.call_primitive(th.mul, (self, other))
 
     def __add__(self, other):
-        return dispatcher_singleton.call_primitive(torch.add, (self, other))
+        return dispatcher_singleton.call_primitive(th.add, (self, other))
 
     def __sub__(self, other):
-        return dispatcher_singleton.call_primitive(torch.sub, (self, other))
+        return dispatcher_singleton.call_primitive(th.sub, (self, other))
 
     def __pow__(self, other):
-        return dispatcher_singleton.call_primitive(torch.pow, (self, other))
+        return dispatcher_singleton.call_primitive(th.pow, (self, other))
+
+# ----------------------------- API ----------------------------------
+# TODO: These should be probably be __torch_function__, but
+# __torch_function__ can't override factory functions
+
+def mul(x, y):
+    return dispatcher_singleton.call_primitive(th.mul, (x, y))
+
+
+def div(x, y):
+    return dispatcher_singleton.call_primitive(th.div, (x, y))
+
+
+def sub(x, y):
+    return dispatcher_singleton.call_primitive(th.sub, (x, y))
+
+
+def add(x, y):
+    return dispatcher_singleton.call_primitive(th.add, (x, y))
+
+
+def pow(x, y):
+    return dispatcher_singleton.call_primitive(th.pow, (x, y))
+
+
+def log(x):
+    return dispatcher_singleton.call_primitive(th.log, (x,))
+
+
+def movedim(x, from_dim, to_dim):
+    return dispatcher_singleton.call_primitive(th.movedim, (x, from_dim, to_dim))
+
+
+def unsqueeze(x, dim):
+    return dispatcher_singleton.call_primitive(th.unsqueeze, (x, dim))
+
 
 # ----------------------------- forward ad things -------------------------------
 
@@ -98,12 +128,12 @@ class ForwardADInterpreter(Interpreter):
         return forward_formulas[func](*args, **kwargs)
 
     def lift_value(self, value):
-        if isinstance(value, torch.Tensor):
-            return ForwardADInterpreterValue(value, torch.zeros_like(value), self)
+        if isinstance(value, th.Tensor):
+            return ForwardADInterpreterValue(value, zeros_like(value), self)
         if isinstance(value, InterpreterValue):
             if value.interpreter is self:
                 return value
-            return ForwardADInterpreterValue(value, torch.zeros_like(value), self)
+            return ForwardADInterpreterValue(value, zeros_like(value), self)
         return value
 
 
@@ -114,11 +144,11 @@ class ForwardADInterpreterValue(InterpreterValue):
         self.dual = dual
 
     def __repr__(self):
-        if isinstance(self.value, torch.Tensor):
+        if isinstance(self.value, th.Tensor):
             val = 'Tensor'
         else:
             val = self.value
-        if isinstance(self.dual, torch.Tensor):
+        if isinstance(self.dual, th.Tensor):
             dual = 'Tensor'
         else:
             dual = self.dual
@@ -147,20 +177,20 @@ def pow_jvp_rule(x, y):
     exp = x.value ** y.value
     return ForwardADInterpreterValue(
         exp,
-        y.value * x.value ** (y.value - 1) * x.dual + exp * torch.log(x.value) * y.dual,
+        y.value * x.value ** (y.value - 1) * x.dual + exp * log(x.value) * y.dual,
         x.interpreter)
 
 def log_jvp_rule(x):
     return ForwardADInterpreterValue(
-        torch.log(x.value),
-        torch.div(torch.tensor(1.), x.value) * x.dual,
+        log(x.value),
+        div(th.tensor(1.), x.value) * x.dual,
         x.interpreter)
 
-forward_formulas[torch.add] = add_jvp_rule
-forward_formulas[torch.sub] = sub_jvp_rule
-forward_formulas[torch.mul] = mul_jvp_rule
-forward_formulas[torch.pow] = pow_jvp_rule
-forward_formulas[torch.log] = log_jvp_rule
+forward_formulas[th.add] = add_jvp_rule
+forward_formulas[th.sub] = sub_jvp_rule
+forward_formulas[th.mul] = mul_jvp_rule
+forward_formulas[th.pow] = pow_jvp_rule
+forward_formulas[th.log] = log_jvp_rule
 
 def jvp(func, primals, tangents):
     interpreter = ForwardADInterpreter()
@@ -173,11 +203,11 @@ def jvp(func, primals, tangents):
         return result.value, result.dual
     return tuple(val.value for val in result), tuple(val.dual for val in result)
 
-primal = torch.tensor(3.)
-tangent = torch.tensor(1.)
+primal = th.tensor(3.)
+tangent = th.tensor(1.)
 expected = 1 / primal * tangent
-_, dual = jvp(torch.log, [primal], [tangent])
-assert torch.allclose(dual, expected)
+_, dual = jvp(log, [primal], [tangent])
+assert th.allclose(dual, expected)
 
 # ----------------------------- vmap things -------------------------------
 
@@ -191,7 +221,7 @@ class VmapInterpreter(Interpreter):
         return batch_rules[func](*args, **kwargs)
 
     def lift_value(self, value):
-        if isinstance(value, torch.Tensor):
+        if isinstance(value, th.Tensor):
             return VmapInterpreterValue(value, None, self)
         if isinstance(value, InterpreterValue):
             if value.interpreter is self:
@@ -207,7 +237,7 @@ class VmapInterpreterValue(InterpreterValue):
         self.bdim = bdim
 
     def __repr__(self):
-        if isinstance(self.value, torch.Tensor):
+        if isinstance(self.value, th.Tensor):
             val = 'Tensor'
         else:
             val = self.value
@@ -223,9 +253,9 @@ def ndim_batch_rule(x):
 
 def move_bdim_to_front(x, bdim, result_ndim=None):
     if bdim is None:
-        result = torch.unsqueeze(x, 0)
+        result = unsqueeze(x, 0)
     else:
-        result = torch.movedim(x, bdim, 0)
+        result = movedim(x, bdim, 0)
     if result_ndim is None:
         return result
     diff = result_ndim - result.dim()
@@ -253,28 +283,28 @@ def binary_pw_batch_rule(func):
 
 def movedim_batch_rule(x, from_dim, to_dim):
     x_ = move_bdim_to_front(x.value, x.bdim)
-    z_ = torch.movedim(x_, from_dim + 1, to_dim + 1)
+    z_ = movedim(x_, from_dim + 1, to_dim + 1)
     return VmapInterpreterValue(z_, 0, x.interpreter)
 
 
 def unsqueeze_batch_rule(x, dim):
     x_ = move_bdim_to_front(x.value, x.bdim)
-    z_ = torch.unsqueeze(x_, dim + 1)
+    z_ = unsqueeze(x_, dim + 1)
     return VmapInterpreterValue(z_, 0, x.interpreter)
 
 def log_batch_rule(x):
-    return VmapInterpreterValue(torch.log(x.value), x.bdim, x.interpreter)
+    return VmapInterpreterValue(log(x.value), x.bdim, x.interpreter)
 
 
-batch_rules[torch.log] = binary_pw_batch_rule(torch.log)
-batch_rules[torch.add] = binary_pw_batch_rule(torch.add)
-batch_rules[torch.sub] = binary_pw_batch_rule(torch.sub)
-batch_rules[torch.mul] = binary_pw_batch_rule(torch.mul)
-batch_rules[torch.div] = binary_pw_batch_rule(torch.div)
-batch_rules[torch.pow] = binary_pw_batch_rule(torch.pow)
-batch_rules[torch.Tensor.dim] = ndim_batch_rule
-batch_rules[torch.movedim] = movedim_batch_rule
-batch_rules[torch.unsqueeze] = unsqueeze_batch_rule
+batch_rules[th.log] = binary_pw_batch_rule(log)
+batch_rules[th.add] = binary_pw_batch_rule(add)
+batch_rules[th.sub] = binary_pw_batch_rule(sub)
+batch_rules[th.mul] = binary_pw_batch_rule(mul)
+batch_rules[th.div] = binary_pw_batch_rule(div)
+batch_rules[th.pow] = binary_pw_batch_rule(pow)
+batch_rules[th.Tensor.dim] = ndim_batch_rule
+batch_rules[th.movedim] = movedim_batch_rule
+batch_rules[th.unsqueeze] = unsqueeze_batch_rule
 
 
 def vmap(fn, in_axes):
@@ -291,33 +321,33 @@ def vmap(fn, in_axes):
 
 
 # ----------------------------- Tests -------------------------------
-x = torch.ones(2, 3)
-y = torch.ones(3)
-expected = torch.add(x, y)
-assert torch.allclose(expected, torch.add(x, y))
+x = th.ones(2, 3)
+y = th.ones(3)
+expected = add(x, y)
+assert th.allclose(expected, th.add(x, y))
 
-result = vmap(torch.add, in_axes=(0, None))(x, y)
-assert torch.allclose(result, expected)
+result = vmap(add, in_axes=(0, None))(x, y)
+assert th.allclose(result, expected)
 
-x = torch.ones(2, 3)
-y = torch.ones(5, 3)
+x = th.ones(2, 3)
+y = th.ones(5, 3)
 expected = y.view(5, 1, 3) + x
-result = vmap(vmap(torch.add, in_axes=(0, None)), in_axes=(None, 0))(x, y)
-assert torch.allclose(result, expected)
+result = vmap(vmap(add, in_axes=(0, None)), in_axes=(None, 0))(x, y)
+assert th.allclose(result, expected)
 
-x = torch.rand(2, 3)
-y = torch.rand(2, 5, 3)
+x = th.rand(2, 3)
+y = th.rand(2, 5, 3)
 expected = x.view(2, 1, 3) + y
-result = vmap(torch.add, in_axes=(0, 0))(x, y)
-assert torch.allclose(result, expected)
+result = vmap(add, in_axes=(0, 0))(x, y)
+assert th.allclose(result, expected)
 
 def mse(x, t):
-    diff = torch.sub(x, t)
-    result = torch.pow(diff, torch.tensor(2))
+    diff = sub(x, t)
+    result = pow(diff, th.tensor(2))
     return result
 
-x = torch.rand(2, 3)
-t = torch.rand(3)
+x = th.rand(2, 3)
+t = th.rand(3)
 expected = mse(x, t)
 result = vmap(mse, in_axes=(0, None))(x, t)
-assert torch.allclose(result, expected)
+assert th.allclose(result, expected)
