@@ -109,6 +109,10 @@ def log(x):
     return dispatcher_singleton.call_primitive(th.log, (x,))
 
 
+def sum(x):
+    return dispatcher_singleton.call_primitive(th.sum, (x,))
+
+
 def movedim(x, from_dim, to_dim):
     return dispatcher_singleton.call_primitive(th.movedim, (x, from_dim, to_dim))
 
@@ -409,12 +413,25 @@ def log_batch_rule(x):
     return VmapInterpreterValue(log(x.value), x.bdim, x.interpreter)
 
 
+def sum_batch_rule(x, dim=None):
+    x_ = move_bdim_to_front(x.value, x.bdim)
+    if dim is None:
+        reduce_dims = list(range(1, x.dim()))
+        result = sum(x_, reduce_dims)
+    elif isinstance(dim, int):
+        result = sum(x_, dim + 1)
+    else:
+        raise NotImplementedError()
+    return VmapInterpreterValue(result, 0, x.interpreter)
+
+
 batch_rules[th.log] = binary_pw_batch_rule(log)
 batch_rules[th.add] = binary_pw_batch_rule(add)
 batch_rules[th.sub] = binary_pw_batch_rule(sub)
 batch_rules[th.mul] = binary_pw_batch_rule(mul)
 batch_rules[th.div] = binary_pw_batch_rule(div)
 batch_rules[th.pow] = binary_pw_batch_rule(pow)
+batch_rules[th.sum] = binary_pw_batch_rule(sum)
 batch_rules[th.Tensor.dim] = ndim_batch_rule
 batch_rules[th.movedim] = movedim_batch_rule
 batch_rules[th.unsqueeze] = unsqueeze_batch_rule
