@@ -116,6 +116,119 @@ def movedim(x, from_dim, to_dim):
 def unsqueeze(x, dim):
     return dispatcher_singleton.call_primitive(th.unsqueeze, (x, dim))
 
+# IR
+# TODO: evaluate FX's IR to see if they handle our requirements
+class AbstractValue(InterpreterValue):
+    def __init__(self, name, interpreter):
+        super().__init__(self, interpreter)
+        self.name = name
+
+    def __repr__(self):
+        return self.name
+
+    def __bool__(self):
+        raise RuntimeError("Nope nope nope")
+
+class Call():
+    def __init__(self, outputs, prim, inputs):
+        self.outputs = outputs
+        self.prim = prim
+        self.inputs = inputs
+
+    def __repr__(self):
+        if isinstance(self.outputs, InterpreterValue):
+            outs = [self.outputs]
+        else:
+            outs = self.outputs
+        out = [repr(out) for out in outs]
+        ins = [repr(i) for i in self.inputs]
+        return f"{' ,'.join(out)} = {self.prim.__name__}({', '.join(ins)})"
+
+class Graph():
+    def __init__(self, interpreter):
+        self.interpreter = interpreter
+        self.inputs = []
+        self.calls = []
+        self.outputs = []
+        self.num_values = 0
+
+    def _gen_name(self):
+        self.num_values += 1
+        if self.num_values <= 26:
+            return chr(ord('`') + self.num_values)
+        return f'_{self.num_values}'
+
+    def def_input(self):
+        result = AbstractValue(self._gen_name(), self.interpreter)
+        self.inputs.append(result)
+        return result
+
+    def def_output(self, val):
+        self.outputs.append(val)
+
+    def call(self, prim, inputs):
+        # How do we figure out how many outputs prim has?
+        result = AbstractValue(self._gen_name(), self.interpreter)
+        self.calls.append(Call(result, prim, inputs))
+        return result
+
+    def __repr__(self):
+        ins = ', '.join([repr(i) for i in self.inputs])
+        outs = ', '.join([repr(i) for i in self.outputs])
+        result = f"def graph({ins}):\n"
+        for call in self.calls:
+            result += f'    {call}\n'
+        result += f'    return {outs}'
+        return result
+
+class SymbolicTraceInterpreter(Interpreter):
+    def __init__(self):
+        self.graph = Graph(self)
+
+    def lower_primitive(self, func, *args, **kwargs):
+        assert not kwargs
+        return self.graph.call(func, args)
+
+    def lift_value(self, value):
+        if isinstance(value, th.Tensor):
+            # what happens when the graph encounters a tensor?
+            assert False
+        if isinstance(value, InterpreterValue):
+            # or another value?
+            assert value.interpreter is self
+        return value
+
+
+def symbolic_trace(func, args):
+    interpreter = SymbolicTraceInterpreter()
+    dispatcher_singleton.push_interpreter(interpreter)
+
+    values = tuple(interpreter.graph.def_input() for arg in args)
+    result = func(*values)
+    if isinstance(result, InterpreterValue):
+        interpreter.graph.def_output(result)
+    else:
+        for result in result:
+            interpreter.graph.def_output(result)
+
+    dispatcher_singleton.pop_interpreter()
+    return interpreter.graph
+
+def mse(x, y):
+    return (x - y) ** 2
+
+x = th.rand(10)
+y = th.rand(10)
+
+graph = symbolic_trace(mse, (x, y))
+expected = """
+def graph(a, b):
+    c = sub(a, b)
+    d = pow(c, 2)
+    return d
+""".strip()
+assert repr(graph) == expected
+
 
 # ----------------------------- forward ad things -------------------------------
 
