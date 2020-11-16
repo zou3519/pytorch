@@ -136,6 +136,50 @@ class AbstractValue(InterpreterValue):
     def __bool__(self):
         raise RuntimeError("Nope nope nope")
 
+
+class ShapedArray(AbstractValue):
+    def __init__(self, name, shape, interpreter):
+        super().__init__(name, interpreter)
+        self.shape = shape
+
+    def size(self, dim=None):
+        if dim is None:
+            return self.shape
+        return self.shape[dim]
+
+_shape_rules = {}
+
+def broadcast_dim(x, y):
+    if x == y:
+        return x
+    if x == 1:
+        return y
+    if y == 1:
+        return x
+    if x != y:
+        raise RuntimeError("shape mismatch")
+
+def binary_pw_shape_rule(x, y):
+    x_size = x.size() if isinstance(x, AbstractValue) else ()
+    y_size = y.size() if isinstance(y, AbstractValue) else ()
+    output_size = []
+    max_rank = max(len(x_size), len(y_size))
+    for i in range(-1, -max_rank, -1):
+        output_size.append(broadcast_dim(x, y))
+    output_size = list(reversed(output_size))
+    return output_size
+
+
+def sum_shape_rule(x_size):
+    return []
+
+_shape_rules[th.add] = binary_pw_shape_rule
+_shape_rules[th.sub] = binary_pw_shape_rule
+_shape_rules[th.mul] = binary_pw_shape_rule
+_shape_rules[th.pow] = binary_pw_shape_rule
+_shape_rules[th.sum] = sum_shape_rule
+
+
 class Call():
     def __init__(self, outputs, prim, inputs):
         self.outputs = outputs
@@ -165,8 +209,8 @@ class Graph():
             return chr(ord('`') + self.num_values)
         return f'_{self.num_values}'
 
-    def def_input(self):
-        result = AbstractValue(self._gen_name(), self.interpreter)
+    def def_input(self, shape):
+        result = ShapedArray(self._gen_name(), shape, self.interpreter)
         self.inputs.append(result)
         return result
 
@@ -174,8 +218,14 @@ class Graph():
         self.outputs.append(val)
 
     def call(self, prim, inputs):
-        # How do we figure out how many outputs prim has?
-        result = AbstractValue(self._gen_name(), self.interpreter)
+        shape_rule = _shape_rules[prim]
+        result = shape_rule(*inputs)
+        # TODO: this is a hacky check
+        if isinstance(result, list):
+            result = ShapedArray(self._gen_name(), result, self.interpreter)
+        else:
+            result = [ShapedArray(self._gen_name(), r, self.interpreter) for r in result]
+
         self.calls.append(Call(result, prim, inputs))
         return result
 
@@ -205,12 +255,12 @@ class SymbolicTraceInterpreter(Interpreter):
             assert value.interpreter is self
         return value
 
-
 def symbolic_trace(func, args):
     interpreter = SymbolicTraceInterpreter()
     dispatcher_singleton.push_interpreter(interpreter)
 
-    values = tuple(interpreter.graph.def_input() for arg in args)
+    # NB: only tensors for now
+    values = tuple(interpreter.graph.def_input(arg.shape) for arg in args)
     result = func(*values)
     if isinstance(result, InterpreterValue):
         interpreter.graph.def_output(result)
