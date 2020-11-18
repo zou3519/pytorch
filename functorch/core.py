@@ -136,6 +136,14 @@ def gt(x, y):
     return dispatcher_singleton.call_primitive(th.gt, (x, y))
 
 
+def transpose(x, dim0, dim1):
+    return dispatcher_singleton.call_primitive(th.transpose, (x, dim0, dim1))
+
+
+def expand(x, shape):
+    return dispatcher_singleton.call_primitive(th.Tensor.expand, (x, shape))
+
+
 # Only handles matmul for x, y with rank >= 2
 def _matmul(x, y):
     return dispatcher_singleton.call_primitive(th.matmul, (x, y))
@@ -159,7 +167,7 @@ def squeeze(x, dim):
 
 
 def relu(x):
-    return gt(x, 0) * x
+    return x * gt(x, th.tensor(0))
 
 
 def matmul(x, y):
@@ -387,15 +395,20 @@ vjp_rules = {}
 
 class ReverseADInterpreter(Interpreter):
     def lower_primitive(self, func, *args, **kwargs):
+        if func == th.Tensor.dim:
+            return args[0].value.dim()
         if func not in vjp_rules.keys():
             raise RuntimeError(f'NYI: {func}')
         return vjp_rules[func](*args, **kwargs)
 
     def lift_value(self, value):
+        if isinstance(value, th.Tensor):
+            return ReverseADInterpreterValue(self, value, None)
         if isinstance(value, InterpreterValue):
             if value.interpreter is self:
                 return value
-        return ReverseADInterpreterValue(self, value, None)
+            return ReverseADInterpreterValue(self, value, None)
+        return value
 
 class ReverseADInterpreterValue(InterpreterValue):
     def __init__(self, interpreter, value, grad_fn):
@@ -441,7 +454,7 @@ class SubBackward(GradNode):
     def call(self, grad, i):
         if i == 0:
             return grad
-        return -th.tensor(1.) * grad
+        return mul(-th.tensor(1.), grad)
 
 class MulBackward(GradNode):
     def __init__(self, x, y):
@@ -449,22 +462,27 @@ class MulBackward(GradNode):
         self.x = x.value
         self.y = y.value
 
+    def execute(self, grad):
+        super().execute(grad)
+
     def call(self, grad, i):
         if i == 0:
             return mul(grad, self.y)
         return mul(grad, self.x)
 
-class MatmulBackward(GradNode):
+class _MatmulBackward(GradNode):
     def __init__(self, x, y):
         super().__init__()
         self.x = x.value
         self.y = y.value
 
+    def execute(self, grad):
+        super().execute(grad)
+
     def call(self, grad, i):
         if i == 0:
-            return matmul(grad, self.y)
-            return mul(grad, self.y)
-        return mul(grad, self.x)
+            return _matmul(grad, transpose(self.y, 0, 1))
+        return _matmul(transpose(self.x, 0, 1), grad)
 
 class PowBackward(GradNode):
     def __init__(self, base, exp):
@@ -482,8 +500,11 @@ class SumBackward(GradNode):
         super().__init__()
         self.input_shape = input_shape
 
+    def execute(self, grad):
+        super().execute(grad)
+
     def call(self, grad, i):
-        return grad.expand(self.input_shape)
+        return expand(grad, self.input_shape)
 
 class SinBackward(GradNode):
     def __init__(self, x):
@@ -505,6 +526,22 @@ class NegBackward(GradNode):
     def call(self, grad, i):
         return -grad
 
+class UnsqueezeBackward(GradNode):
+    def __init__(self, dim):
+        super().__init__()
+        self.dim = dim
+
+    def call(self, grad, i):
+        return squeeze(grad, self.dim)
+
+class SqueezeBackward(GradNode):
+    def __init__(self, dim):
+        super().__init__()
+        self.dim = dim
+
+    def call(self, grad, i):
+        return unsqueeze(grad, self.dim)
+
 def add_vjp_rule(x, y):
     node = AddBackward()
     result = x.value + y.value
@@ -516,7 +553,7 @@ def add_vjp_rule(x, y):
 
 def sub_vjp_rule(x, y):
     node = SubBackward()
-    result = x.value - y.value
+    result = sub(x.value, y.value)
     if x.grad_fn:
         node.set_next_edge(0, x.grad_fn)
     if y.grad_fn:
@@ -541,9 +578,9 @@ def mul_vjp_rule(x, y):
         node.set_next_edge(1, y.grad_fn)
     return ReverseADInterpreterValue(x.interpreter, result, node)
 
-def matmul_vjp_rule(x, y):
-    node = MatmulBackward(x, y)
-    result = matmul(x.value, y.value)
+def _matmul_vjp_rule(x, y):
+    node = _MatmulBackward(x, y)
+    result = _matmul(x.value, y.value)
     if x.grad_fn:
         node.set_next_edge(0, x.grad_fn)
     if y.grad_fn:
@@ -579,8 +616,22 @@ def neg_vjp_rule(x):
         node.set_next_edge(0, x.grad_fn)
     return ReverseADInterpreterValue(x.interpreter, result, node)
 
+def unsqueeze_vjp_rule(x, dim):
+    node = UnsqueezeBackward(dim)
+    result = unsqueeze(x.value, dim)
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def squeeze_vjp_rule(x, dim):
+    node = SqueezeBackward(dim)
+    result = squeeze(x.value, dim)
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
 def gt_vjp_rule(x, y):
-    result = gt(x, y)
+    result = gt(x.value, y.value)
     return ReverseADInterpreterValue(x.interpreter, result, None)
 
 
@@ -591,6 +642,10 @@ vjp_rules[th.sin] = sin_vjp_rule
 vjp_rules[th.mul] = mul_vjp_rule
 vjp_rules[th.cos] = cos_vjp_rule
 vjp_rules[th.neg] = neg_vjp_rule
+vjp_rules[th.gt] = gt_vjp_rule
+vjp_rules[th.unsqueeze] = unsqueeze_vjp_rule
+vjp_rules[th.squeeze] = squeeze_vjp_rule
+vjp_rules[th.matmul] = _matmul_vjp_rule
 
 def vjp(func, primals):
     def wrapped(*tangents):
@@ -621,7 +676,7 @@ def grad(func):
     return wrapped
 
 def mse_loss(x, t):
-    return ((x - t) ** 2).sum()
+    return pow(sub(x, t), th.tensor(2)).sum()
 
 x = th.tensor([[0., 1., 2.], [3., 4., 5.]])
 t = th.tensor([[1., 2., 3.], [5., 6., 7.]])
@@ -765,6 +820,7 @@ class VmapInterpreter(Interpreter):
 class VmapInterpreterValue(InterpreterValue):
     def __init__(self, value, bdim, interpreter):
         super().__init__(self, interpreter)
+        assert isinstance(value, InterpreterValue) or isinstance(value, th.Tensor)
         self.value = value
         self.bdim = bdim
 
@@ -867,6 +923,21 @@ def squeeze_batch_rule(x, dim):
     return VmapInterpreterValue(result, 0, x.interpreter)
 
 
+def expand_batch_rule(x, shape):
+    x_ = move_bdim_to_front(x.value, x.bdim)
+    x_ = movedim(x_, 0, -1)
+    result = expand(x_, list(shape) + [x_.size()[-1]])
+    result = movedim(result, -1, 0)
+    return VmapInterpreterValue(result, 0, x.interpreter)
+
+def transpose_batch_rule(x, dim0, dim1):
+    assert dim0 >= 0
+    assert dim1 >= 0
+    x_ = move_bdim_to_front(x.value, x.bdim)
+    result = transpose(x_, dim0 + 1, dim1 + 1)
+    return VmapInterpreterValue(result, 0, x.interpreter)
+
+
 batch_rules[th.log] = unary_batch_rule(log)
 batch_rules[th.sin] = unary_batch_rule(sin)
 batch_rules[th.cos] = unary_batch_rule(cos)
@@ -882,6 +953,8 @@ batch_rules[th.movedim] = movedim_batch_rule
 batch_rules[th.unsqueeze] = unsqueeze_batch_rule
 batch_rules[th.squeeze] = squeeze_batch_rule
 batch_rules[th.matmul] = _matmul_batch_rule
+batch_rules[th.Tensor.expand] = expand_batch_rule
+batch_rules[th.transpose] = transpose_batch_rule
 
 
 def vmap(fn, in_axes=0):
@@ -901,19 +974,19 @@ def vmap(fn, in_axes=0):
 
 
 # ----------------------------- Tests -------------------------------
-# x = th.ones(2, 3)
-# y = th.ones(3)
-# expected = add(x, y)
-# assert th.allclose(expected, th.add(x, y))
-# 
-# result = vmap(add, in_axes=(0, None))(x, y)
-# assert th.allclose(result, expected)
-# 
-# x = th.ones(2, 3)
-# y = th.ones(5, 3)
-# expected = y.view(5, 1, 3) + x
-# result = vmap(vmap(add, in_axes=(0, None)), in_axes=(None, 0))(x, y)
-# assert th.allclose(result, expected)
+x = th.ones(2, 3)
+y = th.ones(3)
+expected = add(x, y)
+assert th.allclose(expected, th.add(x, y))
+
+result = vmap(add, in_axes=(0, None))(x, y)
+assert th.allclose(result, expected)
+
+x = th.ones(2, 3)
+y = th.ones(5, 3)
+expected = y.view(5, 1, 3) + x
+result = vmap(vmap(add, in_axes=(0, None)), in_axes=(None, 0))(x, y)
+assert th.allclose(result, expected)
 
 x = th.rand(2, 3)
 y = th.rand(2, 5, 3)
@@ -933,7 +1006,7 @@ result = vmap(mse, in_axes=(0, None))(x, t)
 assert th.allclose(result, expected)
 
 def mse_loss(x, t):
-    return ((x - t) ** th.tensor(2)).sum()
+    return pow(sub(x, t), th.tensor(2)).sum()
 
 x = th.rand(2, 3)
 t = th.rand(2, 3)
@@ -949,7 +1022,7 @@ assert th.allclose(jac, expected)
 
 x = th.rand(2, 3)
 t = th.rand(2, 3)
-result = vmap(grad(mse_loss), in_axes=(0, 0))(x, t)
+result = vmap(grad(mse_loss))(x, t)
 expected = 2 * (x - t)
 assert th.allclose(result, expected)
 
@@ -977,3 +1050,24 @@ y = th.rand(2, 3)
 result = vmap(matmul)(x, y)
 expected = th.einsum('nhi,ni->nh', x, y)
 assert th.allclose(result, expected)
+
+# more per-sample-grads
+B = 64
+x = th.rand(B, 10)
+t = th.rand(B)
+weight = th.rand(10, 5)
+
+def model(weight, x):
+    x = matmul(x, weight)
+    # x = relu(x)
+    return x.sum()
+
+def loss(weight, x, t):
+    y = model(weight, x)
+    return mse_loss(y, t)
+
+expected = [grad(loss)(weight, x[i], t[i]) for i in range(B)]
+expected = th.stack(expected)
+assert expected.shape == th.Size([B, 10, 5])
+weight_grad_sample = vmap(grad(loss), in_axes=(None, 0, 0))(weight, x, t)
+assert th.allclose(weight_grad_sample, expected)
