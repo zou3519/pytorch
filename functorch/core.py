@@ -1,4 +1,6 @@
 import torch as th
+from functools import partial
+import copy
 
 
 # The dispatcher holds a stack of interpreters.
@@ -27,6 +29,9 @@ class DispatcherSingleton():
             return func(*args, **kwargs)
 
         interpreter = self.interpreter_stack.pop()
+
+        if not isinstance(args, tuple):
+            import pdb; pdb.set_trace()
 
         # "Lift" the values to be values understood by this interpreter.
         # E.g., a VmapInterpreter operates on VmapInterpreterValues
@@ -70,7 +75,10 @@ class InterpreterValue():
         return dispatcher_singleton.call_primitive(th.Tensor.dim, (self,))
 
     def sum(self, dim=None):
-        return dispatcher_singleton.call_primitive(th.sum, (self, dim))
+        if dim is None:
+            return dispatcher_singleton.call_primitive(th.sum, (self,))
+        else:
+            return dispatcher_singleton.call_primitive(th.sum, (self, dim))
 
     def __mul__(self, other):
         return dispatcher_singleton.call_primitive(th.mul, (self, other))
@@ -83,6 +91,9 @@ class InterpreterValue():
 
     def __pow__(self, other):
         return dispatcher_singleton.call_primitive(th.pow, (self, other))
+
+    def __neg__(self):
+        return dispatcher_singleton.call_primitive(th.neg, (self,))
 
 # ----------------------------- API ----------------------------------
 # TODO: These should be probably be __torch_function__, but
@@ -112,7 +123,21 @@ def log(x):
     return dispatcher_singleton.call_primitive(th.log, (x,))
 
 
+def sin(x):
+    return dispatcher_singleton.call_primitive(th.sin, (x,))
+
+
+def cos(x):
+    return dispatcher_singleton.call_primitive(th.cos, (x,))
+
+
+def neg(x):
+    return dispatcher_singleton.call_primitive(th.neg, (x,))
+
+
 def sum(x, dim=None):
+    if dim is None:
+        return dispatcher_singleton.call_primitive(th.sum, (x,))
     return dispatcher_singleton.call_primitive(th.sum, (x, dim))
 
 
@@ -286,6 +311,291 @@ def graph(a, b):
 """.strip()
 assert repr(graph) == expected
 
+# grad
+# vjp_rules = {}
+# 
+# def sum_backward(grad, tensor):
+#     return grad.expand_as(tensor)
+# 
+# def mul_backward(grad, tensor, other):
+#     return grad * other, grad * tensor
+# 
+# def add_backward(grad, tensor, other):
+#     return grad, grad
+# 
+# def sub_backward(grad, tensor, other):
+#     return grad, -grad
+# 
+# def relu_backward(grad, tensor):
+#     return grad * (tensor >= 0)
+# 
+# vjp_rules[th.sum] = sum_backward
+# vjp_rules[th.mul] = mul_backward
+# vjp_rules[th.add] = add_backward
+# vjp_rules[th.sub] = sub_backward
+# vjp_rules[th.nn.functional.relu] = relu_backward
+# 
+# def vjp(func, *primals):
+#     def wrapped(*tangents):
+#         # TODO: there's a question of how symbolic this should be.
+#         graph = symbolic_trace(func, primals)
+# 
+#         # How to duplicate?
+#         vjp_graph = copy.deepcopy(graph)
+# 
+#         # TODO: should really clean up the abstractions
+#         sym_tangents = [vjp_graph.def_input(tangent.shape) for tangent in tangents]
+# 
+#         grad_dict = {}
+#         for tangent, output in zip(sym_tangents, graph.outputs):
+#             grad_dict[output.name] = tangent.name
+# 
+#         for node in reversed(graph.calls):
+#             grad_fn = vjp_rules[node.prim]
+#             vjp_graph.call()
+# 
+
+vjp_rules = {}
+
+class ReverseADInterpreter(Interpreter):
+    def lower_primitive(self, func, *args, **kwargs):
+        if func not in vjp_rules.keys():
+            raise RuntimeError(f'NYI: {func}')
+        return vjp_rules[func](*args, **kwargs)
+
+    def lift_value(self, value):
+        if isinstance(value, InterpreterValue):
+            if value.interpreter is self:
+                return value
+        return ReverseADInterpreterValue(self, value, None)
+
+class ReverseADInterpreterValue(InterpreterValue):
+    def __init__(self, interpreter, value, grad_fn):
+        super().__init__(self, interpreter)
+        self.value = value
+        self.grad_fn = grad_fn
+
+    def __repr__(self):
+        if isinstance(self.value, th.Tensor):
+            val = 'Tensor'
+        else:
+            val = self.value
+        return f'ReverseADInterpreterValue({val}, {self.interpreter})'
+
+class GradNode():
+    def __init__(self):
+        self.out_edges = {}
+
+    def call(self, grad, i):
+        raise RuntimeError("abstract")
+
+    def set_next_edge(self, out_nr, grad_node):
+        self.out_edges[out_nr] = grad_node
+
+    # Assume single-valued output for now
+    def execute(self, grad):
+        for i, next_node in self.out_edges.items():
+            grad_input = self.call(grad, i)
+            next_node.execute(grad_input)
+
+class AccumulateGrad(GradNode):
+    def execute(self, grad):
+        if not hasattr(self, 'grad'):
+            self.grad = grad
+        else:
+            self.grad = self.grad + grad
+
+class AddBackward(GradNode):
+    def call(self, grad, i):
+        return grad, grad
+
+class SubBackward(GradNode):
+    def call(self, grad, i):
+        if i == 0:
+            return grad
+        return -th.tensor(1.) * grad
+
+class MulBackward(GradNode):
+    def __init__(self, x, y):
+        super().__init__()
+        self.x = x.value
+        self.y = y.value
+
+    def call(self, grad, i):
+        if i == 0:
+            return mul(grad, self.y)
+        return mul(grad, self.x)
+
+class PowBackward(GradNode):
+    def __init__(self, base, exp):
+        super().__init__()
+        self.base = base.value
+        self.exp = exp.value
+
+    def call(self, grad, i):
+        if i == 0:
+            return pow(mul(mul(grad, self.exp), self.base), sub(self.exp, th.tensor(1)))
+        return pow(mul(mul(grad, log(base)), self.base), self.exp)
+
+class SumBackward(GradNode):
+    def __init__(self, input_shape):
+        super().__init__()
+        self.input_shape = input_shape
+
+    def call(self, grad, i):
+        return grad.expand(self.input_shape)
+
+class SinBackward(GradNode):
+    def __init__(self, x):
+        super().__init__()
+        self.x = x.value
+
+    def call(self, grad, i):
+        return mul(grad, cos(self.x))
+
+class CosBackward(GradNode):
+    def __init__(self, x):
+        super().__init__()
+        self.x = x.value
+
+    def call(self, grad, i):
+        return mul(-grad, sin(self.x))
+
+class NegBackward(GradNode):
+    def call(self, grad, i):
+        return -grad
+
+def add_vjp_rule(x, y):
+    node = AddBackward()
+    result = x.value + y.value
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    if y.grad_fn:
+        node.set_next_edge(1, y.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def sub_vjp_rule(x, y):
+    node = SubBackward()
+    result = x.value - y.value
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    if y.grad_fn:
+        node.set_next_edge(1, y.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def pow_vjp_rule(x, y):
+    node = PowBackward(x, y)
+    result = x.value ** y.value
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    if y.grad_fn:
+        node.set_next_edge(1, y.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def mul_vjp_rule(x, y):
+    node = MulBackward(x, y)
+    result = mul(x.value, y.value)
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    if y.grad_fn:
+        node.set_next_edge(1, y.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def sum_vjp_rule(x, dim=None):
+    assert dim is None
+    node = SumBackward(x.value.size())
+    result = sum(x.value)
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def sin_vjp_rule(x):
+    node = SinBackward(x)
+    result = sin(x.value)
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def cos_vjp_rule(x):
+    node = CosBackward(x)
+    result = cos(x.value)
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+def neg_vjp_rule(x):
+    node = NegBackward()
+    result = -x.value
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
+
+
+vjp_rules[th.sub] = sub_vjp_rule
+vjp_rules[th.pow] = pow_vjp_rule
+vjp_rules[th.sum] = sum_vjp_rule
+vjp_rules[th.sin] = sin_vjp_rule
+vjp_rules[th.mul] = mul_vjp_rule
+vjp_rules[th.cos] = cos_vjp_rule
+vjp_rules[th.neg] = neg_vjp_rule
+
+def vjp(func, primals):
+    def wrapped(*tangents):
+        interpreter = ReverseADInterpreter()
+        dispatcher_singleton.push_interpreter(interpreter)
+
+        inputs = tuple(ReverseADInterpreterValue(interpreter, primal, AccumulateGrad())
+                       for primal, tangent in zip(primals, tangents))
+        result = func(*inputs)
+        dispatcher_singleton.pop_interpreter()
+
+        # TODO: assumed single output
+        assert len(tangents) == 1
+        result.grad_fn.execute(tangents[0])
+        grads = tuple(i.grad_fn.grad for i in inputs)
+        return grads
+    return wrapped
+
+def grad(func):
+    def wrapped(primal, *args):
+        interpreter = ReverseADInterpreter()
+        dispatcher_singleton.push_interpreter(interpreter)
+        variable = ReverseADInterpreterValue(interpreter, primal, AccumulateGrad())
+        result = func(variable, *args)
+        dispatcher_singleton.pop_interpreter()
+        result.grad_fn.execute(th.tensor(1.))
+        return variable.grad_fn.grad
+    return wrapped
+
+def mse_loss(x, t):
+    return ((x - t) ** 2).sum()
+
+x = th.tensor([[0., 1., 2.], [3., 4., 5.]])
+t = th.tensor([[1., 2., 3.], [5., 6., 7.]])
+g = th.tensor(1.)
+
+grad_loss = vjp(partial(mse_loss, t=t), (x,))
+result, = grad_loss(g)
+expected = 2 * (x - t)
+assert th.allclose(result, expected)
+
+grad_loss = grad(mse_loss)
+result = grad_loss(x, t)
+expected = 2 * (x - t)
+assert th.allclose(result, expected)
+
+grad_grad_loss = grad(grad(mse_loss))
+result = grad_loss(x, t)
+expected = 2 * (x - t)
+assert th.allclose(result, expected)
+
+# double grad
+x = th.randn([])
+grad_sin = grad(sin)
+assert th.allclose(grad_sin(x), cos(x))
+grad_grad_sin = grad(grad(sin))
+assert th.allclose(grad_grad_sin(x), -sin(x))
 
 # ----------------------------- forward ad things -------------------------------
 
@@ -413,6 +723,13 @@ class VmapInterpreterValue(InterpreterValue):
             val = self.value
         return f'VmapIValue({val}, {self.bdim}, {self.interpreter})'
 
+    # TODO: why am I overriding this here?
+    def size(self):
+        result = list(self.value.size())
+        if self.bdim is not None:
+            del result[self.bdim]
+        return result
+
 
 def ndim_batch_rule(x):
     result = x.value.dim()
@@ -462,8 +779,10 @@ def unsqueeze_batch_rule(x, dim):
     z_ = unsqueeze(x_, dim + 1)
     return VmapInterpreterValue(z_, 0, x.interpreter)
 
-def log_batch_rule(x):
-    return VmapInterpreterValue(log(x.value), x.bdim, x.interpreter)
+def unary_batch_rule(func):
+    def wrapped(x):
+        return VmapInterpreterValue(func(x.value), x.bdim, x.interpreter)
+    return wrapped
 
 
 def sum_batch_rule(x, dim=None):
@@ -478,7 +797,9 @@ def sum_batch_rule(x, dim=None):
     return VmapInterpreterValue(result, 0, x.interpreter)
 
 
-batch_rules[th.log] = binary_pw_batch_rule(log)
+batch_rules[th.log] = unary_batch_rule(log)
+batch_rules[th.sin] = unary_batch_rule(sin)
+batch_rules[th.cos] = unary_batch_rule(cos)
 batch_rules[th.add] = binary_pw_batch_rule(add)
 batch_rules[th.sub] = binary_pw_batch_rule(sub)
 batch_rules[th.mul] = binary_pw_batch_rule(mul)
@@ -542,4 +863,16 @@ x = th.rand(2, 3)
 t = th.rand(2, 3)
 expected = mse(x, t).sum(-1)
 result = vmap(mse_loss, in_axes=(0, 0))(x, t)
+assert th.allclose(result, expected)
+
+# per-sample-grad
+x = th.rand(10)
+jac = vmap(grad(sin), in_axes=(0,))(x)
+expected = cos(x)
+assert th.allclose(jac, expected)
+
+x = th.rand(2, 3)
+t = th.rand(2, 3)
+result = vmap(grad(mse_loss), in_axes=(0, 0))(x, t)
+expected = 2 * (x - t)
 assert th.allclose(result, expected)
