@@ -30,9 +30,6 @@ class DispatcherSingleton():
 
         interpreter = self.interpreter_stack.pop()
 
-        if not isinstance(args, tuple):
-            import pdb; pdb.set_trace()
-
         # "Lift" the values to be values understood by this interpreter.
         # E.g., a VmapInterpreter operates on VmapInterpreterValues
         args = tuple(interpreter.lift_value(arg) for arg in args)
@@ -135,6 +132,14 @@ def neg(x):
     return dispatcher_singleton.call_primitive(th.neg, (x,))
 
 
+def gt(x, y):
+    return dispatcher_singleton.call_primitive(th.gt, (x, y))
+
+
+# Only handles matmul for x, y with rank >= 2
+def _matmul(x, y):
+    return dispatcher_singleton.call_primitive(th.matmul, (x, y))
+
 def sum(x, dim=None):
     if dim is None:
         return dispatcher_singleton.call_primitive(th.sum, (x,))
@@ -147,6 +152,29 @@ def movedim(x, from_dim, to_dim):
 
 def unsqueeze(x, dim):
     return dispatcher_singleton.call_primitive(th.unsqueeze, (x, dim))
+
+
+def squeeze(x, dim):
+    return dispatcher_singleton.call_primitive(th.squeeze, (x, dim))
+
+
+def relu(x):
+    return gt(x, 0) * x
+
+
+def matmul(x, y):
+    if x.dim() == 1 and y.dim() == 1:
+        result = _matmul(unsqueeze(x, -2), unsqueeze(y, -1))
+        return squeeze(squeeze(result, -1), -1)
+    if x.dim() >= 2 and y.dim() == 1:
+        result = _matmul(x, unsqueeze(y, -1))
+        return squeeze(result, -1)
+    if x.dim() == 1 and y.dim() >= 2:
+        result = _matmul(unsqueeze(x, -2), y)
+        return squeeze(result, -2)
+    if x.dim() >= 2 and y.dim() >= 2:
+        return _matmul(x, y)
+    raise RuntimeError()
 
 # IR
 # TODO: evaluate FX's IR to see if they handle our requirements
@@ -426,6 +454,18 @@ class MulBackward(GradNode):
             return mul(grad, self.y)
         return mul(grad, self.x)
 
+class MatmulBackward(GradNode):
+    def __init__(self, x, y):
+        super().__init__()
+        self.x = x.value
+        self.y = y.value
+
+    def call(self, grad, i):
+        if i == 0:
+            return matmul(grad, self.y)
+            return mul(grad, self.y)
+        return mul(grad, self.x)
+
 class PowBackward(GradNode):
     def __init__(self, base, exp):
         super().__init__()
@@ -501,6 +541,15 @@ def mul_vjp_rule(x, y):
         node.set_next_edge(1, y.grad_fn)
     return ReverseADInterpreterValue(x.interpreter, result, node)
 
+def matmul_vjp_rule(x, y):
+    node = MatmulBackward(x, y)
+    result = matmul(x.value, y.value)
+    if x.grad_fn:
+        node.set_next_edge(0, x.grad_fn)
+    if y.grad_fn:
+        node.set_next_edge(1, y.grad_fn)
+    return ReverseADInterpreterValue(x.interpreter, result, node)
+
 def sum_vjp_rule(x, dim=None):
     assert dim is None
     node = SumBackward(x.value.size())
@@ -530,6 +579,9 @@ def neg_vjp_rule(x):
         node.set_next_edge(0, x.grad_fn)
     return ReverseADInterpreterValue(x.interpreter, result, node)
 
+def gt_vjp_rule(x, y):
+    result = gt(x, y)
+    return ReverseADInterpreterValue(x.interpreter, result, None)
 
 
 vjp_rules[th.sub] = sub_vjp_rule
@@ -733,7 +785,7 @@ class VmapInterpreterValue(InterpreterValue):
 
 def ndim_batch_rule(x):
     result = x.value.dim()
-    if x.bdim:
+    if x.bdim is not None:
         return result - 1
     return result
 
@@ -753,8 +805,8 @@ def move_bdim_to_front(x, bdim, result_ndim=None):
 
 def __ndim(value, bdim):
     result = value.dim()
-    if bdim:
-        result -= 1
+    if bdim is None:
+        return result + 1
     return result
 
 
@@ -767,6 +819,13 @@ def binary_pw_batch_rule(func):
         return VmapInterpreterValue(z_, 0, x.interpreter)
     return wrapper
 
+def _matmul_batch_rule(x, y):
+    result_ndim = max(__ndim(x.value, x.bdim), __ndim(y.value, y.bdim))
+    x_ = move_bdim_to_front(x.value, x.bdim, result_ndim)
+    y_ = move_bdim_to_front(y.value, y.bdim, result_ndim)
+    z_ = _matmul(x_, y_)
+    return VmapInterpreterValue(z_, 0, x.interpreter)
+
 
 def movedim_batch_rule(x, from_dim, to_dim):
     x_ = move_bdim_to_front(x.value, x.bdim)
@@ -776,7 +835,10 @@ def movedim_batch_rule(x, from_dim, to_dim):
 
 def unsqueeze_batch_rule(x, dim):
     x_ = move_bdim_to_front(x.value, x.bdim)
-    z_ = unsqueeze(x_, dim + 1)
+    if dim >= 0:
+        z_ = unsqueeze(x_, dim + 1)
+    else:
+        z_ = unsqueeze(x_, dim)
     return VmapInterpreterValue(z_, 0, x.interpreter)
 
 def unary_batch_rule(func):
@@ -796,6 +858,14 @@ def sum_batch_rule(x, dim=None):
         raise NotImplementedError()
     return VmapInterpreterValue(result, 0, x.interpreter)
 
+def squeeze_batch_rule(x, dim):
+    x_ = move_bdim_to_front(x.value, x.bdim)
+    if dim >= 0:
+        result = squeeze(x_, dim + 1)
+    else:
+        result = squeeze(x_, dim)
+    return VmapInterpreterValue(result, 0, x.interpreter)
+
 
 batch_rules[th.log] = unary_batch_rule(log)
 batch_rules[th.sin] = unary_batch_rule(sin)
@@ -805,18 +875,24 @@ batch_rules[th.sub] = binary_pw_batch_rule(sub)
 batch_rules[th.mul] = binary_pw_batch_rule(mul)
 batch_rules[th.div] = binary_pw_batch_rule(div)
 batch_rules[th.pow] = binary_pw_batch_rule(pow)
+batch_rules[th.gt] = binary_pw_batch_rule(gt)
 batch_rules[th.sum] = sum_batch_rule
 batch_rules[th.Tensor.dim] = ndim_batch_rule
 batch_rules[th.movedim] = movedim_batch_rule
 batch_rules[th.unsqueeze] = unsqueeze_batch_rule
+batch_rules[th.squeeze] = squeeze_batch_rule
+batch_rules[th.matmul] = _matmul_batch_rule
 
 
-def vmap(fn, in_axes):
+def vmap(fn, in_axes=0):
     def wrapped(*args):
+        _in_axes = in_axes
+        if _in_axes == 0:
+            _in_axes = (0,) * len(args)
         interpreter = VmapInterpreter()
         dispatcher_singleton.push_interpreter(interpreter)
         vmap_inputs = [VmapInterpreterValue(arg, dim, interpreter)
-                       for arg, dim in zip(args, in_axes)]
+                       for arg, dim in zip(args, _in_axes)]
         output = fn(*vmap_inputs)
         assert output.interpreter is interpreter
         dispatcher_singleton.pop_interpreter()
@@ -825,24 +901,24 @@ def vmap(fn, in_axes):
 
 
 # ----------------------------- Tests -------------------------------
-x = th.ones(2, 3)
-y = th.ones(3)
-expected = add(x, y)
-assert th.allclose(expected, th.add(x, y))
-
-result = vmap(add, in_axes=(0, None))(x, y)
-assert th.allclose(result, expected)
-
-x = th.ones(2, 3)
-y = th.ones(5, 3)
-expected = y.view(5, 1, 3) + x
-result = vmap(vmap(add, in_axes=(0, None)), in_axes=(None, 0))(x, y)
-assert th.allclose(result, expected)
+# x = th.ones(2, 3)
+# y = th.ones(3)
+# expected = add(x, y)
+# assert th.allclose(expected, th.add(x, y))
+# 
+# result = vmap(add, in_axes=(0, None))(x, y)
+# assert th.allclose(result, expected)
+# 
+# x = th.ones(2, 3)
+# y = th.ones(5, 3)
+# expected = y.view(5, 1, 3) + x
+# result = vmap(vmap(add, in_axes=(0, None)), in_axes=(None, 0))(x, y)
+# assert th.allclose(result, expected)
 
 x = th.rand(2, 3)
 y = th.rand(2, 5, 3)
 expected = x.view(2, 1, 3) + y
-result = vmap(add, in_axes=(0, 0))(x, y)
+result = vmap(add)(x, y)
 assert th.allclose(result, expected)
 
 def mse(x, t):
@@ -875,4 +951,29 @@ x = th.rand(2, 3)
 t = th.rand(2, 3)
 result = vmap(grad(mse_loss), in_axes=(0, 0))(x, t)
 expected = 2 * (x - t)
+assert th.allclose(result, expected)
+
+# matmul tests
+x = th.rand(2, 5, 3)
+y = th.rand(2, 3, 5)
+result = vmap(matmul)(x, y)
+expected = th.einsum('nhi,nij->nhj', x, y)
+assert th.allclose(result, expected)
+
+x = th.rand(2, 3)
+y = th.rand(2, 3)
+result = vmap(matmul)(x, y)
+expected = th.einsum('ni,ni->n', x, y)
+assert th.allclose(result, expected)
+
+x = th.rand(2, 3)
+y = th.rand(2, 3, 5)
+result = vmap(matmul)(x, y)
+expected = th.einsum('ni,nij->nj', x, y)
+assert th.allclose(result, expected)
+
+x = th.rand(2, 5, 3)
+y = th.rand(2, 3)
+result = vmap(matmul)(x, y)
+expected = th.einsum('nhi,ni->nh', x, y)
 assert th.allclose(result, expected)
