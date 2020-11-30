@@ -35,7 +35,7 @@ class DispatcherSingleton():
         args = tuple(interpreter.lift_value(arg) for arg in args)
         kwargs = {k: interpreter.lift_value(v) for k, v in kwargs.items()}
 
-        result = interpreter.lower_primitive(func, *args, **kwargs)
+        result = interpreter.process_primitive(func, *args, **kwargs)
         self.interpreter_stack.append(interpreter)
         return result
 
@@ -50,7 +50,7 @@ class Interpreter():
         self.ilevel = ilevel
         ilevel += 1
 
-    def lower_primitive(self, func, *args, **kwargs):
+    def process_primitive(self, func, *args, **kwargs):
         raise NotImplementedError('abstract')
 
     def lift_value(self, value):
@@ -212,7 +212,7 @@ class SymbolicTraceInterpreter(Interpreter):
     def __init__(self):
         self.graph = Graph(self)
 
-    def lower_primitive(self, func, *args, **kwargs):
+    def process_primitive(self, func, *args, **kwargs):
         assert not kwargs
         return self.graph.call(func, args)
 

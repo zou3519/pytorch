@@ -5,7 +5,7 @@ import torch as th
 vjp_rules = {}
 
 class ReverseADInterpreter(Interpreter):
-    def lower_primitive(self, func, *args, **kwargs):
+    def process_primitive(self, func, *args, **kwargs):
         if func == th.Tensor.dim:
             return args[0].value.dim()
         if func not in vjp_rules.keys():
@@ -18,6 +18,7 @@ class ReverseADInterpreter(Interpreter):
         if isinstance(value, InterpreterValue):
             if value.interpreter is self:
                 return value
+            assert value.interpreter.ilevel <= self.ilevel
             return ReverseADInterpreterValue(self, value, None)
         return value
 
@@ -290,7 +291,7 @@ def grad(func):
 forward_formulas = {}
 
 class ForwardADInterpreter(Interpreter):
-    def lower_primitive(self, func, *args, **kwargs):
+    def process_primitive(self, func, *args, **kwargs):
         if func not in forward_formulas.keys():
             raise RuntimeError(f'NYI: {func}')
         return forward_formulas[func](*args, **kwargs)
@@ -301,7 +302,8 @@ class ForwardADInterpreter(Interpreter):
         if isinstance(value, InterpreterValue):
             if value.interpreter is self:
                 return value
-            return ForwardADInterpreterValue(value, zeros_like(value), self)
+            assert value.interpreter.ilevel <= self.ilevel
+            return ForwardADInterpreterValue(value, ops.zeros_like(value), self)
         return value
 
 

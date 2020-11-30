@@ -6,7 +6,7 @@ batch_rules = {}
 
 
 class VmapInterpreter(Interpreter):
-    def lower_primitive(self, func, *args, **kwargs):
+    def process_primitive(self, func, *args, **kwargs):
         if func not in batch_rules.keys():
             raise RuntimeError(f'NYI: {func}')
         return batch_rules[func](*args, **kwargs)
@@ -17,6 +17,7 @@ class VmapInterpreter(Interpreter):
         if isinstance(value, InterpreterValue):
             if value.interpreter is self:
                 return value
+            assert value.interpreter.ilevel <= self.ilevel
             return VmapInterpreterValue(value, None, self)
         return value
 
@@ -175,5 +176,4 @@ def vmap(fn, in_axes=0):
         dispatcher_singleton.pop_interpreter()
         return output.value
     return wrapped
-
 
