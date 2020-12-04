@@ -1,6 +1,6 @@
 import torch as th
 import api as functorch
-from api import vmap, grad, vjp, jvp
+from api import vmap, grad, vjp, jvp, jit
 from functools import partial
 
 def mse_loss(x, t):
@@ -140,3 +140,28 @@ expected = th.stack(expected)
 assert expected.shape == th.Size([B, 10, 5])
 weight_grad_sample = vmap(grad(loss), in_axes=(None, 0, 0))(weight, x, t)
 assert th.allclose(weight_grad_sample, expected)
+
+# def mse(x, y):
+#     return (x - y) ** 2
+# 
+# x = th.rand(10)
+# y = th.rand(10)
+# 
+# graph = symbolic_trace(mse, (x, y))
+# expected = """
+# def graph(a, b):
+#     c = sub(a, b)
+#     d = pow(c, 2)
+#     return d
+# """.strip()
+# assert repr(graph) == expected
+
+def mse_loss(x, t):
+    return functorch.pow(functorch.sub(x, t), functorch.tensor(2.)).sum()
+
+x = th.rand(2, 3)
+t = th.rand(2, 3)
+expected = mse_loss(x, y)
+result = jit(mse_loss)(x, y)
+assert th.allclose(result, expected)
+

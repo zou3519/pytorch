@@ -96,20 +96,21 @@ class InterpreterValue():
 # IR
 # TODO: evaluate FX's IR to see if they handle our requirements
 class AbstractValue(InterpreterValue):
-    def __init__(self, name, interpreter):
+    def __init__(self, interpreter):
         super().__init__(self, interpreter)
-        self.name = name
+        assert interpreter is not None
 
     def __repr__(self):
-        return self.name
+        return "AbstractValue"
 
     def __bool__(self):
         raise RuntimeError("Nope nope nope")
 
 
 class ShapedArray(AbstractValue):
-    def __init__(self, name, shape, interpreter):
-        super().__init__(name, interpreter)
+    def __init__(self, interpreter, shape):
+        super().__init__(interpreter)
+        assert isinstance(shape, tuple)
         self.shape = shape
 
     def size(self, dim=None):
@@ -135,14 +136,18 @@ def binary_pw_shape_rule(x, y):
     output_size = []
     max_rank = max(len(x_size), len(y_size))
     for i in range(-1, -max_rank, -1):
-        output_size.append(broadcast_dim(x, y))
-    output_size = list(reversed(output_size))
+        output_size.append(broadcast_dim(x_size[i], y_size[i]))
+    output_size = tuple(reversed(output_size))
     return output_size
 
+def tensor_shape_rule(*args):
+    x = th.tensor(args)
+    return x.size()
 
 def sum_shape_rule(x_size):
-    return []
+    return ()
 
+_shape_rules[th.tensor] = tensor_shape_rule
 _shape_rules[th.add] = binary_pw_shape_rule
 _shape_rules[th.sub] = binary_pw_shape_rule
 _shape_rules[th.mul] = binary_pw_shape_rule
@@ -150,54 +155,53 @@ _shape_rules[th.pow] = binary_pw_shape_rule
 _shape_rules[th.sum] = sum_shape_rule
 
 
-class Call():
+class Variable():
+    def __init__(self, id, abstract_value):
+        self.id = id
+        self.abstract_value = abstract_value
+
+    def __repr__(self):
+        if self.id <= 26:
+            return chr(ord('`') + self.id)
+        return f'_{self.id}'
+
+class Literal():
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return repr(self.value)
+
+class FunctionCall():
     def __init__(self, outputs, prim, inputs):
         self.outputs = outputs
         self.prim = prim
         self.inputs = inputs
 
     def __repr__(self):
-        if isinstance(self.outputs, InterpreterValue):
-            outs = [self.outputs]
-        else:
-            outs = self.outputs
-        out = [repr(out) for out in outs]
+        out = [repr(out) for out in self.outputs]
         ins = [repr(i) for i in self.inputs]
         return f"{' ,'.join(out)} = {self.prim.__name__}({', '.join(ins)})"
 
+
 class Graph():
-    def __init__(self, interpreter):
-        self.interpreter = interpreter
+    def __init__(self):
         self.inputs = []
-        self.calls = []
+        self.function_calls = []
         self.outputs = []
-        self.num_values = 0
+        self.num_variables = 0
 
-    def _gen_name(self):
-        self.num_values += 1
-        if self.num_values <= 26:
-            return chr(ord('`') + self.num_values)
-        return f'_{self.num_values}'
-
-    def def_input(self, shape):
-        result = ShapedArray(self._gen_name(), shape, self.interpreter)
+    def def_input(self, abstract_value):
+        result = self.def_var(abstract_value)
         self.inputs.append(result)
         return result
 
-    def def_output(self, val):
-        self.outputs.append(val)
+    def def_output(self, variable):
+        self.outputs.append(variable)
 
-    def call(self, prim, inputs):
-        shape_rule = _shape_rules[prim]
-        result = shape_rule(*inputs)
-        # TODO: this is a hacky check
-        if isinstance(result, list):
-            result = ShapedArray(self._gen_name(), result, self.interpreter)
-        else:
-            result = [ShapedArray(self._gen_name(), r, self.interpreter) for r in result]
-
-        self.calls.append(Call(result, prim, inputs))
-        return result
+    def def_var(self, abstract_value):
+        self.num_variables += 1
+        return Variable(self.num_variables, abstract_value)
 
     def __repr__(self):
         ins = ', '.join([repr(i) for i in self.inputs])
@@ -210,15 +214,48 @@ class Graph():
 
 class SymbolicTraceInterpreter(Interpreter):
     def __init__(self):
-        self.graph = Graph(self)
+        self.graph = Graph()
+        self.abstract_value_to_variable = {}
 
-    def process_primitive(self, func, *args, **kwargs):
+    def process_primitive(self, prim, *args, **kwargs):
         assert not kwargs
-        return self.graph.call(func, args)
+        shape_rule = _shape_rules[prim]
+        result_shapes = shape_rule(*args)
+        # NB: shape is always a tuple
+        if not isinstance(result_shapes, list):
+            result_shapes = [result_shapes]
+        outputs = [ShapedArray(self, shape) for shape in result_shapes]
+
+        # Write to the graph
+        invars = [self.abstract_value_to_variable[arg]
+                  if isinstance(arg, AbstractValue)
+                  else Literal(arg)
+                  for arg in args]
+        outvars = [self.graph.def_var(out) for out in outputs]
+        self.graph.function_calls.append(FunctionCall(outvars, prim, invars))
+
+        for outvar, value in zip(outvars, outputs):
+            self.abstract_value_to_variable[value] = outvar
+        if len(outputs) == 1:
+            return outputs[0]
+        return tuple(outputs)
+
+    def def_input(self, value):
+        assert isinstance(value, th.Tensor)
+        result = ShapedArray(self, value.shape)
+        invar = self.graph.def_input(result)
+        self.abstract_value_to_variable[result] = invar
+        return result
+
+    def def_output(self, value):
+        outvar = self.abstract_value_to_variable[value]
+        self.graph.def_output(outvar)
+
 
     def lift_value(self, value):
         if isinstance(value, th.Tensor):
             # what happens when the graph encounters a tensor?
+            # need to toss it into the "constants" section ?
             assert False
         if isinstance(value, InterpreterValue):
             # or another value?
@@ -230,28 +267,14 @@ def symbolic_trace(func, args):
     dispatcher_singleton.push_interpreter(interpreter)
 
     # NB: only tensors for now
-    values = tuple(interpreter.graph.def_input(arg.shape) for arg in args)
+    values = tuple(interpreter.def_input(arg) for arg in args)
     result = func(*values)
     if isinstance(result, InterpreterValue):
-        interpreter.graph.def_output(result)
+        interpreter.def_output(result)
     else:
         for result in result:
-            interpreter.graph.def_output(result)
+            interpreter.def_output(result)
 
     dispatcher_singleton.pop_interpreter()
     return interpreter.graph
 
-def mse(x, y):
-    return (x - y) ** 2
-
-x = th.rand(10)
-y = th.rand(10)
-
-graph = symbolic_trace(mse, (x, y))
-expected = """
-def graph(a, b):
-    c = sub(a, b)
-    d = pow(c, 2)
-    return d
-""".strip()
-assert repr(graph) == expected

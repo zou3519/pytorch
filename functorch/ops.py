@@ -4,6 +4,9 @@ import torch as th
 # TODO: These should be probably be __torch_function__, but
 # __torch_function__ can't override factory functions
 
+def tensor(*args):
+    return dispatcher_singleton.call_primitive(th.tensor, args)
+
 def mul(x, y):
     return dispatcher_singleton.call_primitive(th.mul, (x, y))
 
