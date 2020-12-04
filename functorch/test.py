@@ -165,3 +165,7 @@ expected = mse_loss(x, y)
 result = jit(mse_loss)(x, y)
 assert th.allclose(result, expected)
 
+# TODO: complains that dim isn't a primitive
+# result = jit(vmap(mse_loss))(x, y)
+# assert th.allclose(result, expected)
+
