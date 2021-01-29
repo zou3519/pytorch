@@ -43,6 +43,26 @@ Tensor cosine_embedding_loss(const Tensor& input1, const Tensor& input2, const T
   return apply_loss_reduction(output, reduction);
 }
 
+std::tuple<Tensor,Tensor> nll_loss_fwd(const Tensor& self, const Tensor& target, const Tensor& weight, int64_t reduction, int64_t ignore_index) {
+  return nll_loss_forward(self, target, weight, reduction, ignore_index);
+}
+
+Tensor nll_loss_bwd(const Tensor& grad_output, const Tensor& self, const Tensor& target, const Tensor& weight, int64_t reduction, int64_t ignore_index, const Tensor& total_weight) {
+  TORCH_INTERNAL_ASSERT(reduction > 0);
+  Tensor self_ = self;
+  Tensor target_ = target;
+  bool zero_batch = self.dim() == 1 && target.dim() == 0;
+  if (zero_batch) {
+    self_ = self_.unsqueeze(0);
+    target_ = target_.unsqueeze(0);
+  }
+  auto result = nll_loss_backward(grad_output, self_, target_, weight, reduction, ignore_index, total_weight);
+  if (zero_batch) {
+    return result.squeeze(0);
+  }
+  return result;
+}
+
 Tensor hinge_embedding_loss(const Tensor& self, const Tensor& target, double margin, int64_t reduction) {
   auto zeros = at::zeros_like(self, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
   auto margin_clamp = (margin - self).clamp_min_(0);

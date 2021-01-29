@@ -2381,6 +2381,9 @@ def nll_loss(
         )
     if size_average is not None or reduce is not None:
         reduction = _Reduction.legacy_get_string(size_average, reduce)
+    if input.dim() == 1 and target.dim() == 0 and reduction == 'mean':
+        input = input.unsqueeze(0)
+        target = target.unsqueeze(0)
     dim = input.dim()
     if dim < 2:
         raise ValueError("Expected 2 or more dimensions (got {})".format(dim))
@@ -2693,8 +2696,14 @@ def cross_entropy(
             reduce=reduce,
             reduction=reduction,
         )
+    no_batch_dim = input.dim() == 1 and target.dim() == 0
+    if no_batch_dim:
+        input = input.unsqueeze(0)
+        target = target.unsqueeze(0)
+
     if size_average is not None or reduce is not None:
         reduction = _Reduction.legacy_get_string(size_average, reduce)
+    assert reduction != "none"
     return nll_loss(log_softmax(input, 1), target, weight, None, ignore_index, None, reduction)
 
 

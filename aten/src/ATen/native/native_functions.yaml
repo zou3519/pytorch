@@ -2318,7 +2318,7 @@
     CPU: log_softmax_cpu
     CUDA: log_softmax_cuda
 
-- func: _log_softmax_backward_data(Tensor grad_output, Tensor output, int dim, Tensor self) -> Tensor
+- func: log_softmax_backward_data(Tensor grad_output, Tensor output, int dim, Tensor self) -> Tensor
   dispatch:
     CPU: log_softmax_backward_cpu
     CUDA: log_softmax_backward_cuda
@@ -7299,6 +7299,12 @@
   dispatch:
     CPU: nll_loss_backward_out_cpu
     CUDA: legacy::cuda::_thnn_nll_loss_backward_out
+
+- func: nll_loss_fwd(Tensor self, Tensor target, Tensor? weight, int reduction, int ignore_index) -> (Tensor output, Tensor total_weight)
+  use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
+
+- func: nll_loss_bwd(Tensor grad_output, Tensor self, Tensor target, Tensor? weight, int reduction, int ignore_index, Tensor total_weight) -> Tensor
+  use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
 
 - func: nll_loss_backward(Tensor grad_output, Tensor self, Tensor target, Tensor? weight, int reduction, int ignore_index, Tensor total_weight) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
