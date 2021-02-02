@@ -549,14 +549,14 @@ test_vjp_rule(torch.embedding, weight, indices)
 
 # =========================== End to end test ==============================
 
-# NB: Assumes the model takes ONE input only
+# NB: Assumes the model takes ONE input (data) only
+# This is because FX doesn't allow the * operator (e.g. *args) on a Proxy
 def make_functional(model: nn.Module):
     weights, descriptors = extract_weights(model)
 
-    # NB: Exploded weights is a workaround for "Proxy object doesn't work with *args"
-    def fun(w0, w1, w2, w3, w4, data):
+    def fun(weights, data):
         mutable_model = copy.deepcopy(model)
-        load_weights(mutable_model, descriptors, [w0, w1, w2, w3, w4])
+        load_weights(mutable_model, descriptors, weights)
         return mutable_model(data)
 
     return weights, fun
@@ -593,24 +593,30 @@ targets = torch.randint(0, 1, (*batch_shape,))
 net = SampleNet(vocab_size)
 criterion = nn.CrossEntropyLoss()
 
+# Extract the state (weights) from the network.
 weights, func = make_functional(net)
 
-output = func(*weights, data=data)
-loss = criterion(output, targets)
-
+# We write these in an exploded way because `grad` needs to know which inputs
+# to differentiate with respect to. We can make this nicer by leveraging
+# something like pytrees.
 def compute_loss(w0, w1, w2, w3, w4, data, target):
-    output = func(w0, w1, w2, w3, w4, data)
+    output = func([w0, w1, w2, w3, w4], data)
     return criterion(output, target)
 
+# NB: I modified symbolic_trace to trace through modules.
+# This way, we don't have to worry about modules: everything
+# is a function!
 graph_func = symbolic_trace(compute_loss)
 print(graph_func.code)
 
+# Let's compute the gradient for fun.
 grad_func = grad(compute_loss, (0, 1, 2, 3, 4))
 print(grad_func.code)
 
-result = grad_func(*weights, data=data, target=targets)
+result = grad_func(*weights, data, targets)
 
-loss = compute_loss(*weights, data=data, target=targets)
+# Compute the grad of the loss via autograd
+loss = compute_loss(*weights, data, targets)
 expected = torch.autograd.grad(loss, weights, allow_unused=True)
 
 for r, e in zip(result, expected):
@@ -618,4 +624,8 @@ for r, e in zip(result, expected):
         continue
     import pdb; pdb.set_trace()
 
+# NB: I know this branch name is "grad_embedding_per_sample" but I never got around
+# to implementing enough vmap things to compute per-sample-gradients here.
+# Future work: Implement enough batching rules for vmap for this model and use
+# NNC to potentially fuse things together and demonstrate good perf.
 print("Everything's OK!")
