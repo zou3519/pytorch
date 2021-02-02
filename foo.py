@@ -553,7 +553,7 @@ test_vjp_rule(torch.embedding, weight, indices)
 def make_functional(model: nn.Module):
     weights, descriptors = extract_weights(model)
 
-    # NB: Workaround for "Proxy object doesn't work with *args"
+    # NB: Exploded weights is a workaround for "Proxy object doesn't work with *args"
     def fun(w0, w1, w2, w3, w4, data):
         mutable_model = copy.deepcopy(model)
         load_weights(mutable_model, descriptors, [w0, w1, w2, w3, w4])
@@ -582,12 +582,14 @@ class SampleNet(nn.Module):
         return "SampleNet"
 
 
+# Create our inputs...
 vocab_size = 1000
-batch_size = []
+batch_shape = [64]
 words_per_sentence = 5
-data = torch.randint(0, vocab_size, (*batch_size, words_per_sentence))
-targets = torch.randint(0, 1, (*batch_size,))
+data = torch.randint(0, vocab_size, (*batch_shape, words_per_sentence))
+targets = torch.randint(0, 1, (*batch_shape,))
 
+# Construct our module
 net = SampleNet(vocab_size)
 criterion = nn.CrossEntropyLoss()
 
@@ -616,9 +618,4 @@ for r, e in zip(result, expected):
         continue
     import pdb; pdb.set_trace()
 
-
-# TODO:
-# - backward for cross_entropy_loss (ruhroh)
-# - backward for embedding
-# - backward for transpose
-
+print("Everything's OK!")
