@@ -10,6 +10,7 @@ import torch.utils.hooks as hooks
 from torch import Tensor, device, dtype
 from typing import Union, Tuple, Any, Callable, Iterator, Set, Optional, overload, TypeVar, Mapping, Dict, List
 from ...utils.hooks import RemovableHandle
+from torch.expanded_weights import ExpandedWeight
 
 _grad_t = Union[Tuple[Tensor, ...], Tensor]
 # See https://mypy.readthedocs.io/en/latest/generics.html#generic-methods-and-generic-self for the use
@@ -350,7 +351,9 @@ class Module:
 
         if param is None:
             self._parameters[name] = None
-        elif not isinstance(param, Parameter):
+        # NB: __torch_function__ object is not actually a Tensor. We can use a
+        # tensor extension and a custom dispatch key to solve this problem.
+        elif not isinstance(param, Parameter) and not isinstance(param, torch.expanded_weights.ExpandedWeight):
             raise TypeError("cannot assign '{}' object to parameter '{}' "
                             "(torch.nn.Parameter or None required)"
                             .format(torch.typename(param), name))
@@ -1141,7 +1144,9 @@ class Module:
                         d.discard(name)
 
         params = self.__dict__.get('_parameters')
-        if isinstance(value, Parameter):
+        # NB: __torch_function__ object is not actually a Tensor. We can use a
+        # tensor extension and a custom dispatch key to solve this problem.
+        if isinstance(value, Parameter) or isinstance(value, torch.expanded_weights.ExpandedWeight):
             if params is None:
                 raise AttributeError(
                     "cannot assign parameters before Module.__init__() call")
@@ -1715,6 +1720,61 @@ class Module:
                     else:
                         p.grad.requires_grad_(False)
                     p.grad.zero_()
+
+    def compute_per_sample_grads(self, batch_size):
+        # We don't want to change how the module works. When a user queries a
+        # param, for example, during optimization, they should see the original
+        # parameter, not an ExpandedWeight object. However, we would like our
+        # forward passes to use the ExpandedWeight version of the parameter.
+        #
+        # This design constraint implies there should be some mechanism to,
+        # given a model, use a different set of weights. In this POC we use a
+        # context manager to swap the weights of the model.
+        class EnablePerSampleGrads:
+            def __init__(self, module):
+                self.module = module
+
+            def __enter__(self):
+                self.module._enable_per_sample_grad_computation(batch_size)
+
+            def __exit__(self, *args, **kwargs):
+                self.module._disable_per_sample_grad_computation()
+
+        return EnablePerSampleGrads(self)
+
+    def _enable_per_sample_grad_computation(self, batch_size):
+        # Converts all parameters to ExpandedWeight objects
+        params = tuple(self.named_parameters(recurse=False))
+
+        def to_expanded_weight(param):
+            param = param.expand((batch_size,) + param.shape).detach().requires_grad_()
+            return ExpandedWeight(param, batch_size)
+
+        for name, param in params:
+            setattr(self, name, to_expanded_weight(param))
+
+        self.original_params = params
+
+        for module in self.children():
+            module._enable_per_sample_grad_computation(batch_size)
+
+    def _disable_per_sample_grad_computation(self):
+        # Removes all the ExpandedWeight objects. Furthermore, sets the
+        # param.grad_sample attribute equal to the corresponding ExpandedWeight.grad
+        # attribute.
+        modified_params = tuple(self.named_parameters(recurse=False))
+        for (name, modified_param), (_, original_param) in zip(modified_params, self.original_params):
+            if modified_param.grad is not None:
+                if not hasattr(original_param, 'grad_sample') or original_param.grad_sample is None:
+                    original_param.grad_sample = modified_param.grad
+                else:
+                    original_param.grad_sample += modified_param.grad
+            setattr(self, name, original_param)
+            modified_param.grad = None
+            del modified_param
+
+        for module in self.children():
+            module._disable_per_sample_grad_computation()
 
     def share_memory(self: T) -> T:
         r"""See :meth:`torch.Tensor.share_memory_`"""
