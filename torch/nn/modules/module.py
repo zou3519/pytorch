@@ -1747,8 +1747,8 @@ class Module:
         params = tuple(self.named_parameters(recurse=False))
 
         def to_expanded_weight(param):
-            param = param.expand((batch_size,) + param.shape).detach().requires_grad_()
-            return ExpandedWeight(param, batch_size)
+            expanded_param = param.expand((batch_size,) + param.shape).detach().requires_grad_()
+            return ExpandedWeight(expanded_param, batch_size, param)
 
         for name, param in params:
             setattr(self, name, to_expanded_weight(param))

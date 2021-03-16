@@ -20,11 +20,12 @@ HANDLED_FUNCTIONS = {}
 class ExpandedWeight(object):
     handled_functions = HANDLED_FUNCTIONS
 
-    def __init__(self, weight, batch_size):
+    def __init__(self, weight, batch_size, orig_weight):
         self.weight = weight
         self.batch_size = batch_size
         self.requires_grad = weight.requires_grad
         self.grad_fn = None
+        self.orig_weight = orig_weight
 
     def __torch_function__(self, func, _, args=(), kwargs=None):
         if kwargs is None:
@@ -53,7 +54,8 @@ def expanded_weight_fallback(func, *args, **kwargs):
     unwrapped_args = tuple(arg.weight if isinstance(arg, ExpandedWeight) else arg for arg in args)
     unexpanded_args = tuple(arg.weight[0] if isinstance(arg, ExpandedWeight) else arg for arg in args)
     output = func(*unexpanded_args)
-    outputs = output.unbind(0)
+    outputs = tuple(output[i] for i in range(output.shape[0]))
+    # outputs = output.unbind(0)
     output_detached = output.detach()
 
     class MyFunction(torch.autograd.Function):
