@@ -62,6 +62,9 @@
   manual_cpp_binding: True
   variants: method
 
+- func: dump_tensor(Tensor self) -> bool
+  variants: function
+
 # Returns the output index of this variable from the forward operation that
 # produced it.  Conversely, it returns the input index of the gradient `Node` to
 # which this `Variable` is connected (because in the gradient computation,
@@ -8320,6 +8323,12 @@
 
 # See NOTE [_add_batch_dim and _remove_batch_dim]
 - func: _remove_batch_dim(Tensor self, int level, int batch_size, int out_dim) -> Tensor
+  variants: function
+
+- func: _wrap_for_grad(Tensor self, int level) -> Tensor
+  variants: function
+
+- func: _unwrap_for_grad(Tensor self, int level) -> Tensor
   variants: function
 
 ## Functions related to the `torch.special` namespace

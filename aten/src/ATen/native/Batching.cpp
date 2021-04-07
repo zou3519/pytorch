@@ -1,8 +1,14 @@
 #include <ATen/BatchedTensorImpl.h>
 #include <ATen/WrapDimUtils.h>
 #include <ATen/VmapTransforms.h>
+#include <ATen/TensorWrapper.h>
 
 namespace at { namespace native {
+
+bool dump_tensor(const Tensor& self) {
+  at::dumpTensorCout(self);
+  return true;
+}
 
 // Adds a batch dimension to the tensor `self` out-of-place
 Tensor _add_batch_dim(const Tensor& self, int64_t batch_dim, int64_t level) {
@@ -125,6 +131,25 @@ Tensor _remove_batch_dim(const Tensor& self, int64_t level, int64_t batch_size, 
   int64_t newly_exposed_logical_dim;
   std::tie(self_without_bdim, newly_exposed_logical_dim) = remove_existing_batch_dim(batched, level);
   return movedim(self_without_bdim, newly_exposed_logical_dim, out_dim);
+}
+
+Tensor _wrap_for_grad(const Tensor& self, int64_t level) {
+  // NB: different behavior inside??
+  return self;
+  // TORCH_INTERNAL_ASSERT(!maybeGetTensorWrapper(self));
+  // TORCH_INTERNAL_ASSERT(self.has_storage());
+  // return makeTensorWrapper(self, level);
+}
+
+Tensor _unwrap_for_grad(const Tensor& self, int64_t level) {
+  auto* result = maybeGetTensorWrapper(self);
+  if (!result) {
+    return self;
+  }
+  if (result->level() == level) {
+    return result->value();
+  }
+  return self;
 }
 
 } // namespace native

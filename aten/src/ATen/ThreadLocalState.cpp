@@ -20,6 +20,8 @@ ThreadLocalState::ThreadLocalState(bool keep_grad_mode)
   }
 #endif
   bumped_record_all_functions_ = at::checkRecordAllFunctions();
+
+  dynlayer_stack_ = at::getDynamicLayerStack();
 }
 
 /* static */
@@ -36,6 +38,8 @@ void ThreadLocalState::setThreadLocalState(
   c10::ThreadLocalDebugInfo::_forceCurrentDebugInfo(state.debug_info_);
 
   c10::impl::_force_tls_local_dispatch_key_set(state.dispatch_key_);
+
+  at::getDynamicLayerStack() = state.dynlayer_stack_;
 }
 
 } // namespace at

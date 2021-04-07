@@ -39,6 +39,11 @@ enum class DispatchKey : uint8_t {
   // this will get eliminated, but for now it's convenient)
   CatchAll = Undefined,
 
+  // TODO: no clue where to put this
+  TensorWrapper,
+
+  DynamicLayerBack,
+
   // ~~~~~~~~~~~~~~~~~~~~~~~~~~ BACKENDS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
   // A "backend" is colloquially used to refer to handlers for dispatch
   // which actually implement the numerics of an operation in question.
@@ -253,6 +258,8 @@ enum class DispatchKey : uint8_t {
   // aten/src/ATen/core/dispatch/backend_fallback_test.cpp
   // for a usage example
   TESTING_ONLY_GenericMode,
+
+  DynamicLayerFront,
 
   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
   NumDispatchKeys, // Sentinel, end of runtime keys.

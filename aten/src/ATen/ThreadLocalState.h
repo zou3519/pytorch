@@ -5,6 +5,7 @@
 #include <c10/util/ThreadLocalDebugInfo.h>
 
 #include <ATen/record_function.h>
+#include <ATen/DynamicLayer.h>
 
 namespace at {
 
@@ -40,6 +41,8 @@ class TORCH_API ThreadLocalState {
 
   // Whether pre-sampling RecordFunction optimization was enabled
   bool bumped_record_all_functions_ = false;
+
+  std::vector<DynamicLayer> dynlayer_stack_;
 
   friend class ThreadLocalStateGuard;
 };

@@ -7,6 +7,12 @@ const char* toString(DispatchKey t) {
     case DispatchKey::Undefined:
       return "Undefined";
 
+    case DispatchKey::TensorWrapper:
+      return "TensorWrapper";
+    case DispatchKey::DynamicLayerBack:
+      return "DynamicLayerBack";
+    case DispatchKey::DynamicLayerFront:
+      return "DynamicLayerFront";
     case DispatchKey::CPU:
       return "CPU";
     case DispatchKey::CUDA:

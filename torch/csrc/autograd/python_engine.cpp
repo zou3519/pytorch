@@ -262,7 +262,7 @@ PyObject *THPEngine_run_backward(PyObject *self, PyObject *args, PyObject *kwarg
     THPObjectPtr py_outputs {PyTuple_New(num_inputs)};
     if (!py_outputs) return nullptr;
     for (int i = 0; i < num_inputs; i++) {
-      THPUtils_assert(allow_unreachable || outputs[i].defined(), "One of the "
+      THPUtils_assert(allow_unreachable || outputs[i].defined(), "1One of the "
                       "differentiated Tensors appears to not have been used "
                       "in the graph. Set allow_unused=True if this is the "
                       "desired behavior.");
