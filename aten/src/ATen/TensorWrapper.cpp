@@ -1,5 +1,7 @@
 #include <ATen/TensorWrapper.h>
 #include <torch/library.h>
+#include <ATen/DynamicLayer.h>
+#include <ATen/core/dispatch/Dispatcher.h>
 
 namespace at {
 
@@ -9,7 +11,12 @@ void dumpTensor(std::ostream& ss, const Tensor& tensor) {
     ss << "Tensor" << tensor.sizes();
     return;
   }
-  ss << "Wrapper[" << wrapped->level() << ", ";
+  if (wrapped->is_alive()) {
+    ss << "Wrapper[";
+  } else {
+    ss << "DeadWrapper[";
+  }
+  ss << wrapped->level() << ", ";
   dumpTensor(ss, wrapped->value());
   ss << "]";
 }
@@ -19,7 +26,7 @@ void dumpTensorCout(const Tensor& tensor) {
   std::cout << std::endl;
 }
 
-c10::intrusive_ptr<TensorWrapper> makeTensorWrapperPtr(const Tensor& tensor, int64_t level) {
+c10::intrusive_ptr<TensorWrapper> makeTensorWrapperPtr(const Tensor& tensor, int64_t level, int64_t should_be_alive) {
   // TODO: denylist non-cuda/cpu backends to avoid funny business
   DispatchKeySet key_set;
   if (tensor.is_cuda()) {
@@ -30,10 +37,18 @@ c10::intrusive_ptr<TensorWrapper> makeTensorWrapperPtr(const Tensor& tensor, int
     key_set = key_set.add(DispatchKey::AutogradCPU);
   }
   key_set = key_set.add(DispatchKey::TensorWrapper);
-  return c10::make_intrusive<TensorWrapper>(key_set, tensor, level);
+  if (should_be_alive) {
+    auto& data = getGlobalDynmetaData();
+    TORCH_INTERNAL_ASSERT(data.find(level) != data.end());
+    return c10::make_intrusive<TensorWrapper>(key_set, tensor, level, data[level]);
+  } else {
+    return c10::make_intrusive<TensorWrapper>(key_set, tensor, level, std::make_shared<bool>(false));
+  }
 }
 
 Tensor makeTensorWrapper(const Tensor& tensor, int64_t level) {
+  auto& data = getGlobalDynmetaData();
+
   // TODO: denylist non-cuda/cpu backends to avoid funny business
   DispatchKeySet key_set;
   if (tensor.is_cuda()) {
@@ -44,15 +59,20 @@ Tensor makeTensorWrapper(const Tensor& tensor, int64_t level) {
     key_set = key_set.add(DispatchKey::AutogradCPU);
   }
   key_set = key_set.add(DispatchKey::TensorWrapper);
-  auto result = at::detail::make_tensor<TensorWrapper>(key_set, tensor, level);
+  TORCH_INTERNAL_ASSERT(data.find(level) != data.end());
+  auto result = at::detail::make_tensor<TensorWrapper>(key_set, tensor, level, data[level]);
   TORCH_INTERNAL_ASSERT(result.key_set().has(DispatchKey::TensorWrapper));
   return result;
+}
+
+bool TensorWrapper::is_alive() const {
+  return *is_alive_;
 }
 
 c10::intrusive_ptr<TensorImpl> TensorWrapper::shallow_copy_and_detach(
     const c10::VariableVersion& version_counter,
     bool allow_tensor_metadata_change) const {
-  auto dest_impl = makeTensorWrapperPtr(value(), level());
+  auto dest_impl = makeTensorWrapperPtr(value(), level(), is_alive());
   dest_impl->set_version_counter(version_counter);
 
   // TODO: is this even right?
@@ -63,7 +83,7 @@ c10::intrusive_ptr<TensorImpl> TensorWrapper::shallow_copy_and_detach(
 c10::intrusive_ptr<TensorImpl> TensorWrapper::shallow_copy_and_detach(
     c10::VariableVersion&& version_counter,
     bool allow_tensor_metadata_change) const {
-  auto dest_impl = makeTensorWrapperPtr(value(), level());
+  auto dest_impl = makeTensorWrapperPtr(value(), level(), is_alive());
   dest_impl->set_version_counter(version_counter);
 
   // TODO: is this even right?
@@ -75,10 +95,11 @@ void TensorWrapper::shallow_copy_from(const c10::intrusive_ptr<TensorImpl>& impl
   TORCH_INTERNAL_ASSERT(false, "NYI");
 }
 
-TensorWrapper::TensorWrapper(c10::DispatchKeySet key_set, Tensor value, int64_t level)
+TensorWrapper::TensorWrapper(c10::DispatchKeySet key_set, Tensor value, int64_t level, std::shared_ptr<bool> is_alive)
   : TensorImpl(key_set, value.dtype(), value.device())
   , value_(std::move(value))
   , level_(level)
+  , is_alive_(std::move(is_alive))
 {
   TORCH_INTERNAL_ASSERT(value_.defined());
   set_storage_access_should_throw();
@@ -121,8 +142,51 @@ TensorWrapper* maybeGetTensorWrapper(const Tensor& tensor) {
   return (TensorWrapper*)(tensor.unsafeGetTensorImpl());
 }
 
-TORCH_LIBRARY_IMPL(_, TensorWrapper, m) {
-  m.fallback(torch::CppFunction::makeFallthrough());
+static void foreachTensorInplace(std::vector<IValue>& args, int64_t begin, int64_t end,
+    std::function<Tensor(const Tensor&)> func) {
+  TORCH_INTERNAL_ASSERT(begin >= 0);
+  TORCH_INTERNAL_ASSERT(end >= 0);
+  TORCH_INTERNAL_ASSERT(begin <= end);
+  for (int64_t idx = begin; idx < end; idx++) {
+    auto ivalue = args[idx];
+    if (ivalue.isTensorList()) {
+      TORCH_INTERNAL_ASSERT(false, "NYI: TensorList");
+    }
+    if (!ivalue.isTensor()) {
+      continue;
+    }
+    Tensor value = ivalue.toTensor();
+    Tensor replacement = func(value);
+    args[idx] = replacement; // TODO: std::move?
+    if (ivalue.toTensor().defined()) {
+      TORCH_INTERNAL_ASSERT(args[idx].toTensor().defined());
+    }
+  }
 }
+
+static Tensor unwrapIfDead(const Tensor& tensor) {
+  auto* wrapped = maybeGetTensorWrapper(tensor);
+  if (!wrapped) {
+    return tensor;
+  }
+  if (wrapped->is_alive()) {
+    return tensor;
+  }
+  return wrapped->value();
+}
+
+void dead_tensor_wrapper_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+  auto args_size = op.schema().arguments().size();
+  foreachTensorInplace(*stack, stack->size() - args_size, stack->size(), unwrapIfDead);
+
+  // re-dispatch
+  op.callBoxed(stack);
+}
+
+// TensorWrapper backend fallback: Unwrap and fallthrough.
+
+// TORCH_LIBRARY_IMPL(_, TensorWrapper, m) {
+//   m.fallback(torch::CppFunction::makeFallthrough());
+// }
 
 } // namespace at

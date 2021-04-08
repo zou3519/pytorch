@@ -5,6 +5,17 @@
 
 namespace at { namespace native {
 
+int64_t dlevel(const Tensor& tensor) {
+  auto* wrapped = maybeGetTensorWrapper(tensor);
+  if (!wrapped) {
+    return 0;
+  }
+  if (!wrapped->is_alive()) {
+    return -1;
+  }
+  return wrapped->level();
+}
+
 bool dump_tensor(const Tensor& self) {
   at::dumpTensorCout(self);
   return true;

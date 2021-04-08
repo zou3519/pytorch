@@ -619,7 +619,7 @@ PyObject *THPModule_unsetDefaultMobileCPUAllocator(PyObject *_unused, PyObject *
 
 static PyObject * THPModule_grad_increment_nesting(PyObject* _unused, PyObject *arg) {
   HANDLE_TH_ERRORS
-  return THPUtils_packInt64(at::pushDynamicLayer(at::DispatchKey::Autograd));
+  return THPUtils_packInt64(at::initAndPushDynamicLayer(at::DispatchKey::Autograd));
   END_HANDLE_TH_ERRORS
 }
 

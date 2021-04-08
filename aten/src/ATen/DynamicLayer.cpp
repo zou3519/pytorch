@@ -38,6 +38,14 @@ std::vector<DynamicLayer>& getDynamicLayerStack() {
   return dynamicLayerStack;
 }
 
+int64_t initAndPushDynamicLayer(DispatchKey key) {
+  auto layerId = pushDynamicLayer(key);
+  auto& data = getGlobalDynmetaData();
+  TORCH_INTERNAL_ASSERT(data.find(layerId) == data.end());
+  data[layerId] = std::make_shared<bool>(true);
+  return layerId;
+}
+
 int64_t pushDynamicLayer(DispatchKey key) {
   TORCH_INTERNAL_ASSERT(key != DispatchKey::Undefined);
   auto layerId = 1 + dynamicLayerStack.size();
@@ -71,22 +79,17 @@ DynamicLayer popDynamicLayerAndDeleteMetadata() {
   auto result = popDynamicLayer();
   auto level = result.layerId();
 
-  // There is unfortunately a deadlock somewhere :/
-  // std::lock_guard<std::mutex> guard(getGlobalDynmetaDataMutex());
+  // TODO: is this lock safe? No one else should be writing to the same bucket
+  std::cout << "deleting metadata" << std::endl;
   auto& data = getGlobalDynmetaData();
   auto it = data.find(level);
   if (it == data.end()) {
     return result;
   }
-  for (auto& ptr : it->second) {
-    auto val = ptr.lock();
-    if (!val) continue;
-    // Clear the unique_ptr inside the shared_ptr.
-    (*val).reset();
-  }
-  // Clear the queue of weak_ptrs
-  data[level].clear();
-
+  std::cout << "deleted metadata for level " << level << std::endl;
+  // invalidate the thing
+  *(it->second) = false;
+  data.erase(level);
   return result;
 }
 
@@ -131,7 +134,18 @@ static Tensor fullyMaterializeWrappers(const Tensor& tensor, std::vector<Dynamic
   return result;
 }
 
-void foreachTensorInplace(std::vector<IValue>& args, int64_t begin, int64_t end,
+static Tensor unwrapIfDead(const Tensor& tensor) {
+  auto* wrapped = maybeGetTensorWrapper(tensor);
+  if (!wrapped) {
+    return tensor;
+  }
+  if (wrapped->is_alive()) {
+    return tensor;
+  }
+  return wrapped->value();
+}
+
+static void foreachTensorInplace(std::vector<IValue>& args, int64_t begin, int64_t end,
     std::function<Tensor(const Tensor&)> func) {
   TORCH_INTERNAL_ASSERT(begin >= 0);
   TORCH_INTERNAL_ASSERT(end >= 0);
@@ -174,6 +188,7 @@ void dynamicLayerFrontFallback(const c10::OperatorHandle& op, torch::jit::Stack*
     // std::cout << "dynamicLayerFrontFallback " << op.operator_name() << " terminal" << std::endl;
     DispatchKeySet exclude;
     exclude = exclude.add(DispatchKey::DynamicLayerFront);
+    exclude = exclude.add(DispatchKey::TensorWrapper);
     exclude = exclude.add(DispatchKey::Batched);
     exclude = exclude.add(DispatchKey::Autograd);
     exclude = exclude.add(DispatchKey::AutogradOther);
@@ -189,7 +204,8 @@ void dynamicLayerFrontFallback(const c10::OperatorHandle& op, torch::jit::Stack*
   }
 
   auto materialize = [](const Tensor& tensor) {
-    return fullyMaterializeWrappers(tensor, getDynamicLayerStack());
+    auto result = unwrapIfDead(tensor);
+    return fullyMaterializeWrappers(result, getDynamicLayerStack());
   };
   auto num_args = op.schema().arguments().size();
   foreachTensorInplace(*stack, stack->size() - num_args, stack->size(), materialize);
@@ -307,6 +323,7 @@ TORCH_LIBRARY_IMPL(_, DynamicLayerBack, m) {
 TORCH_LIBRARY_IMPL(aten, DynamicLayerFront, m) {
   m.impl("_unwrap_for_grad", native::_unwrap_for_grad);
   m.impl("dump_tensor", native::dump_tensor);
+  m.impl("dlevel", native::dlevel);
 }
 
 } // namespace at

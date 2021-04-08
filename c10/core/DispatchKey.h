@@ -39,8 +39,6 @@ enum class DispatchKey : uint8_t {
   // this will get eliminated, but for now it's convenient)
   CatchAll = Undefined,
 
-  // TODO: no clue where to put this
-  TensorWrapper,
 
   DynamicLayerBack,
 
@@ -242,6 +240,9 @@ enum class DispatchKey : uint8_t {
   // When we are inside a vmap, all tensors dispatch on this key.
   // See Note: [DispatchKey::VmapMode usage] for more details.
   VmapMode,
+
+  // TODO: no clue where to put this
+  TensorWrapper,
 
   // TESTING: This is intended to be a generic testing tensor type id.
   // Don't use it for anything real; its only acceptable use is within a single

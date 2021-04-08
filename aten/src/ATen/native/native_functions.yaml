@@ -65,6 +65,9 @@
 - func: dump_tensor(Tensor self) -> bool
   variants: function
 
+- func: dlevel(Tensor self) -> int
+  variants: method
+
 # Returns the output index of this variable from the forward operation that
 # produced it.  Conversely, it returns the input index of the gradient `Node` to
 # which this `Variable` is connected (because in the gradient computation,

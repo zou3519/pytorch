@@ -20,6 +20,7 @@ struct TORCH_API DynamicLayer {
 };
 
 TORCH_API int64_t pushDynamicLayer(DispatchKey key);
+TORCH_API int64_t initAndPushDynamicLayer(DispatchKey key);
 TORCH_API DynamicLayer popDynamicLayer();
 TORCH_API DynamicLayer popDynamicLayerAndDeleteMetadata();
 TORCH_API bool gradLayerAtTop();
@@ -27,7 +28,7 @@ TORCH_API c10::optional<DynamicLayer> maybeCurrentDynamicLayer();
 TORCH_API std::vector<DynamicLayer>& getDynamicLayerStack();
 
 
-using DynmetaData = std::unordered_map<int64_t, std::vector<std::weak_ptr<std::unique_ptr<c10::AutogradMetaInterface>>>>;
+using DynmetaData = std::unordered_map<int64_t, std::shared_ptr<bool>>;
 
 // NB: not lock safe
 TORCH_API DynmetaData& getGlobalDynmetaData();

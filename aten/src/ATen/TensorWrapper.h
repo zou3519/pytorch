@@ -5,7 +5,11 @@
 namespace at {
 
 struct TORCH_API TensorWrapper : public c10::TensorImpl {
-  explicit TensorWrapper(c10::DispatchKeySet key_set, Tensor value, int64_t level);
+  explicit TensorWrapper(
+      c10::DispatchKeySet key_set,
+      Tensor value,
+      int64_t level,
+      std::shared_ptr<bool> is_alive);
 
   // Override a bunch of methods inherited from TensorImpl to return error messages
   void set_size(int64_t dim, int64_t new_size) override;
@@ -18,6 +22,7 @@ struct TORCH_API TensorWrapper : public c10::TensorImpl {
   int64_t level() const {
     return level_;
   }
+  bool is_alive() const;
 
   // Overrides necessary for autograd
   c10::intrusive_ptr<TensorImpl> shallow_copy_and_detach(
@@ -32,6 +37,12 @@ struct TORCH_API TensorWrapper : public c10::TensorImpl {
   const char* tensorimpl_type_name() const override;
   Tensor value_;
   int64_t level_;
+
+  // When we exit the level, this wrapper may be marked as "not alive".
+  // Wrappers that are not alive:
+  // 1) May still have autograd metadata on them
+  // 2) Forward dispatches to the underlying value()
+  std::shared_ptr<bool> is_alive_;
 };
 
 TORCH_API Tensor makeTensorWrapper(const Tensor& tensor, int64_t level);

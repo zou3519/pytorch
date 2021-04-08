@@ -53,15 +53,22 @@ def _any_differentiable(tensor_or_tuple_of_tensors):
 
 
 # How do we increment and decrement the nesting? I don't think we can.
-# def vjp(f, primals):
-#     diff_primals = _create_differentiable(primals)
-#     primals_out = f(*diff_primals)
-# 
-#     def wrapper(*cotangents, retain_graph=True):
-#         result = torch.autograd.grad(primals_out, diff_primals, cotangents, retain_graph)
-#         return result
-# 
-#     return wrapper
+def vjp(f, *primals):
+    level = torch._C._grad_increment_nesting()
+    try:
+        diff_primals = _create_differentiable(primals, level)
+        primals_out = f(*diff_primals)
+        results = _undo_create_differentiable(primals_out, level)
+
+        def wrapper(*cotangents, retain_graph=True, create_graph=True):
+            result = torch.autograd.grad(primals_out, diff_primals, cotangents,
+                                         retain_graph=retain_graph, create_graph=create_graph)
+            return result
+
+    finally:
+        torch._C._grad_decrement_nesting()
+
+    return results, wrapper
 # 
 # 
 # def jacrev(f, diff_argnums=(0,)):
@@ -126,7 +133,6 @@ def grad_with_value(f, diff_argnums=(0,), has_aux=False):
             # graph = torchviz.make_dot(output)
             # graph.save("inner.dot")
             print("calling autograd.grad")
-            # import pdb; pdb.set_trace()
             grad_input = torch.autograd.grad(
                 output, diff_args, create_graph=True)
             print("done-ish!")

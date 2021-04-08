@@ -7,7 +7,7 @@ import warnings
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, \
     skipCUDAIfNoMagma
 import types
-from torch.eager_transforms import grad
+from torch.eager_transforms import grad, vjp
 
 
 class TestGradTransform(TestCase):
@@ -107,6 +107,82 @@ class TestGradTransform(TestCase):
         result = grad(grad(torch.sin))(x)
         self.assertEqual(result, -torch.sin(x))
 
+    def test_escaped_wrappers_are_marked_as_dead(self):
+        x = torch.randn([])
+        escaped = []
+        def foo(x):
+            y = x.sin()   
+            escaped.append(y)
+            return y
+
+        result = grad(foo)(x)
+        self.assertEqual(escaped[0].dlevel(), -1)
+
+    def test_escaped_wrappers_are_ignored(self):
+        x = torch.randn([])
+        escaped = []
+        def foo(x):
+            y = x.sin()   
+            escaped.append(y)
+            return y
+
+        result = grad(foo)(x)
+
+        something = escaped[0].sum()
+        self.assertEqual(something.dlevel(), 0)
+        self.assertEqual(something, x.sin().sum())
+
+    def test_vjp(self):
+        x = torch.randn([])
+        out, vjp_fn = vjp(torch.sin, x)
+        self.assertEqual(out, x.sin())
+
+        v = torch.randn([])
+        result, = vjp_fn(v)
+        self.assertEqual(result, v * x.cos())
+
+    def test_composed_with_autograd(self):
+        x = torch.randn([], requires_grad=True)
+
+        y = grad(torch.sin)(x)
+        result, = torch.autograd.grad(y, x)
+        self.assertEqual(result, -x.sin())
+
+    def test_grad_of_vjp_composition(self):
+        x = torch.randn([])
+        y = torch.randn([])
+
+        def foo(x, y):
+            out, vjp_fn = vjp(torch.sin, x)
+            return grad(lambda y: vjp_fn(y)[0])(y)
+
+        result = foo(x, y)
+        expected = x.cos() 
+        self.assertEqual(result, expected)
+
+    def test_vjp_of_grad_composition(self):
+        x = torch.randn([])
+        y = torch.randn([])
+
+        def foo(x, y):
+            out, vjp_fn = vjp(grad(torch.sin), x)
+            return vjp_fn(y)[0]
+
+        result = foo(x, y)
+        expected = -y * x.sin() 
+        self.assertEqual(result, expected)
+
+    def test_grad_of_vjp_of_grad_composition(self):
+        x = torch.randn([])
+        y = torch.randn([])
+
+        def foo(x, y):
+            out, vjp_fn = vjp(grad(lambda x: -torch.cos(x)), x)
+            return grad(lambda y: vjp_fn(y)[0])(y)
+
+        result = foo(x, y)
+        expected = x.cos() 
+        self.assertEqual(result, expected)
 
 if __name__ == '__main__':
     run_tests()
