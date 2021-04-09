@@ -116,12 +116,12 @@ def grad_with_value(f, diff_argnums=(0,), has_aux=False):
         try:
             args = [_create_differentiable(arg, level) if i in diff_argnums else arg
                     for i, arg in enumerate(args)]
-            print("calling f(*args)")
+            # print("calling f(*args)")
             output = f(*args)
-            print("done with f(*args)")
+            # print("done with f(*args)")
             if has_aux:
                 output, aux = output
-            print("calling output.dim()")
+            # print("calling output.dim()")
             assert output.dim() == 0
             diff_args = [args[i] for i in diff_argnums]
             single_diff_arg = isinstance(diff_args[0], torch.Tensor) and len(diff_args) == 1
@@ -132,10 +132,10 @@ def grad_with_value(f, diff_argnums=(0,), has_aux=False):
             # import torchviz; import graphviz
             # graph = torchviz.make_dot(output)
             # graph.save("inner.dot")
-            print("calling autograd.grad")
+            # print("calling autograd.grad")
             grad_input = torch.autograd.grad(
                 output, diff_args, create_graph=True)
-            print("done-ish!")
+            # print("done-ish!")
             if single_diff_arg:
                 grad_input = grad_input[0]
         finally:

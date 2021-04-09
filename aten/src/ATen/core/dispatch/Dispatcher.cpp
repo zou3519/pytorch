@@ -5,7 +5,6 @@
 namespace c10 {
 
 static bool compute_dispatch_trace_enabled() {
-  return true;
   auto envar = std::getenv("TORCH_SHOW_DISPATCH_TRACE");
   if (envar) {
     if (strcmp(envar, "0") == 0) {

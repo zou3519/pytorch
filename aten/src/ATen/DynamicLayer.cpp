@@ -80,13 +80,17 @@ DynamicLayer popDynamicLayerAndDeleteMetadata() {
   auto level = result.layerId();
 
   // TODO: is this lock safe? No one else should be writing to the same bucket
-  std::cout << "deleting metadata" << std::endl;
+  if (c10::show_dispatch_trace_enabled()) {
+    std::cout << "deleting metadata" << std::endl;
+  }
   auto& data = getGlobalDynmetaData();
   auto it = data.find(level);
   if (it == data.end()) {
     return result;
   }
-  std::cout << "deleted metadata for level " << level << std::endl;
+  if (c10::show_dispatch_trace_enabled()) {
+    std::cout << "deleted metadata for level " << level << std::endl;
+  }
   // invalidate the thing
   *(it->second) = false;
   data.erase(level);
@@ -107,14 +111,18 @@ static Tensor fullyMaterializeWrappers(const Tensor& tensor, std::vector<Dynamic
   if (!wrapper) {
     for (int64_t idx = 1; idx < dynlayerStack.size(); idx++) {
       if (dynlayerStack[idx].key() == DispatchKey::Autograd) {
-        std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
+        if (c10::show_dispatch_trace_enabled()) {
+          std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
+        }
         result = makeTensorWrapper(result, dynlayerStack[idx].layerId());
       } else {
         TORCH_INTERNAL_ASSERT(false);
       }
     }
     TORCH_INTERNAL_ASSERT(result.defined());
-    dumpTensorCout(result);
+    if (c10::show_dispatch_trace_enabled()) {
+      dumpTensorCout(result);
+    }
     return result;
   }
   if (wrapper->level() == dynlayerStack.back().layerId()) {
@@ -126,11 +134,15 @@ static Tensor fullyMaterializeWrappers(const Tensor& tensor, std::vector<Dynamic
       continue;
     }
     TORCH_INTERNAL_ASSERT(dynlayerStack[idx].key() == DispatchKey::Autograd);
-    std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
+    if (c10::show_dispatch_trace_enabled()) {
+      std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
+    }
     result = makeTensorWrapper(result, dynlayerStack[idx].layerId());
   }
   TORCH_INTERNAL_ASSERT(result.defined());
-  dumpTensorCout(result);
+  if (c10::show_dispatch_trace_enabled()) {
+    dumpTensorCout(result);
+  }
   return result;
 }
 
@@ -173,7 +185,9 @@ static void foreachTensorInplace(std::vector<IValue>& args, int64_t begin, int64
 }
 
 void dynamicLayerFrontFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
-  std::cout << "DLS size: " << dynamicLayerStack.size() << std::endl;
+  if (c10::show_dispatch_trace_enabled()) {
+    std::cout << "DLS size: " << dynamicLayerStack.size() << std::endl;
+  }
   if (dynamicLayerStack.size() == 0) {
     // TODO: temp code
     if (stack->size() > 0) {
@@ -275,7 +289,9 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
     if (maybe_tensor_wrapper->level() == cur_level) {
       return maybe_tensor_wrapper->value();
     }
-    std::cout << "unwrap " << cur_level << std::endl;
+    if (c10::show_dispatch_trace_enabled()) {
+      std::cout << "unwrap " << cur_level << std::endl;
+    }
     return tensor;
   };
   auto wrap = [&](const Tensor& tensor) {
@@ -285,7 +301,9 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
     if (cur_level == 1) {
       return tensor;
     }
-    std::cout << "wrap " << cur_level << std::endl;
+    if (c10::show_dispatch_trace_enabled()) {
+      std::cout << "wrap " << cur_level << std::endl;
+    }
     return makeTensorWrapper(tensor, cur_level);
   };
 

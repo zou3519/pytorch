@@ -37,6 +37,21 @@ class TestGradTransform(TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_composite_two_ops(self):
+        N, C = 2, 5
+        y = torch.randn(N, C)
+        targets = torch.randint(0, C, (N,))
+
+        def foo(y, targets):
+            return F.cross_entropy(y, targets)
+
+        result = grad(foo)(y, targets)
+
+        y.requires_grad_()
+        expected, = torch.autograd.grad(foo(y, targets), y)
+
+        self.assertEqual(result, expected)
+
     def _test_attributes(self, get_attr_lambda):
         x = torch.randn(2, 3, 5, dtype=torch.double)
         expected = get_attr_lambda(x)
@@ -177,7 +192,7 @@ class TestGradTransform(TestCase):
         y = torch.randn([])
 
         def foo(x, y):
-            out, vjp_fn = vjp(grad(lambda x: -torch.cos(x)), x)
+            df, vjp_fn = vjp(grad(lambda x: -torch.cos(x)), x)
             return grad(lambda y: vjp_fn(y)[0])(y)
 
         result = foo(x, y)
