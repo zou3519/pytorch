@@ -2,12 +2,20 @@
 #include <torch/library.h>
 #include <ATen/DynamicLayer.h>
 #include <ATen/core/dispatch/Dispatcher.h>
+#include <ATen/BatchedTensorImpl.h>
 
 namespace at {
 
 void dumpTensor(std::ostream& ss, const Tensor& tensor) {
   auto* wrapped = maybeGetTensorWrapper(tensor);
   if (!wrapped) {
+    auto* batched = maybeGetBatchedImpl(tensor);
+    if (batched) {
+      ss << "Batched[" << batched->bdims() << ", ";
+      dumpTensor(ss, batched->value());
+      ss << "]";
+      return;
+    }
     ss << "Tensor" << tensor.sizes();
     return;
   }
@@ -95,7 +103,12 @@ void TensorWrapper::shallow_copy_from(const c10::intrusive_ptr<TensorImpl>& impl
   TORCH_INTERNAL_ASSERT(false, "NYI");
 }
 
-TensorWrapper::TensorWrapper(c10::DispatchKeySet key_set, Tensor value, int64_t level, std::shared_ptr<bool> is_alive)
+TensorWrapper::TensorWrapper(
+    c10::DispatchKeySet key_set,
+    Tensor value,
+    int64_t level,
+    std::shared_ptr<bool> is_alive,
+    bool use_value_sizes_strides)
   : TensorImpl(key_set, value.dtype(), value.device())
   , value_(std::move(value))
   , level_(level)
@@ -105,17 +118,19 @@ TensorWrapper::TensorWrapper(c10::DispatchKeySet key_set, Tensor value, int64_t 
   set_storage_access_should_throw();
 
   // TODO: need to reset sizes/strides on mutation
-  auto dim = value_.dim();
-  auto sizes = value_.sizes();
-  auto strides = value_.strides();
-  sizes_and_strides_.resize(value_.dim());
-  for (int64_t i = 0; i < dim; i++) {
-    sizes_and_strides_.size_at_unchecked(i) = sizes[i];
-    sizes_and_strides_.stride_at_unchecked(i) = strides[i];
-  }
+  if (use_value_sizes_strides) {
+    auto dim = value_.dim();
+    auto sizes = value_.sizes();
+    auto strides = value_.strides();
+    sizes_and_strides_.resize(value_.dim());
+    for (int64_t i = 0; i < dim; i++) {
+      sizes_and_strides_.size_at_unchecked(i) = sizes[i];
+      sizes_and_strides_.stride_at_unchecked(i) = strides[i];
+    }
 
-  refresh_numel();
-  refresh_contiguous();
+    refresh_numel();
+    refresh_contiguous();
+  }
 }
 
 // The following are some internal inherited methods that we do not support.
@@ -177,7 +192,21 @@ static Tensor unwrapIfDead(const Tensor& tensor) {
 
 void dead_tensor_wrapper_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   auto args_size = op.schema().arguments().size();
-  foreachTensorInplace(*stack, stack->size() - args_size, stack->size(), unwrapIfDead);
+  int64_t unwrapped_count = 0;
+  auto unwrapIfDeadAndIncrement = [&](const Tensor& tensor) {
+    auto* wrapped = maybeGetTensorWrapper(tensor);
+    if (!wrapped) {
+      return tensor;
+    }
+    if (wrapped->is_alive()) {
+      return tensor;
+    }
+    unwrapped_count++;
+    return wrapped->value();
+  };
+
+  foreachTensorInplace(*stack, stack->size() - args_size, stack->size(), unwrapIfDeadAndIncrement);
+  TORCH_INTERNAL_ASSERT(unwrapped_count > 0, "Should have at least one dead wrapper");
 
   // re-dispatch
   op.callBoxed(stack);
@@ -185,8 +214,8 @@ void dead_tensor_wrapper_fallback(const c10::OperatorHandle& op, torch::jit::Sta
 
 // TensorWrapper backend fallback: Unwrap and fallthrough.
 
-// TORCH_LIBRARY_IMPL(_, TensorWrapper, m) {
-//   m.fallback(torch::CppFunction::makeFallthrough());
-// }
+TORCH_LIBRARY_IMPL(_, TensorWrapper, m) {
+  m.fallback(torch::CppFunction::makeFromBoxedFunction<&dead_tensor_wrapper_fallback>());
+}
 
 } // namespace at

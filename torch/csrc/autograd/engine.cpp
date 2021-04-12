@@ -694,13 +694,15 @@ static variable_list call_function(
     } else {
       outputs = fn(std::move(inputs));
     }
-  }
 
-  validate_outputs(fn.next_edges(), outputs, [&](const std::string& msg) {
-    std::ostringstream ss;
-    ss << "Function "  << fn.name() << " returned an " << msg;
-    return ss.str();
-  });
+    // NB: need to validate outputs inside the guard because the guard
+    // propgates the dynlayer stack
+    validate_outputs(fn.next_edges(), outputs, [&](const std::string& msg) {
+      std::ostringstream ss;
+      ss << "Function "  << fn.name() << " returned an " << msg;
+      return ss.str();
+    });
+  }
 
   if(has_post_hooks){
     // NOLINTNEXTLINE(bugprone-use-after-move)
@@ -806,10 +808,13 @@ void Engine::evaluate_function(
 
       // Accumulates into buffer
       const auto opt_next_stream = next.function->stream(c10::DeviceType::CUDA);
-      input_buffer.add(next.input_nr,
-                       std::move(output),
-                       opt_parent_stream,
-                       opt_next_stream);
+      {
+        at::ThreadLocalStateGuard guard(graph_task->thread_locals_);
+        input_buffer.add(next.input_nr,
+                         std::move(output),
+                         opt_parent_stream,
+                         opt_next_stream);
+      }
 
       if (is_ready) {
         auto queue = ready_queue(cpu_ready_queue, input_buffer.device());
@@ -824,10 +829,13 @@ void Engine::evaluate_function(
 
       // Accumulates into buffer
       const auto opt_next_stream = next.function->stream(c10::DeviceType::CUDA);
-      input_buffer.add(next.input_nr,
-                       std::move(output),
-                       opt_parent_stream,
-                       opt_next_stream);
+      {
+        at::ThreadLocalStateGuard guard(graph_task->thread_locals_);
+        input_buffer.add(next.input_nr,
+                         std::move(output),
+                         opt_parent_stream,
+                         opt_next_stream);
+      }
       if (is_ready) {
         auto queue = ready_queue(cpu_ready_queue, input_buffer.device());
         queue->push(

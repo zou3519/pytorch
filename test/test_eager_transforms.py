@@ -1,5 +1,6 @@
 from torch.testing._internal.common_utils import TestCase, run_tests
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import functools
 import itertools
@@ -7,7 +8,8 @@ import warnings
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, \
     skipCUDAIfNoMagma
 import types
-from torch.eager_transforms import grad, vjp
+from torch.eager_transforms import grad, vjp, vmap, make_functional
+from functools import partial
 
 
 class TestGradTransform(TestCase):
@@ -126,7 +128,7 @@ class TestGradTransform(TestCase):
         x = torch.randn([])
         escaped = []
         def foo(x):
-            y = x.sin()   
+            y = x.sin()
             escaped.append(y)
             return y
 
@@ -137,7 +139,7 @@ class TestGradTransform(TestCase):
         x = torch.randn([])
         escaped = []
         def foo(x):
-            y = x.sin()   
+            y = x.sin()
             escaped.append(y)
             return y
 
@@ -172,7 +174,7 @@ class TestGradTransform(TestCase):
             return grad(lambda y: vjp_fn(y)[0])(y)
 
         result = foo(x, y)
-        expected = x.cos() 
+        expected = x.cos()
         self.assertEqual(result, expected)
 
     def test_vjp_of_grad_composition(self):
@@ -184,7 +186,7 @@ class TestGradTransform(TestCase):
             return vjp_fn(y)[0]
 
         result = foo(x, y)
-        expected = -y * x.sin() 
+        expected = -y * x.sin()
         self.assertEqual(result, expected)
 
     def test_grad_of_vjp_of_grad_composition(self):
@@ -196,8 +198,102 @@ class TestGradTransform(TestCase):
             return grad(lambda y: vjp_fn(y)[0])(y)
 
         result = foo(x, y)
-        expected = x.cos() 
+        expected = x.cos()
         self.assertEqual(result, expected)
+
+    def test_views(self):
+        x = torch.randn([], requires_grad=True)
+        y = torch.randn([], requires_grad=True)
+
+        def silly_sin(x):
+            x = x.view([])
+            x = x.sin()
+            return x
+
+        def foo(x, y):
+            z1 = grad(silly_sin)(x)
+            z2 = torch.cos(y)
+            return z1 + z2
+
+        result = foo(x, y)
+        grads = torch.autograd.grad(result, [x, y])
+        self.assertEqual(grads[0], -x.sin())
+        self.assertEqual(grads[1], -y.sin())
+
+    def test_view_inplace_simple(self):
+        def foo(x):
+            x = x.clone()
+            x.view([]).sin_()
+            return x
+
+        x = torch.randn([], requires_grad=True)
+        result = grad(foo)(x)
+        self.assertEqual(result, x.cos())
+
+
+class TestVmapOfGrad(TestCase):
+    def test_per_sample_grads_simple(self):
+        def compute_loss(weight, x, t):
+            y = x @ weight
+            return ((y - t) ** 2).sum()
+
+        weight = torch.randn(16, 2)
+        x = torch.randn(64, 16)
+        t = torch.randn(64, 2)
+        result = vmap(partial(grad(compute_loss), weight))(x, t)
+        expected = [grad(compute_loss)(weight, x[i], t[i]) for i in range(64)]
+        expected = torch.stack(expected)
+        # TODO: Check if the rtol is a problem
+        self.assertEqual(result, expected, atol=0, rtol=5e-4)
+
+    def test_per_sample_grads_embeddingnet(self):
+        class SampleNet(nn.Module):
+            def __init__(self, vocab_size: int):
+                super().__init__()
+                self.emb = nn.Embedding(vocab_size, 16)
+                self.fc1 = nn.Linear(16, 16)
+                self.fc2 = nn.Linear(16, 2)
+
+            def forward(self, x):
+                x = self.emb(x)
+                x = torch.transpose(x, -1, -2)
+                x = torch.mean(x, -1)
+                x = self.fc1(x)
+                x = F.relu(x)
+                x = self.fc2(x)
+                return x
+
+            def name(self):
+                return "SampleNet"
+
+        # Create our inputs...
+        vocab_size = 1000
+        batch_shape = [64]
+        words_per_sentence = 5
+        data = torch.randint(0, vocab_size, (*batch_shape, words_per_sentence))
+        targets = torch.randint(0, 1, (*batch_shape,))
+
+        # Construct our module
+        net = SampleNet(vocab_size)
+        criterion = nn.CrossEntropyLoss()
+
+        params = dict(net.named_parameters())
+        weights, net_func, _ = make_functional(net)
+
+        def compute_loss(weights, data, target):
+            output = net_func(weights, (data,))
+            result = criterion(output, target)
+            return result
+
+        expected = [grad(compute_loss)(weights, data[i], targets[i]) for i in range(64)]
+        expected = zip(*expected)
+        expected = tuple(torch.stack(shards) for shards in expected)
+
+        result = vmap(partial(grad(compute_loss), weights))(data, targets)
+        for r, e in zip(result, expected):
+            # TODO: Check if the rtol is a problem
+            self.assertEqual(r, e, atol=0, rtol=1e-4)
+
 
 if __name__ == '__main__':
     run_tests()

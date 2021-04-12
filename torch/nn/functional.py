@@ -2782,7 +2782,13 @@ def cross_entropy(
         )
     if size_average is not None or reduce is not None:
         reduction = _Reduction.legacy_get_string(size_average, reduce)
-    return torch._C._nn.cross_entropy_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index)
+    dim_1_input = (input.dim() == 1)
+    if dim_1_input:
+        assert reduction == 'mean'
+        input = input.unsqueeze(0)
+        target = target.unsqueeze(0)
+    result = torch._C._nn.cross_entropy_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index)
+    return result
 
 
 def binary_cross_entropy(

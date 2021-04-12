@@ -22,6 +22,8 @@
 #include <utility>
 #include <vector>
 
+#include <ATen/TensorWrapper.h>
+
 namespace torch { namespace autograd {
 
 struct Edge;

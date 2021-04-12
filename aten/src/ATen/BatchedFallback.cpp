@@ -5,6 +5,7 @@
 #include <ATen/core/dispatch/Dispatcher.h>
 #include <c10/util/accumulate.h>
 #include <c10/util/llvmMathExtras.h>
+#include <ATen/TensorWrapper.h>
 
 namespace at {
 
@@ -190,7 +191,8 @@ void batchedTensorInplaceForLoopFallback(const c10::OperatorHandle& op, torch::j
       // argument is a BatchedTensor
       TORCH_INTERNAL_ASSERT(input_physical_views_iter != input_physical_views.end());
       const auto& physical_view_for_argument = *input_physical_views_iter;
-      torch::jit::push(stack, physical_view_for_argument.tensor().index(index));
+      auto thing = physical_view_for_argument.tensor().index(index);
+      torch::jit::push(stack, thing);
       batched_tensor_inputs_pos_iter++;
       input_physical_views_iter++;
     }
@@ -333,11 +335,15 @@ void batchedTensorForLoopFallback(const c10::OperatorHandle& op, torch::jit::Sta
       // argument is a BatchedTensor
       TORCH_INTERNAL_ASSERT(input_physical_views_iter != input_physical_views.end());
       const auto& physical_view_for_argument = *input_physical_views_iter;
+      c10::impl::ExcludeDispatchKeyGuard guard(c10::DispatchKey::Batched);
       torch::jit::push(stack, physical_view_for_argument.tensor().index(index));
       batched_tensor_inputs_pos_iter++;
       input_physical_views_iter++;
     }
 
+    // std::cout << "[Fallback]: ";
+    // at::dump_tensor((*stack)[stack->size() - 1].toTensor());
+    c10::impl::ExcludeDispatchKeyGuard guard(c10::DispatchKey::Batched);
     op.callBoxed(stack);
 
     // Store the result into `output_shards`. See NOTE: [Output shards layout]
@@ -354,6 +360,7 @@ void batchedTensorForLoopFallback(const c10::OperatorHandle& op, torch::jit::Sta
   auto output_shards_chunks = MatrixRef<Tensor>(output_shards, num_batches);
   for (int64_t return_idx = 0; return_idx < num_returns; ++return_idx) {
     auto shards = output_shards_chunks[return_idx];
+    c10::impl::ExcludeDispatchKeyGuard guard(c10::DispatchKey::Batched);
     auto flat_output = safeStack(shards);
     // See NOTE [vmap through backward and undefined grad]
     if (!flat_output.defined()) {

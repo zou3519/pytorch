@@ -1,9 +1,11 @@
 import torch
 from torch import vmap
 from functools import partial
+import collections
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.make_functional import make_functional, make_functional_with_buffers
+from torch._vmap_internals import vmap
 import gc
 
 # x = torch.ones(2, 3)
@@ -29,7 +31,8 @@ def _create_differentiable(tensor_or_tuple_of_tensors, level=None):
         return tuple(map(partial(_create_differentiable, level=level), tensor_or_tuple_of_tensors))
     if isinstance(tensor_or_tuple_of_tensors, list):
         return tuple(map(partial(_create_differentiable, level=level), tensor_or_tuple_of_tensors))
-    assert False
+    raise ValueError(f'Thing passed to transform API must be Tensor, List or Tuple, '
+                     f'got {type(tensor_or_tuple_of_tensors)}')
 
 def _undo_create_differentiable(tensor_or_tuple_of_tensors, level=None):
     if isinstance(tensor_or_tuple_of_tensors, torch.Tensor):
@@ -112,7 +115,7 @@ def vjp(f, *primals):
 def grad_with_value(f, diff_argnums=(0,), has_aux=False):
     def wrapper(*args):
         level = torch._C._grad_increment_nesting()
-        output, aux = None, None
+        output, aux, grad_input = None, None, None
         try:
             args = [_create_differentiable(arg, level) if i in diff_argnums else arg
                     for i, arg in enumerate(args)]
@@ -139,7 +142,8 @@ def grad_with_value(f, diff_argnums=(0,), has_aux=False):
             if single_diff_arg:
                 grad_input = grad_input[0]
         finally:
-            grad_input = _undo_create_differentiable(grad_input, level)
+            if grad_input is not None:
+                grad_input = _undo_create_differentiable(grad_input, level)
             torch._C._grad_decrement_nesting()
         if has_aux:
             return grad_input, output, aux

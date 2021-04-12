@@ -9,7 +9,8 @@ struct TORCH_API TensorWrapper : public c10::TensorImpl {
       c10::DispatchKeySet key_set,
       Tensor value,
       int64_t level,
-      std::shared_ptr<bool> is_alive);
+      std::shared_ptr<bool> is_alive,
+      bool use_value_sizes_strides = true);
 
   // Override a bunch of methods inherited from TensorImpl to return error messages
   void set_size(int64_t dim, int64_t new_size) override;

@@ -116,7 +116,9 @@ static Tensor fullyMaterializeWrappers(const Tensor& tensor, std::vector<Dynamic
         }
         result = makeTensorWrapper(result, dynlayerStack[idx].layerId());
       } else {
-        TORCH_INTERNAL_ASSERT(false);
+        if (c10::show_dispatch_trace_enabled()) {
+          std::cout << "not materializing batched " << dynlayerStack[idx].layerId() << std::endl;
+        }
       }
     }
     TORCH_INTERNAL_ASSERT(result.defined());
@@ -125,7 +127,9 @@ static Tensor fullyMaterializeWrappers(const Tensor& tensor, std::vector<Dynamic
     }
     return result;
   }
-  if (wrapper->level() == dynlayerStack.back().layerId()) {
+  auto cur_level = dynlayerStack.back().layerId();
+  TORCH_INTERNAL_ASSERT(wrapper->level() <= cur_level, "escaped?");
+  if (wrapper->level() == cur_level) {
     TORCH_INTERNAL_ASSERT(tensor.defined());
     return tensor;
   }
@@ -133,11 +137,16 @@ static Tensor fullyMaterializeWrappers(const Tensor& tensor, std::vector<Dynamic
     if (wrapper->level() >= dynlayerStack[idx].layerId()) {
       continue;
     }
-    TORCH_INTERNAL_ASSERT(dynlayerStack[idx].key() == DispatchKey::Autograd);
-    if (c10::show_dispatch_trace_enabled()) {
-      std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
+    if (dynlayerStack[idx].key() == DispatchKey::Autograd) {
+      if (c10::show_dispatch_trace_enabled()) {
+        std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
+      }
+      result = makeTensorWrapper(result, dynlayerStack[idx].layerId());
+    } else {
+        if (c10::show_dispatch_trace_enabled()) {
+          std::cout << "2not materializing batched " << dynlayerStack[idx].layerId() << std::endl;
+        }
     }
-    result = makeTensorWrapper(result, dynlayerStack[idx].layerId());
   }
   TORCH_INTERNAL_ASSERT(result.defined());
   if (c10::show_dispatch_trace_enabled()) {
@@ -165,7 +174,11 @@ static void foreachTensorInplace(std::vector<IValue>& args, int64_t begin, int64
   for (int64_t idx = begin; idx < end; idx++) {
     auto ivalue = args[idx];
     if (ivalue.isTensorList()) {
-      TORCH_INTERNAL_ASSERT(false, "NYI: TensorList");
+      auto list = ivalue.toTensorList();
+      for (int64_t list_idx = 0; list_idx < list.size(); list_idx++) {
+        list[list_idx] = func(list[list_idx]);
+      }
+      args[idx] = list;
     }
     if (!ivalue.isTensor()) {
       continue;
@@ -277,6 +290,7 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
   // std::cout << "dynamicLayerBackFallback" << std::endl;
   //
   auto cur_level = getDynamicLayerStack().back().layerId();
+  auto cur_key = getDynamicLayerStack().back().key();
 
   auto unwrap = [&](const Tensor& tensor) {
     if (!tensor.defined()) {
@@ -307,9 +321,11 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
     return makeTensorWrapper(tensor, cur_level);
   };
 
-  // Unwrap everything
-  auto args_size = op.schema().arguments().size();
-  foreachTensorInplace(*stack, stack->size() - args_size, stack->size(), unwrap);
+  // Hack for autograd key: Unwrap everything
+  if (cur_key == DispatchKey::Autograd) {
+    auto args_size = op.schema().arguments().size();
+    foreachTensorInplace(*stack, stack->size() - args_size, stack->size(), unwrap);
+  }
 
   // pop the top layer. Put it back on dtor.
   WithoutTop guard;
@@ -325,9 +341,11 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
   // Re-dispatch
   op.callBoxed(stack);
 
-  // Rewrap everything
-  auto ret_size = op.schema().returns().size();
-  foreachTensorInplace(*stack, stack->size() - ret_size, stack->size(), wrap);
+  // Hack for autograd key: Rewrap everything
+  if (cur_key == DispatchKey::Autograd) {
+    auto ret_size = op.schema().returns().size();
+    foreachTensorInplace(*stack, stack->size() - ret_size, stack->size(), wrap);
+  }
 }
 
 TORCH_LIBRARY_IMPL(_, DynamicLayerFront, m) {

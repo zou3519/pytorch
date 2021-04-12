@@ -55,6 +55,7 @@ using BatchDimsRef = ArrayRef<BatchDim>;
 // dim 0, which is equivalent to dim 3 in the underlying ones(2, 3, 5, 7) tensor.
 struct TORCH_API BatchedTensorImpl : public c10::TensorImpl {
   explicit BatchedTensorImpl(Tensor value, BatchDims bdims);
+  explicit BatchedTensorImpl(at::DispatchKeySet key_set, Tensor value, BatchDims bdims);
 
   // Returns a reference to BatchDims that represent which dimensions of this
   // tensor are private.
@@ -80,6 +81,8 @@ struct TORCH_API BatchedTensorImpl : public c10::TensorImpl {
 #ifdef DEBUG
   bool has_storage() const override;
 #endif
+
+  void refreshSizesAndStrides();
 
  private:
   // see NOTE: [BatchedTensorImpl levels invariant]
