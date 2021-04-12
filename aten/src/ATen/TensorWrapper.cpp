@@ -22,9 +22,13 @@ void dumpTensor(std::ostream& ss, const Tensor& tensor) {
   if (wrapped->is_alive()) {
     ss << "Wrapper[";
   } else {
-    ss << "DeadWrapper[";
+    ss << "Wrapper[";
   }
-  ss << wrapped->level() << ", ";
+  if (wrapped->level().has_value()) {
+    ss << wrapped->level().value() << ", ";
+  } else {
+    ss << "dead, ";
+  }
   dumpTensor(ss, wrapped->value());
   ss << "]";
 }
@@ -34,7 +38,7 @@ void dumpTensorCout(const Tensor& tensor) {
   std::cout << std::endl;
 }
 
-c10::intrusive_ptr<TensorWrapper> makeTensorWrapperPtr(const Tensor& tensor, int64_t level, int64_t should_be_alive) {
+c10::intrusive_ptr<TensorWrapper> makeTensorWrapperPtr(const Tensor& tensor, int64_t level, bool should_be_alive) {
   // TODO: denylist non-cuda/cpu backends to avoid funny business
   DispatchKeySet key_set;
   if (tensor.is_cuda()) {
@@ -46,17 +50,13 @@ c10::intrusive_ptr<TensorWrapper> makeTensorWrapperPtr(const Tensor& tensor, int
   }
   key_set = key_set.add(DispatchKey::TensorWrapper);
   if (should_be_alive) {
-    auto& data = getGlobalDynmetaData();
-    TORCH_INTERNAL_ASSERT(data.find(level) != data.end());
-    return c10::make_intrusive<TensorWrapper>(key_set, tensor, level, data[level]);
+    return c10::make_intrusive<TensorWrapper>(key_set, tensor, level, getLifeHandleForLevel(level));
   } else {
     return c10::make_intrusive<TensorWrapper>(key_set, tensor, level, std::make_shared<bool>(false));
   }
 }
 
 Tensor makeTensorWrapper(const Tensor& tensor, int64_t level) {
-  auto& data = getGlobalDynmetaData();
-
   // TODO: denylist non-cuda/cpu backends to avoid funny business
   DispatchKeySet key_set;
   if (tensor.is_cuda()) {
@@ -67,8 +67,8 @@ Tensor makeTensorWrapper(const Tensor& tensor, int64_t level) {
     key_set = key_set.add(DispatchKey::AutogradCPU);
   }
   key_set = key_set.add(DispatchKey::TensorWrapper);
-  TORCH_INTERNAL_ASSERT(data.find(level) != data.end());
-  auto result = at::detail::make_tensor<TensorWrapper>(key_set, tensor, level, data[level]);
+  auto life_handle = getLifeHandleForLevel(level);
+  auto result = at::detail::make_tensor<TensorWrapper>(key_set, tensor, level, std::move(life_handle));
   TORCH_INTERNAL_ASSERT(result.key_set().has(DispatchKey::TensorWrapper));
   return result;
 }
@@ -80,7 +80,7 @@ bool TensorWrapper::is_alive() const {
 c10::intrusive_ptr<TensorImpl> TensorWrapper::shallow_copy_and_detach(
     const c10::VariableVersion& version_counter,
     bool allow_tensor_metadata_change) const {
-  auto dest_impl = makeTensorWrapperPtr(value(), level(), is_alive());
+  auto dest_impl = makeTensorWrapperPtr(value(), level_, is_alive());
   dest_impl->set_version_counter(version_counter);
 
   // TODO: is this even right?
@@ -91,7 +91,7 @@ c10::intrusive_ptr<TensorImpl> TensorWrapper::shallow_copy_and_detach(
 c10::intrusive_ptr<TensorImpl> TensorWrapper::shallow_copy_and_detach(
     c10::VariableVersion&& version_counter,
     bool allow_tensor_metadata_change) const {
-  auto dest_impl = makeTensorWrapperPtr(value(), level(), is_alive());
+  auto dest_impl = makeTensorWrapperPtr(value(), level_, is_alive());
   dest_impl->set_version_counter(version_counter);
 
   // TODO: is this even right?

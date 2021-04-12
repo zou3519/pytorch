@@ -25,10 +25,7 @@ TORCH_API c10::optional<DynamicLayer> maybeCurrentDynamicLayer();
 TORCH_API const std::vector<DynamicLayer>& getDynamicLayerStack();
 TORCH_API void setDynamicLayerStack(const std::vector<DynamicLayer>& stack);
 
-
-using DynmetaData = std::unordered_map<int64_t, std::shared_ptr<bool>>;
-
 // NB: not lock safe. TODO: does it need a lock?
-TORCH_API DynmetaData& getGlobalDynmetaData();
+TORCH_API std::shared_ptr<bool> getLifeHandleForLevel(int64_t level);
 
 } // namespace at

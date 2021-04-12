@@ -13,7 +13,7 @@ int64_t dlevel(const Tensor& tensor) {
   if (!wrapped->is_alive()) {
     return -1;
   }
-  return wrapped->level();
+  return wrapped->level().value();
 }
 
 bool dump_tensor(const Tensor& self) {
@@ -157,6 +157,7 @@ Tensor _unwrap_for_grad(const Tensor& self, int64_t level) {
   if (!result) {
     return self;
   }
+  TORCH_INTERNAL_ASSERT(result->level().has_value());
   if (result->level() == level) {
     return result->value();
   }

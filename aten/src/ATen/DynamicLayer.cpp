@@ -10,10 +10,17 @@ namespace at {
 // Initial autograd layer, because autograd is always "on"
 thread_local std::vector<DynamicLayer> dynamicLayerStack = { DynamicLayer(DispatchKey::Autograd, 1) };
 
+using DynmetaData = std::unordered_map<int64_t, std::shared_ptr<bool>>;
 DynmetaData kDynMetaDataSingleton;
 
-DynmetaData& getGlobalDynmetaData() {
+static DynmetaData& getGlobalDynmetaData() {
   return kDynMetaDataSingleton;
+}
+
+std::shared_ptr<bool> getLifeHandleForLevel(int64_t level) {
+  auto it = getGlobalDynmetaData().find(level);
+  TORCH_INTERNAL_ASSERT(it != kDynMetaDataSingleton.end(), "level should be alive");
+  return it->second;
 }
 
 optional<DynamicLayer> maybeCurrentDynamicLayer() {
@@ -108,8 +115,8 @@ static Tensor materializeGradWrappers(const Tensor& tensor, const std::vector<Dy
   if (!wrapper) {
     return makeTensorWrapper(tensor, cur_level);
   }
-  TORCH_INTERNAL_ASSERT(wrapper->level() <= cur_level, "escaped?");
-  if (wrapper->level() == cur_level) {
+  TORCH_INTERNAL_ASSERT(wrapper->level().value() <= cur_level, "escaped?");
+  if (wrapper->level().value() == cur_level) {
     TORCH_INTERNAL_ASSERT(tensor.defined());
     return tensor;
   }
@@ -233,7 +240,7 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
     if (!maybe_tensor_wrapper) {
       return tensor;
     }
-    if (maybe_tensor_wrapper->level() == cur_level) {
+    if (maybe_tensor_wrapper->level().value() == cur_level) {
       return maybe_tensor_wrapper->value();
     }
     if (c10::show_dispatch_trace_enabled()) {
@@ -265,11 +272,11 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
 
   // "reset exclude set"
   // TODO: Still a problem with composabiilty and AutoNonVariableTypeGuard.
+  // Users cannot do torch.no_grad otherwise there will be problems.
   auto keyset = c10::impl::PODLocalDispatchKeySet();
   c10::impl::_force_tls_local_dispatch_key_set(keyset);
   c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerFront, true);
   c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerBack, true);
-
 
   // Re-dispatch
   op.callBoxed(stack);

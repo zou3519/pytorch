@@ -20,8 +20,11 @@ struct TORCH_API TensorWrapper : public c10::TensorImpl {
   const Tensor& value() const {
     return value_;
   }
-  int64_t level() const {
-    return level_;
+  optional<int64_t> level() const {
+    if (is_alive()) {
+      return level_;
+    }
+    return {};
   }
   bool is_alive() const;
 
