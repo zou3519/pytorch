@@ -2,13 +2,14 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import unittest
 import functools
 import itertools
 import warnings
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, \
     skipCUDAIfNoMagma
 import types
-from torch.eager_transforms import grad, vjp, vmap, make_functional
+from torch.eager_transforms import grad, vjp, vmap, make_functional, jacrev
 from functools import partial
 
 
@@ -293,6 +294,35 @@ class TestVmapOfGrad(TestCase):
         for r, e in zip(result, expected):
             # TODO: Check if the rtol is a problem
             self.assertEqual(r, e, atol=0, rtol=1e-4)
+
+class TestJacrev(TestCase):
+    def test_simple(self):
+        x = torch.randn(3)
+        y = jacrev(torch.sin)(x)
+        expected = torch.diagflat(x.cos())
+        assert torch.allclose(y, expected)
+
+    def test_simple_not_flat(self):
+        x = torch.randn(2, 3)
+        y = jacrev(torch.sin)(x)
+        expected = torch.diagflat(x.view(-1).cos())
+        expected = expected.view(2, 3, 2, 3)
+        assert torch.allclose(y, expected)
+
+    def test_vmap_on_jacrev_simple(self):
+        x = torch.randn(2, 3)
+        y = vmap(jacrev(torch.sin))(x)
+        expected = torch.stack([torch.diagflat(x[i].cos()) for i in range(2)])
+        assert torch.allclose(y, expected)
+
+    def test_hessian_simple(self):
+        def foo(x):
+            return x.sin().sum()
+
+        x = torch.randn(3)
+        y = jacrev(jacrev(foo))(x)
+        expected = torch.diagflat(-x.sin())
+        assert torch.allclose(y, expected)
 
 
 if __name__ == '__main__':

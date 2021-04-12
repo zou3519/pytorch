@@ -11,19 +11,9 @@ namespace at {
 thread_local std::vector<DynamicLayer> dynamicLayerStack = { DynamicLayer(DispatchKey::Autograd, 1) };
 
 DynmetaData kDynMetaDataSingleton;
-std::mutex kDynMetaDataSingletonMutex;
 
 DynmetaData& getGlobalDynmetaData() {
   return kDynMetaDataSingleton;
-}
-
-std::mutex& getGlobalDynmetaDataMutex() {
-  return kDynMetaDataSingletonMutex;
-}
-
-
-bool gradLayerAtTop() {
-  return dynamicLayerStack.back().key() == DispatchKey::Autograd;
 }
 
 optional<DynamicLayer> maybeCurrentDynamicLayer() {
@@ -34,19 +24,30 @@ optional<DynamicLayer> maybeCurrentDynamicLayer() {
   return dynamicLayerStack.back();
 }
 
-std::vector<DynamicLayer>& getDynamicLayerStack() {
+const std::vector<DynamicLayer>& getDynamicLayerStack() {
   return dynamicLayerStack;
 }
 
-int64_t initAndPushDynamicLayer(DispatchKey key) {
-  auto layerId = pushDynamicLayer(key);
-  auto& data = getGlobalDynmetaData();
-  TORCH_INTERNAL_ASSERT(data.find(layerId) == data.end());
-  data[layerId] = std::make_shared<bool>(true);
-  return layerId;
+void setDynamicLayerStack(const std::vector<DynamicLayer>& stack) {
+  dynamicLayerStack = stack;
 }
 
-int64_t pushDynamicLayer(DispatchKey key) {
+static DynamicLayer popDynamicLayer() {
+  TORCH_INTERNAL_ASSERT(dynamicLayerStack.size() > 0);
+  auto result = dynamicLayerStack.back();
+  TORCH_INTERNAL_ASSERT(result.key() != DispatchKey::Undefined);
+  dynamicLayerStack.pop_back();
+
+  if (dynamicLayerStack.size() == 0) {
+    // std::cout << "DynamicLayer off" << std::endl;
+    c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerFront, false);
+    c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerBack, false);
+  }
+
+  return result;
+}
+
+static int64_t pushDynamicLayer(DispatchKey key) {
   TORCH_INTERNAL_ASSERT(key != DispatchKey::Undefined);
   auto layerId = 1 + dynamicLayerStack.size();
   dynamicLayerStack.emplace_back(key, layerId);
@@ -60,19 +61,12 @@ int64_t pushDynamicLayer(DispatchKey key) {
   return layerId;
 }
 
-DynamicLayer popDynamicLayer() {
-  TORCH_INTERNAL_ASSERT(dynamicLayerStack.size() > 0);
-  auto result = dynamicLayerStack.back();
-  TORCH_INTERNAL_ASSERT(result.key() != DispatchKey::Undefined);
-  dynamicLayerStack.pop_back();
-
-  if (dynamicLayerStack.size() == 0) {
-    // std::cout << "DynamicLayer off" << std::endl;
-    c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerFront, false);
-    c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerBack, false);
-  }
-
-  return result;
+int64_t initAndPushDynamicLayer(DispatchKey key) {
+  auto layerId = pushDynamicLayer(key);
+  auto& data = getGlobalDynmetaData();
+  TORCH_INTERNAL_ASSERT(data.find(layerId) == data.end());
+  data[layerId] = std::make_shared<bool>(true);
+  return layerId;
 }
 
 DynamicLayer popDynamicLayerAndDeleteMetadata() {
@@ -97,62 +91,29 @@ DynamicLayer popDynamicLayerAndDeleteMetadata() {
   return result;
 }
 
-static Tensor fullyMaterializeWrappers(const Tensor& tensor, std::vector<DynamicLayer>& dynlayerStack) {
+static Tensor materializeGradWrappers(const Tensor& tensor, const std::vector<DynamicLayer>& dynlayerStack) {
   if (!tensor.defined()) {
     return tensor;
   }
-  // First entry in the stack is a default autograd key
+  // TODO: First entry in the stack is a default autograd key.
+  // We should clean up the logic
   if (dynlayerStack.size() <= 1) {
     return tensor;
   }
-  // std::cout << "fullyMaterializeWrappers " << dynlayerStack.size() << std::endl;
-  auto* wrapper = maybeGetTensorWrapper(tensor);
-  Tensor result = tensor;
-  if (!wrapper) {
-    for (int64_t idx = 1; idx < dynlayerStack.size(); idx++) {
-      if (dynlayerStack[idx].key() == DispatchKey::Autograd) {
-        if (c10::show_dispatch_trace_enabled()) {
-          std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
-        }
-        result = makeTensorWrapper(result, dynlayerStack[idx].layerId());
-      } else {
-        if (c10::show_dispatch_trace_enabled()) {
-          std::cout << "not materializing batched " << dynlayerStack[idx].layerId() << std::endl;
-        }
-      }
-    }
-    TORCH_INTERNAL_ASSERT(result.defined());
-    if (c10::show_dispatch_trace_enabled()) {
-      dumpTensorCout(result);
-    }
-    return result;
+  if (dynlayerStack.back().key() != DispatchKey::Autograd) {
+    return tensor;
   }
   auto cur_level = dynlayerStack.back().layerId();
+  auto* wrapper = maybeGetTensorWrapper(tensor);
+  if (!wrapper) {
+    return makeTensorWrapper(tensor, cur_level);
+  }
   TORCH_INTERNAL_ASSERT(wrapper->level() <= cur_level, "escaped?");
   if (wrapper->level() == cur_level) {
     TORCH_INTERNAL_ASSERT(tensor.defined());
     return tensor;
   }
-  for (int64_t idx = 1; idx < dynlayerStack.size(); idx++) {
-    if (wrapper->level() >= dynlayerStack[idx].layerId()) {
-      continue;
-    }
-    if (dynlayerStack[idx].key() == DispatchKey::Autograd) {
-      if (c10::show_dispatch_trace_enabled()) {
-        std::cout << "materializing " << dynlayerStack[idx].layerId() << std::endl;
-      }
-      result = makeTensorWrapper(result, dynlayerStack[idx].layerId());
-    } else {
-        if (c10::show_dispatch_trace_enabled()) {
-          std::cout << "2not materializing batched " << dynlayerStack[idx].layerId() << std::endl;
-        }
-    }
-  }
-  TORCH_INTERNAL_ASSERT(result.defined());
-  if (c10::show_dispatch_trace_enabled()) {
-    dumpTensorCout(result);
-  }
-  return result;
+  return makeTensorWrapper(tensor, cur_level);
 }
 
 static Tensor unwrapIfDead(const Tensor& tensor) {
@@ -180,20 +141,37 @@ static void foreachTensorInplace(std::vector<IValue>& args, int64_t begin, int64
       }
       args[idx] = list;
     }
+    TORCH_INTERNAL_ASSERT(!ivalue.isGenericDict(), "No operators can accept GenericDict");
     if (!ivalue.isTensor()) {
       continue;
     }
-    // std::cout << "replaced " << idx << std::endl;
     Tensor value = ivalue.toTensor();
     Tensor replacement = func(value);
-    args[idx] = replacement; // TODO: std::move?
+    args[idx] = std::move(replacement);
     // sanity checks
     if (ivalue.toTensor().defined()) {
       TORCH_INTERNAL_ASSERT(args[idx].toTensor().defined());
     }
-    // if (ivalue.toTensor().data_ptr()) {
-    //   TORCH_INTERNAL_ASSERT(args[idx].toTensor().data_ptr());
-    // }
+  }
+}
+
+constexpr DispatchKeySet all_dynlayer_keyset = DispatchKeySet({
+  DispatchKey::DynamicLayerFront,
+  DispatchKey::DynamicLayerBack,
+  DispatchKey::TensorWrapper,
+  DispatchKey::Batched,
+  DispatchKey::InplaceOrView
+}) | autograd_dispatch_keyset;
+
+static void sanityCheckStack(torch::jit::Stack* stack) {
+  if (stack->size() > 0) {
+    auto last_ivalue = (*stack)[stack->size() - 1];
+    if (last_ivalue.isTensor()) {
+      auto tensor = last_ivalue.toTensor();
+      auto* wrapper = maybeGetTensorWrapper(tensor);
+      TORCH_INTERNAL_ASSERT(wrapper == nullptr);
+      TORCH_INTERNAL_ASSERT(tensor.has_storage());
+    }
   }
 }
 
@@ -202,84 +180,41 @@ void dynamicLayerFrontFallback(const c10::OperatorHandle& op, torch::jit::Stack*
     std::cout << "DLS size: " << dynamicLayerStack.size() << std::endl;
   }
   if (dynamicLayerStack.size() == 0) {
-    // TODO: temp code
-    if (stack->size() > 0) {
-      auto last_ivalue = (*stack)[stack->size() - 1];
-      if (last_ivalue.isTensor()) {
-        auto tensor = last_ivalue.toTensor();
-        auto* wrapper = maybeGetTensorWrapper(tensor);
-        TORCH_INTERNAL_ASSERT(wrapper == nullptr);
-        TORCH_INTERNAL_ASSERT(tensor.has_storage());
-      }
-    }
-    // std::cout << "dynamicLayerFrontFallback " << op.operator_name() << " terminal" << std::endl;
-    DispatchKeySet exclude;
-    exclude = exclude.add(DispatchKey::DynamicLayerFront);
-    exclude = exclude.add(DispatchKey::TensorWrapper);
-    exclude = exclude.add(DispatchKey::Batched);
-    exclude = exclude.add(DispatchKey::Autograd);
-    exclude = exclude.add(DispatchKey::AutogradOther);
-    exclude = exclude.add(DispatchKey::AutogradCPU);
-    exclude = exclude.add(DispatchKey::AutogradCUDA);
-    exclude = exclude.add(DispatchKey::InplaceOrView);
-    exclude = exclude.add(DispatchKey::DynamicLayerBack);
-
-    c10::impl::ExcludeDispatchKeyGuard guard(exclude);
+    sanityCheckStack(stack);
+    c10::impl::ExcludeDispatchKeyGuard guard(all_dynlayer_keyset);
     op.callBoxed(stack);
-    // std::cout << "dynamicLayerFrontFallback " << op.operator_name() << " end terminal" << std::endl;
     return;
   }
 
-  auto materialize = [](const Tensor& tensor) {
+  // Unwrap dead GradWrappers, materialize live ones
+  auto maybeTransformGradWrappers = [](const Tensor& tensor) {
     auto result = unwrapIfDead(tensor);
-    return fullyMaterializeWrappers(result, getDynamicLayerStack());
+    return materializeGradWrappers(result, getDynamicLayerStack());
   };
   auto num_args = op.schema().arguments().size();
-  foreachTensorInplace(*stack, stack->size() - num_args, stack->size(), materialize);
+  foreachTensorInplace(*stack, stack->size() - num_args, stack->size(), maybeTransformGradWrappers);
 
   auto layer = dynamicLayerStack.back();
 
   DispatchKeySet exclude = DispatchKeySet::FULL;
   exclude = exclude.remove(DispatchKey::DynamicLayerBack);
-  // NB: Alias dispatch key doesn't work in exclude set :(
   if (layer.key() == DispatchKey::Autograd) {
-    // std::cout << "enabling some autograd keys..." << std::endl;
-    exclude = exclude.remove(DispatchKey::Autograd);
-    exclude = exclude.remove(DispatchKey::AutogradOther);
-    exclude = exclude.remove(DispatchKey::AutogradCPU);
-    exclude = exclude.remove(DispatchKey::AutogradCUDA);
+    exclude = exclude - autograd_dispatch_keyset;
     exclude = exclude.remove(DispatchKey::InplaceOrView);
   } else {
     exclude = exclude.remove(layer.key());
   }
   c10::impl::ExcludeDispatchKeyGuard guard(exclude);
-  // Exclude all keys except for layer.key and DynamicLayerBack
-  // auto keyset = c10::impl::PODLocalDispatchKeySet();
-  // keyset.set_excluded(exclude);
-  // c10::impl::_force_tls_local_dispatch_key_set(keyset);
-
-  // std::cout << "dynamicLayerFrontFallback " << op.operator_name() << " " << layer.key() << " " << layer.layerId() << std::endl;
 
   // Re-dispatch
   op.callBoxed(stack);
-
-  // Clear TLS
-  // keyset = c10::impl::PODLocalDispatchKeySet();
-  // c10::impl::_force_tls_local_dispatch_key_set(keyset);
-  // c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerFront, true);
-  // c10::impl::tls_set_dispatch_key_included(DispatchKey::DynamicLayerBack, true);
 }
 
 struct WithoutTop {
   WithoutTop(): layer_(popDynamicLayer()) {
-    // prev_grad_enabled_ = GradMode::is_enabled();
-    // if (!prev_grad_enabled_) {
-    //   GradMode::set_enabled(true);
-    // }
   }
   ~WithoutTop() {
-    pushDynamicLayer(layer_.key()); 
-    // GradMode::set_enabled(prev_grad_enabled_);
+    pushDynamicLayer(layer_.key());
   }
 
   bool prev_grad_enabled_;
@@ -287,8 +222,6 @@ struct WithoutTop {
 };
 
 void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
-  // std::cout << "dynamicLayerBackFallback" << std::endl;
-  //
   auto cur_level = getDynamicLayerStack().back().layerId();
   auto cur_key = getDynamicLayerStack().back().key();
 

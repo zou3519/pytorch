@@ -72,6 +72,19 @@ def vjp(f, *primals):
         torch._C._grad_decrement_nesting()
 
     return results, wrapper
+
+def jacrev(f):
+    def wrapper_fn(primal):
+        output, vjp_fn = vjp(f, primal)
+        assert isinstance(output, torch.Tensor)
+        # TODO: does jacrev compose with vmap...? the eye call should make it so that it doesn't
+        basis = torch.eye(output.numel(), dtype=output.dtype, device=output.device) \
+                     .view(output.numel(), *output.shape)
+        result, = vmap(vjp_fn)(basis)
+        result = result.view(*output.shape, *primal.shape)
+        return result
+    return wrapper_fn
+
 # 
 # 
 # def jacrev(f, diff_argnums=(0,)):

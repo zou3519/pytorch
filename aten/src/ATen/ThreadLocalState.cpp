@@ -39,7 +39,7 @@ void ThreadLocalState::setThreadLocalState(
 
   c10::impl::_force_tls_local_dispatch_key_set(state.dispatch_key_);
 
-  at::getDynamicLayerStack() = state.dynlayer_stack_;
+  setDynamicLayerStack(state.dynlayer_stack_);
 }
 
 } // namespace at

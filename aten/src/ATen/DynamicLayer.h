@@ -19,19 +19,16 @@ struct TORCH_API DynamicLayer {
   int64_t layerId_;
 };
 
-TORCH_API int64_t pushDynamicLayer(DispatchKey key);
 TORCH_API int64_t initAndPushDynamicLayer(DispatchKey key);
-TORCH_API DynamicLayer popDynamicLayer();
 TORCH_API DynamicLayer popDynamicLayerAndDeleteMetadata();
-TORCH_API bool gradLayerAtTop();
 TORCH_API c10::optional<DynamicLayer> maybeCurrentDynamicLayer();
-TORCH_API std::vector<DynamicLayer>& getDynamicLayerStack();
+TORCH_API const std::vector<DynamicLayer>& getDynamicLayerStack();
+TORCH_API void setDynamicLayerStack(const std::vector<DynamicLayer>& stack);
 
 
 using DynmetaData = std::unordered_map<int64_t, std::shared_ptr<bool>>;
 
-// NB: not lock safe
+// NB: not lock safe. TODO: does it need a lock?
 TORCH_API DynmetaData& getGlobalDynmetaData();
-TORCH_API std::mutex& getGlobalDynmetaDataMutex();
 
 } // namespace at
