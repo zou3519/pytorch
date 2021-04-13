@@ -22,8 +22,6 @@
 #include <utility>
 #include <vector>
 
-#include <ATen/TensorWrapper.h>
-
 namespace torch { namespace autograd {
 
 struct Edge;
@@ -192,7 +190,6 @@ struct TORCH_API Node : std::enable_shared_from_this<Node> {
   }
 
   uint32_t add_input_metadata(const at::Tensor& t) noexcept {
-    auto shape = t.sizes();
     uint32_t input_nr = input_metadata_.size();
     input_metadata_.emplace_back(t);
     return input_nr;
