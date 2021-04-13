@@ -261,9 +261,25 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
     return makeTensorWrapper(tensor, cur_level);
   };
 
-  // Hack for autograd key: Unwrap everything
+  // TODO: we only need to do the following (marked with !) on in-place functions
+  // that modify sizes or strides. There aren't many of them.
+  // If autograd dispatch key:
+  // 1. (!) Put a copy of all of the args onto the stack
+  // 2. Unwrap all the args in the copy set
+  // 3. Call the operator
+  // 4. Wrap the output
+  // 5. (!) refreshSizesAndStrides for all the args in the original set
+  // 6. (!) Pop those args off.
+
+  // Step 1 & 2
   if (cur_key == DispatchKey::Autograd) {
     auto args_size = op.schema().arguments().size();
+    // Step 1
+    auto front = stack->size() - args_size;
+    for (int64_t arg_idx = 0; arg_idx < args_size; arg_idx++) {
+      stack->push_back((*stack)[front + arg_idx]);
+    }
+    // Step 2
     foreachTensorInplace(*stack, stack->size() - args_size, stack->size(), unwrap);
   }
 
@@ -281,10 +297,29 @@ void dynamicLayerBackFallback(const c10::OperatorHandle& op, torch::jit::Stack* 
   // Re-dispatch
   op.callBoxed(stack);
 
-  // Hack for autograd key: Rewrap everything
+  // Step 4, 5, 6
   if (cur_key == DispatchKey::Autograd) {
+    // Step 4
     auto ret_size = op.schema().returns().size();
     foreachTensorInplace(*stack, stack->size() - ret_size, stack->size(), wrap);
+
+    // Step 5
+    auto args_size = op.schema().arguments().size();
+    auto args_front = stack->size() - args_size - ret_size;
+    for (int64_t arg_idx = 0; arg_idx < args_size; arg_idx++) {
+      auto& ivalue = (*stack)[args_front + arg_idx];
+      if (!ivalue.isTensor()) {
+        continue; 
+      }
+      auto maybe_tensor_wrapper = maybeGetTensorWrapper(ivalue.toTensor());
+      if (!maybe_tensor_wrapper) {
+        continue;
+      }
+      maybe_tensor_wrapper->refreshSizesAndStrides();
+    }
+
+    // Step 6
+    stack->erase(stack->end() - (args_size + ret_size), stack->end() - ret_size);
   }
 }
 

@@ -233,6 +233,21 @@ class TestGradTransform(TestCase):
 
 
 class TestVmapOfGrad(TestCase):
+    def test_per_sample_grads_simple_simple(self):
+        def compute_loss(weight, x, t):
+            x = x.mm(weight)
+            y = x.squeeze_(0)
+            return (y - t).sum()
+
+        weight = torch.randn(16, 2)
+        x = torch.randn(64, 1, 16)
+        t = torch.randn(64, 2)
+        result = vmap(partial(grad(compute_loss), weight))(x, t)
+        expected = [grad(compute_loss)(weight, x[i], t[i]) for i in range(64)]
+        expected = torch.stack(expected)
+        # TODO: Check if the rtol is a problem
+        self.assertEqual(result, expected, atol=0, rtol=5e-4)
+
     def test_per_sample_grads_simple(self):
         def compute_loss(weight, x, t):
             y = x @ weight
@@ -323,6 +338,85 @@ class TestJacrev(TestCase):
         y = jacrev(jacrev(foo))(x)
         expected = torch.diagflat(-x.sin())
         assert torch.allclose(y, expected)
+
+
+class TestComposability(TestCase):
+    def test_grad_grad(self):
+        x = torch.randn([])
+        y = grad(grad(torch.sin))(x)
+        self.assertEqual(y, -x.sin())
+
+    def test_grad_vmap(self):
+        def foo(x):
+            y = vmap(torch.sin)(x)
+            return y.sum()
+
+        x = torch.randn(3)
+        y = grad(foo)(x)
+        self.assertEqual(y, x.cos())
+
+    def test_grad_vjp(self):
+        x = torch.randn(3)
+
+        def foo(x):
+            _, vjp_fn = vjp(torch.sin, x)
+            return vjp_fn(x)[0].sum()
+
+        y = grad(foo)(x)
+        expected = grad(lambda x: (x * x.cos()).sum())(x)
+        self.assertEqual(y, expected)
+
+    def test_vmap_grad(self):
+        x = torch.randn(3)
+        y = vmap(grad(torch.sin))(x)
+        self.assertEqual(y, x.cos())
+
+    def test_vmap_vmap(self):
+        x = torch.randn(2, 3)
+        y = vmap(vmap(torch.sin))(x)
+        self.assertEqual(y, x.sin())
+
+    def test_vmap_vjp(self):
+        x = torch.randn(3)
+        _, vjp_fn = vjp(torch.sin, x)
+
+        def foo(x):
+            _, vjp_fn = vjp(torch.sin, x)
+            return vjp_fn(x)
+
+        y = vmap(foo)(x)
+        self.assertEqual(y, vjp_fn(x))
+
+        xs = torch.randn(5, 3)
+        expected = torch.stack([vjp_fn(x)[0] for x in xs])
+        self.assertEqual(vmap(lambda x: vjp_fn(x)[0])(xs), expected)
+
+    def test_vjp_grad(self):
+        x = torch.randn([])
+        y, vjp_fn = vjp(grad(torch.sin), x)
+        self.assertEqual(y, x.cos())
+
+        v = torch.randn([])
+        self.assertEqual(vjp_fn(v)[0], -x.sin() * v)
+
+    def test_vjp_vmap(self):
+        x = torch.randn(3)
+        y, vjp_fn = vjp(vmap(torch.sin), x)
+        self.assertEqual(y, x.sin())
+
+        v = torch.randn(3)
+        self.assertEqual(vjp_fn(v)[0], x.cos() * v)
+
+    def test_vjp_vjp(self):
+        x = torch.randn(3)
+        y, vjp_fn = vjp(torch.sin, x)
+        self.assertEqual(y, x.sin())
+
+        y, vjp_fn = vjp(lambda x: vjp_fn(x)[0], x)
+        self.assertEqual(y, x * x.cos())
+
+        y = vjp_fn(x)[0]
+        # Honestly IDK what the result here is... but at least it runs
 
 
 if __name__ == '__main__':

@@ -33,6 +33,20 @@ void dumpTensor(std::ostream& ss, const Tensor& tensor) {
   ss << "]";
 }
 
+void TensorWrapper::refreshSizesAndStrides() {
+  auto dim = value_.dim();
+  auto sizes = value_.sizes();
+  auto strides = value_.strides();
+  sizes_and_strides_.resize(value_.dim());
+  for (int64_t i = 0; i < dim; i++) {
+    sizes_and_strides_.size_at_unchecked(i) = sizes[i];
+    sizes_and_strides_.stride_at_unchecked(i) = strides[i];
+  }
+
+  refresh_numel();
+  refresh_contiguous();
+}
+
 void dumpTensorCout(const Tensor& tensor) {
   dumpTensor(std::cout, tensor);
   std::cout << std::endl;
@@ -118,19 +132,8 @@ TensorWrapper::TensorWrapper(
   set_storage_access_should_throw();
 
   // TODO: need to reset sizes/strides on mutation
-  if (use_value_sizes_strides) {
-    auto dim = value_.dim();
-    auto sizes = value_.sizes();
-    auto strides = value_.strides();
-    sizes_and_strides_.resize(value_.dim());
-    for (int64_t i = 0; i < dim; i++) {
-      sizes_and_strides_.size_at_unchecked(i) = sizes[i];
-      sizes_and_strides_.stride_at_unchecked(i) = strides[i];
-    }
-
-    refresh_numel();
-    refresh_contiguous();
-  }
+  TORCH_INTERNAL_ASSERT(use_value_sizes_strides);
+  refreshSizesAndStrides();
 }
 
 // The following are some internal inherited methods that we do not support.

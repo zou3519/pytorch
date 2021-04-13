@@ -15,16 +15,10 @@ import gc
 
 # assert torch.allclose(result, x + y)
 
+# TODO: replace all of these with pytrees
 def _create_differentiable(tensor_or_tuple_of_tensors, level=None):
     if isinstance(tensor_or_tuple_of_tensors, torch.Tensor):
         tensor = tensor_or_tuple_of_tensors
-        # if tensor.requires_grad:
-        #     return tensor
-        # assert not tensor.requires_grad
-        # # NB: view is needed because autograd is silly.
-        # # autograd saved the variable before executing the op, which matters...
-        # aliased = tensor.view_as(tensor)
-        # return aliased.requires_grad_()
         aliased = torch._wrap_for_grad(tensor, level)
         return aliased.requires_grad_()
     if isinstance(tensor_or_tuple_of_tensors, tuple):
@@ -54,6 +48,15 @@ def _any_differentiable(tensor_or_tuple_of_tensors):
         return any(tuple(map(_any_differentiable, tensor_or_tuple_of_tensors)))
     return False
 
+def _wrap_all_tensors(tensor_or_tuple_of_tensors, level):
+    if isinstance(tensor_or_tuple_of_tensors, torch.Tensor):
+        tensor = tensor_or_tuple_of_tensors
+        return torch._wrap_for_grad(tensor, level)
+    if isinstance(tensor_or_tuple_of_tensors, tuple):
+        return tuple(map(partial(_wrap_all_tensors, level=level), tensor_or_tuple_of_tensors))
+    if isinstance(tensor_or_tuple_of_tensors, list):
+        return tuple(map(partial(_wrap_all_tensors, level=level), tensor_or_tuple_of_tensors))
+    return tensor_or_tuple_of_tensors
 
 # How do we increment and decrement the nesting? I don't think we can.
 def vjp(f, *primals):
@@ -130,6 +133,7 @@ def grad_with_value(f, diff_argnums=(0,), has_aux=False):
         level = torch._C._grad_increment_nesting()
         output, aux, grad_input = None, None, None
         try:
+            args = _wrap_all_tensors(args, level)
             args = [_create_differentiable(arg, level) if i in diff_argnums else arg
                     for i, arg in enumerate(args)]
             # print("calling f(*args)")
