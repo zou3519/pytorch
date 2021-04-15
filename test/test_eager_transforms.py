@@ -233,7 +233,7 @@ class TestGradTransform(TestCase):
 
 
 class TestVmapOfGrad(TestCase):
-    def test_per_sample_grads_simple_simple(self):
+    def test_per_sample_grads_inplace_view(self):
         def compute_loss(weight, x, t):
             x = x.mm(weight)
             y = x.squeeze_(0)
@@ -247,6 +247,19 @@ class TestVmapOfGrad(TestCase):
         expected = torch.stack(expected)
         # TODO: Check if the rtol is a problem
         self.assertEqual(result, expected, atol=0, rtol=5e-4)
+
+    def test_new_zeros_materializes_tensor(self):
+        N = 3
+        C = 5
+
+        def foo(x, y):
+            result = x.new_zeros((C,))
+            result.copy_(y)
+            return result.sum()
+
+        x = torch.randn(N)
+        y = torch.randn(N, C)
+        result = vmap(grad(foo))(x, y)
 
     def test_per_sample_grads_simple(self):
         def compute_loss(weight, x, t):

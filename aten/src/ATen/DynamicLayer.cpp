@@ -4,17 +4,41 @@
 #include <ATen/core/dispatch/Dispatcher.h>
 #include <torch/csrc/autograd/variable.h>
 #include <ATen/TensorWrapper.h>
+#include <c10/util/ThreadLocalDebugInfo.h>
 
 namespace at {
 
 // Initial autograd layer, because autograd is always "on"
-thread_local std::vector<DynamicLayer> dynamicLayerStack = { DynamicLayer(DispatchKey::Autograd, 1) };
+// thread_local std::vector<DynamicLayer> dynamicLayerStack = { DynamicLayer(DispatchKey::Autograd, 1) };
 
 using DynmetaData = std::unordered_map<int64_t, std::shared_ptr<bool>>;
 DynmetaData kDynMetaDataSingleton;
 
 static DynmetaData& getGlobalDynmetaData() {
   return kDynMetaDataSingleton;
+}
+
+class DynamicLayerStackHolder : public c10::DebugInfoBase {
+ public:
+  DynamicLayerStackHolder() {}
+  virtual ~DynamicLayerStackHolder() {}
+
+  std::vector<DynamicLayer> dynamicLayerStack = { DynamicLayer(DispatchKey::Autograd, 1) };
+};
+
+thread_local std::shared_ptr<DynamicLayerStackHolder> kDynamicLayerStack;
+
+static std::vector<DynamicLayer>& dynamicLayerStackAccessor() {
+  if (kDynamicLayerStack == nullptr) {
+    kDynamicLayerStack = std::make_shared<DynamicLayerStackHolder>();
+    c10::ThreadLocalDebugInfo::_push(
+        // TODO: this isn't a PRODUCER_INFO, but there's nothing else we can use
+        c10::DebugInfoKind::PRODUCER_INFO,
+        kDynamicLayerStack);
+  }
+  TORCH_INTERNAL_ASSERT(kDynamicLayerStack != nullptr);
+  // TODO: can figure out how to memoize this. std::call_once with thread_local?
+  return kDynamicLayerStack->dynamicLayerStack;
 }
 
 std::shared_ptr<bool> getLifeHandleForLevel(int64_t level) {
@@ -24,6 +48,7 @@ std::shared_ptr<bool> getLifeHandleForLevel(int64_t level) {
 }
 
 optional<DynamicLayer> maybeCurrentDynamicLayer() {
+  auto& dynamicLayerStack = dynamicLayerStackAccessor();
   // NB: Exception for regular autograd, maybe tweak this
   if (dynamicLayerStack.size() <= 1) {
     return {};
@@ -32,14 +57,15 @@ optional<DynamicLayer> maybeCurrentDynamicLayer() {
 }
 
 const std::vector<DynamicLayer>& getDynamicLayerStack() {
-  return dynamicLayerStack;
+  return dynamicLayerStackAccessor();
 }
 
 void setDynamicLayerStack(const std::vector<DynamicLayer>& stack) {
-  dynamicLayerStack = stack;
+  dynamicLayerStackAccessor() = stack;
 }
 
 static DynamicLayer popDynamicLayer() {
+  auto& dynamicLayerStack = dynamicLayerStackAccessor();
   TORCH_INTERNAL_ASSERT(dynamicLayerStack.size() > 0);
   auto result = dynamicLayerStack.back();
   TORCH_INTERNAL_ASSERT(result.key() != DispatchKey::Undefined);
@@ -55,6 +81,7 @@ static DynamicLayer popDynamicLayer() {
 }
 
 static int64_t pushDynamicLayer(DispatchKey key) {
+  auto& dynamicLayerStack = dynamicLayerStackAccessor();
   TORCH_INTERNAL_ASSERT(key != DispatchKey::Undefined);
   auto layerId = 1 + dynamicLayerStack.size();
   dynamicLayerStack.emplace_back(key, layerId);
@@ -183,6 +210,7 @@ static void sanityCheckStack(torch::jit::Stack* stack) {
 }
 
 void dynamicLayerFrontFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+  auto& dynamicLayerStack = dynamicLayerStackAccessor();
   if (c10::show_dispatch_trace_enabled()) {
     std::cout << "DLS size: " << dynamicLayerStack.size() << std::endl;
   }

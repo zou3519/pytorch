@@ -558,6 +558,9 @@
 - name: index.Tensor(Tensor self, Tensor?[] indices) -> Tensor
   self: index_backward(grad.new_zeros(self.sizes(), self.options()), indices, grad)
 
+- name: new_zeros(Tensor self, int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+  self: Tensor()
+
 - name: index_add_.alpha(Tensor(a!) self, int dim, Tensor index, Tensor source, *, Scalar alpha) -> Tensor(a!)
   self: grad
   # The case source.dim() == 0  is necessary to support scalar tensors of the form
