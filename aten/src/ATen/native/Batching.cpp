@@ -2,8 +2,31 @@
 #include <ATen/WrapDimUtils.h>
 #include <ATen/VmapTransforms.h>
 #include <ATen/TensorWrapper.h>
+#include <torch/csrc/autograd/custom_function.h>
+#include <ATen/DynamicLayer.h>
 
 namespace at { namespace native {
+
+Tensor new_zeros_fixed(
+    const Tensor& self,
+    IntArrayRef size,
+    c10::optional<ScalarType> dtype,
+    c10::optional<Layout> layout,
+    c10::optional<Device> device,
+    c10::optional<bool> pin_memory
+    ) {
+  auto maybe_level = maybeCurrentDynamicLayer();
+  if (!maybe_level) {
+    return self.new_zeros(size, dtype, layout, device, pin_memory);
+  }
+
+  // really hack some things away...
+  at::AutoNonVariableTypeMode autograd_guard;
+  c10::impl::ExcludeDispatchKeyGuard batched_guard(c10::DispatchKey::Batched);
+
+  return self.new_zeros_fixed(size, dtype, layout, device, pin_memory);
+  // return NewZerosFixed::apply(self, size, dtype, layout, device, pin_memory);
+}
 
 int64_t dlevel(const Tensor& tensor) {
   auto* wrapped = maybeGetTensorWrapper(tensor);
@@ -91,7 +114,7 @@ static std::pair<Tensor,int64_t> remove_existing_batch_dim(
 // while preserving the order of other existing dimensions.
 // We should probably add np.moveaxis (it is more general) to PyTorch. (#36048)
 // When we do, replace the following with it.
-static Tensor movedim(const Tensor& self, int64_t src, int64_t dst) {
+static Tensor _movedim(const Tensor& self, int64_t src, int64_t dst) {
   auto logical_dim = self.dim();
   src = maybe_wrap_dim(src, logical_dim);
   dst = maybe_wrap_dim(dst, logical_dim);
@@ -141,7 +164,7 @@ Tensor _remove_batch_dim(const Tensor& self, int64_t level, int64_t batch_size, 
   Tensor self_without_bdim;
   int64_t newly_exposed_logical_dim;
   std::tie(self_without_bdim, newly_exposed_logical_dim) = remove_existing_batch_dim(batched, level);
-  return movedim(self_without_bdim, newly_exposed_logical_dim, out_dim);
+  return _movedim(self_without_bdim, newly_exposed_logical_dim, out_dim);
 }
 
 Tensor _wrap_for_grad(const Tensor& self, int64_t level) {
