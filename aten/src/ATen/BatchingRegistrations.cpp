@@ -6,6 +6,7 @@
 #include <torch/csrc/autograd/variable.h>
 #include <aten/src/ATen/DynamicLayer.h>
 #include <ATen/TensorWrapper.h>
+#include <ATen/BatchingMetaprogramming.h>
 
 namespace at {
 
@@ -1406,7 +1407,74 @@ TORCH_LIBRARY_IMPL(_, Batched, m) {
   m.fallback(torch::CppFunction::makeFromBoxedFunction<&batchedTensorForLoopFallback>());
 }
 
+// // debug_t<tail_t<tail_t<typelist<Tensor, optional<int64_t>>>>> dt;
+// debug_t<remove_batch_dim_after_tensor_t<typelist<Tensor, optional<int64_t>>>> dt;
+
+static Tensor makeBatched(const Tensor& tensor, optional<int64_t> bdim, int64_t level) {
+  if (bdim.has_value()) {
+    return makeBatched(tensor, {{level, bdim.value()}});
+  }
+  return tensor;
+}
+
+
+std::tuple<Tensor,optional<int64_t>> abs_batch_rule(const Tensor& tensor, optional<int64_t> batch_dim) {
+  return {tensor.abs(), batch_dim};
+}
+
+Tensor lowerToNextLayer(
+    std::function<std::tuple<Tensor,optional<int64_t>>(const Tensor&, optional<int64_t>)> batch_rule,
+    const Tensor& tensor) {
+  c10::impl::ExcludeDispatchKeyGuard guard(c10::DispatchKey::Batched);
+  auto maybe_layer = maybeCurrentDynamicLayer();
+  if (!maybe_layer.has_value()) {
+    auto result = batch_rule(tensor, nullopt);
+    return std::get<0>(result);
+  }
+  auto cur_level = maybe_layer.value().layerId();
+  auto* batched = maybeGetBatchedImpl(tensor);
+  if (!batched) {
+    auto result = batch_rule(tensor, nullopt);
+    return makeBatched(std::get<0>(result), std::get<1>(result), cur_level);
+  }
+  TORCH_INTERNAL_ASSERT(batched->bdims().size() == 1);
+  auto level = batched->bdims().back().level();
+  auto bdim = batched->bdims().back().dim();
+  if (level != cur_level) {
+    auto result = batch_rule(tensor, nullopt);
+    return makeBatched(std::get<0>(result), std::get<1>(result), level);
+  }
+  auto result = batch_rule(batched->value(), bdim);
+  return makeBatched(std::get<0>(result), std::get<1>(result), level);
+}
+
+Tensor absBatchRule(const Tensor& tensor) {
+  return lowerToNextLayer(abs_batch_rule, tensor);
+}
+
+template <typename Result, typename... Args>
+Result primBatchRule(Args... args) {
+  return lowerToNextLayer(abs_batch_rule, std::forward<Args>(args)...);
+}
+
+template <typename func_t>
+typename c10::guts::function_traits<func_t>::result_type primBatchRule(const Tensor& tensor) {
+  return lowerToNextLayer(abs_batch_rule, tensor);
+}
+
+// std::function<Tensor(const Tensor&)> kFunc = primBatchRule<Tensor, const Tensor&>;
+// // std::function<Tensor(const Tensor&)> kFunc3 = PrimBatchRule3<decltype(&abs_batch_rule), &abs_batch_rule>::apply;
+// 
+// std::function<Tensor(const Tensor&)> kFunc3 = PrimBatchRule3<decltype(&abs_batch_rule), &abs_batch_rule>::apply;
+//
+// debug_t<decltype(abs_batch_rule)> foobar;
+
 TORCH_LIBRARY_IMPL(aten, Batched, m) {
+  // m.impl("abs", kFunc3);
+  //m.impl("abs", PrimBatchRule6<Tensor(const Tensor&)>::apply);
+  // m.impl("abs", PrimBatchRule7<decltype(&abs_batch_rule), &abs_batch_rule, Tensor(const Tensor&)>::apply);
+  m.impl("abs", PrimBatchRule7<decltype(&abs_batch_rule), &abs_batch_rule, to_operator_t<decltype(abs_batch_rule)>>::apply);
+
   // NB: Ideally we would like some operators, like size.int, to "fallthrough"
   // to the underlying implementation. However, because a BatchedTensor is a
   // Tensor wrapper, it only has one dispatch key (Batched) on it. The resolution
@@ -1480,7 +1548,8 @@ TORCH_LIBRARY_IMPL(aten, Batched, m) {
 // unary pointwise, out-of-place, no additional arguments.
 #define UNARY_POINTWISE(op) m.impl(#op, \
     unwrap_and_call<Tensor (*)(const Tensor&), at::op>);
-  UNARY_POINTWISE(abs);
+  // m.impl("abs", PrimBatchRule3<decltype(&abs_batch_rule), &abs_batch_rule>::apply);
+  // UNARY_POINTWISE(abs);
   UNARY_POINTWISE(acos);
   UNARY_POINTWISE(asin);
   UNARY_POINTWISE(atan);
