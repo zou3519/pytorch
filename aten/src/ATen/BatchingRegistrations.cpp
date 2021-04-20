@@ -1422,45 +1422,48 @@ std::tuple<Tensor,optional<int64_t>> abs_batch_rule(const Tensor& tensor, option
   return {tensor.abs(), batch_dim};
 }
 
-Tensor lowerToNextLayer(
-    std::function<std::tuple<Tensor,optional<int64_t>>(const Tensor&, optional<int64_t>)> batch_rule,
+std::tuple<Tensor, optional<int64_t>> unwrapTensorAtLevel(const Tensor& tensor, int64_t level) {
+  auto* batched = maybeGetBatchedImpl(tensor);
+  if (!batched) {
+    return {tensor, nullopt};
+  }
+  TORCH_INTERNAL_ASSERT(batched->bdims().size() == 1);
+  auto batched_level = batched->bdims().back().level();
+  if (batched_level == level) {
+    auto bdim = batched->bdims().back().dim();
+    return {batched->value(), bdim};
+  }
+  return {tensor, nullopt};
+}
+
+typedef std::tuple<Tensor, optional<int64_t>> (*something_t)(const Tensor&, optional<int64_t>);
+
+template <>
+Tensor lowerToNextLayer<something_t, Tensor, const Tensor&>(
+    something_t batch_rule,
     const Tensor& tensor) {
   c10::impl::ExcludeDispatchKeyGuard guard(c10::DispatchKey::Batched);
   auto maybe_layer = maybeCurrentDynamicLayer();
-  if (!maybe_layer.has_value()) {
-    auto result = batch_rule(tensor, nullopt);
-    return std::get<0>(result);
-  }
-  auto cur_level = maybe_layer.value().layerId();
-  auto* batched = maybeGetBatchedImpl(tensor);
-  if (!batched) {
-    auto result = batch_rule(tensor, nullopt);
-    return makeBatched(std::get<0>(result), std::get<1>(result), cur_level);
-  }
-  TORCH_INTERNAL_ASSERT(batched->bdims().size() == 1);
-  auto level = batched->bdims().back().level();
-  auto bdim = batched->bdims().back().dim();
-  if (level != cur_level) {
-    auto result = batch_rule(tensor, nullopt);
-    return makeBatched(std::get<0>(result), std::get<1>(result), level);
-  }
-  auto result = batch_rule(batched->value(), bdim);
-  return makeBatched(std::get<0>(result), std::get<1>(result), level);
+  TORCH_INTERNAL_ASSERT(maybe_layer.has_value());
+  int64_t cur_level = maybe_layer->layerId();
+  auto unwrapped = unwrapTensorAtLevel(tensor, cur_level);
+  auto unwrapped_result = batch_rule(std::get<0>(unwrapped), std::get<1>(unwrapped));
+  return makeBatched(std::get<0>(unwrapped_result), std::get<1>(unwrapped_result), cur_level);
 }
 
-Tensor absBatchRule(const Tensor& tensor) {
-  return lowerToNextLayer(abs_batch_rule, tensor);
-}
+// Tensor absBatchRule(const Tensor& tensor) {
+//   return lowerToNextLayer(abs_batch_rule, tensor);
+// }
+// 
+//template <typename Result, typename... Args>
+//Result primBatchRule(Args... args) {
+//  return lowerToNextLayer(abs_batch_rule, std::forward<Args>(args)...);
+//}
 
-template <typename Result, typename... Args>
-Result primBatchRule(Args... args) {
-  return lowerToNextLayer(abs_batch_rule, std::forward<Args>(args)...);
-}
-
-template <typename func_t>
-typename c10::guts::function_traits<func_t>::result_type primBatchRule(const Tensor& tensor) {
-  return lowerToNextLayer(abs_batch_rule, tensor);
-}
+// template <typename func_t>
+// typename c10::guts::function_traits<func_t>::result_type primBatchRule(const Tensor& tensor) {
+//   return lowerToNextLayer(abs_batch_rule, tensor);
+// }
 
 // std::function<Tensor(const Tensor&)> kFunc = primBatchRule<Tensor, const Tensor&>;
 // // std::function<Tensor(const Tensor&)> kFunc3 = PrimBatchRule3<decltype(&abs_batch_rule), &abs_batch_rule>::apply;

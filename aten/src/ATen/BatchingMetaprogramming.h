@@ -66,13 +66,12 @@ template<class TypeList> using remove_batch_dim_after_tensor_t = typename Remove
 //   static Return apply(Args... args);
 // };
 
-Tensor lowerToNextLayer(
-    std::function<std::tuple<Tensor,optional<int64_t>>(const Tensor&, optional<int64_t>)> batch_rule,
-    const Tensor& tensor);
+template <typename batch_rule_t, typename Result, typename... Args>
+Result lowerToNextLayer(batch_rule_t batch_rule, Args... args);
 
-Tensor lowerToNextLayer(
-    std::function<std::tuple<Tensor,optional<int64_t>>(const Tensor&, optional<int64_t>)> batch_rule,
-    const Tensor& tensor);
+//# Tensor lowerToNextLayer(
+//#     std::function<std::tuple<Tensor,optional<int64_t>>(const Tensor&, optional<int64_t>)> batch_rule,
+//#     const Tensor& tensor);
 std::tuple<Tensor,optional<int64_t>> abs_batch_rule(const Tensor& tensor, optional<int64_t> batch_dim);
 
 template<typename F, F Func, typename Return, typename TupleArgs> struct TORCH_API Dummy {};
@@ -147,7 +146,7 @@ template<typename br_t, br_t BatchRule, typename func_t> struct PrimBatchRule7 {
 template<typename br_t, br_t BatchRule, typename Return, typename... Args> struct PrimBatchRule7<
 br_t, BatchRule, Return (Args...)> {
   static inline Return apply(Args... args) {
-    return lowerToNextLayer(BatchRule, std::forward<Args>(args)...);
+    return lowerToNextLayer<br_t, Return, Args...>(BatchRule, std::forward<Args>(args)...);
   }
 };
 
