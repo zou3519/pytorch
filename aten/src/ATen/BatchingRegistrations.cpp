@@ -1632,25 +1632,25 @@ TORCH_LIBRARY_IMPL(aten, Batched, m) {
 //           at::threshold_backward,
 //           Scalar>);
 // 
-//   // for at::result_type, call the native::result_type implementation.
-//   // We don't have to do anything special because native::result_type operates
-//   // on the logical shape of the tensors.
-//   m.impl("result_type.Tensor", static_cast<ScalarType (*)(const Tensor&, const Tensor&)>(native::result_type));
-//   m.impl("result_type.Scalar", static_cast<ScalarType (*)(const Tensor&, Scalar)>(native::result_type));
-//   m.impl("result_type.Scalar_Tensor", static_cast<ScalarType (*)(Scalar, const Tensor&)>(native::result_type));
-//   m.impl("result_type.Scalar_Scalar", static_cast<ScalarType (*)(Scalar, Scalar)>(native::result_type));
+  // for at::result_type, call the native::result_type implementation.
+  // We don't have to do anything special because native::result_type operates
+  // on the logical shape of the tensors.
+  m.impl("result_type.Tensor", static_cast<ScalarType (*)(const Tensor&, const Tensor&)>(native::result_type));
+  m.impl("result_type.Scalar", static_cast<ScalarType (*)(const Tensor&, const Scalar&)>(native::result_type));
+  m.impl("result_type.Scalar_Tensor", static_cast<ScalarType (*)(const Scalar&, const Tensor&)>(native::result_type));
+  m.impl("result_type.Scalar_Scalar", static_cast<ScalarType (*)(const Scalar&, const Scalar&)>(native::result_type));
 // 
 // #undef BINARY_POINTWISE_VA
 // #undef BINARY_POINTWISE
 // 
 // 
-// #define TRIVIAL_OP(op) m.impl(#op, \
-//     unwrap_and_call<Tensor (*)(const Tensor&), at::op>);
-//   // complex number view operators
-//   TRIVIAL_OP(imag)
-//   TRIVIAL_OP(real);
-//   TRIVIAL_OP(view_as_real);
-//   m.impl("view_as_complex", view_as_complex_batching_rule);
+#define TRIVIAL_OP(op) m.impl(#op, \
+    unwrap_and_call<Tensor (*)(const Tensor&), at::op>);
+  // complex number view operators
+  TRIVIAL_OP(imag)
+  TRIVIAL_OP(real);
+  TRIVIAL_OP(view_as_real);
+  m.impl("view_as_complex", view_as_complex_batching_rule);
 // #undef TRIVIAL
 // // 
 // //   // matmul-like operators

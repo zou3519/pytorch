@@ -6,6 +6,7 @@
 #include <c10/util/accumulate.h>
 #include <c10/util/llvmMathExtras.h>
 #include <ATen/TensorWrapper.h>
+#include <ATen/DynamicLayer.h>
 
 namespace at {
 
@@ -232,6 +233,29 @@ static Tensor safeStack(TensorList tensors) {
       "an issue on github.");
 }
 
+// TODO: dedup
+static bool participatesInCurrentLevel(const Tensor& self) {
+  auto maybe_level = maybeCurrentDynamicLayer();
+  TORCH_INTERNAL_ASSERT(maybe_level.has_value());
+  auto current_level = maybe_level->layerId();
+  auto* maybe_batched_impl = maybeGetBatchedImpl(self);
+  if (!maybe_batched_impl) {
+    return false;
+  }
+  const auto& bdims = maybe_batched_impl->bdims();
+  TORCH_INTERNAL_ASSERT(bdims.size() == 1);
+  auto self_level = bdims.back().level();
+  TORCH_INTERNAL_ASSERT(self_level <= current_level);
+  return self_level == current_level;
+}
+
+static bool ivalueParticipatesInCurrentLevel(const IValue& ivalue) {
+  if (!ivalue.isTensor()) {
+    return false;
+  }
+  return participatesInCurrentLevel(ivalue.toTensor());
+}
+
 // The general flow of the algorithm is as follows.
 // - First, we figure out which arguments are BatchedTensors and save them
 //   to a vector. We also store a vector of which index of the arguments list
@@ -248,6 +272,18 @@ static Tensor safeStack(TensorList tensors) {
 void batchedTensorForLoopFallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   const auto& schema = op.schema();
   const auto num_returns = schema.returns().size();
+  const auto num_arguments = schema.arguments().size();
+  const auto arguments = torch::jit::last(stack, num_arguments);
+
+  TORCH_CHECK(areAllReturnsTensors(schema) && !areAnyArgumentsTensorList(schema),
+              "Batching rule not implemented for ", schema.operator_name(), ". ",
+              "We could not generate a fallback.");
+
+  if (std::none_of(arguments.begin(), arguments.end(), ivalueParticipatesInCurrentLevel)) {
+    c10::impl::ExcludeDispatchKeyGuard guard(c10::DispatchKey::Batched);
+    op.callBoxed(stack); 
+    return;
+  }
 
   if (isInplaceOp(schema)) {
     batchedTensorInplaceForLoopFallback(op, stack);
@@ -256,16 +292,11 @@ void batchedTensorForLoopFallback(const c10::OperatorHandle& op, torch::jit::Sta
   TORCH_CHECK(!schema.is_mutable() && !schema.hasAnyAliasInfo(),
               "Batching rule not implemented for ", schema.operator_name(), "; ",
               "the fallback path doesn't work on out= or view ops.");
-  TORCH_CHECK(areAllReturnsTensors(schema) && !areAnyArgumentsTensorList(schema),
-              "Batching rule not implemented for ", schema.operator_name(), ". ",
-              "We could not generate a fallback.");
   TORCH_CHECK(num_returns >= 1,
               "Batching rule not implemented for ", schema.operator_name(), ". ",
               "The fallback path does not support operations with no returns.");
   warnFallback(schema, /*in_place*/false);
 
-  const auto num_arguments = schema.arguments().size();
-  const auto arguments = torch::jit::last(stack, num_arguments);
   const auto arguments_begin = stack->size() - num_arguments;
 
   // Figure out which arguments are BatchedTensor. Save them to a vector.

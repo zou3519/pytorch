@@ -236,8 +236,10 @@ void dynamicLayerFrontFallback(const c10::OperatorHandle& op, torch::jit::Stack*
   if (layer.key() == DispatchKey::Autograd) {
     exclude = exclude - autograd_dispatch_keyset;
     exclude = exclude.remove(DispatchKey::InplaceOrView);
+  } else if (layer.key() == DispatchKey::Batched) {
+    exclude = exclude.remove(DispatchKey::Batched);
   } else {
-    exclude = exclude.remove(layer.key());
+    TORCH_INTERNAL_ASSERT(false);
   }
   c10::impl::ExcludeDispatchKeyGuard guard(exclude);
 
