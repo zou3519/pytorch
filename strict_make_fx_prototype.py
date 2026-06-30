@@ -1,6 +1,7 @@
 import contextlib
-from dataclasses import dataclass
+import operator
 import unittest
+from dataclasses import dataclass
 
 import torch
 import torch.fx as fx
@@ -126,7 +127,9 @@ def verify_strict_ownership(gm):
         if node.op == "output":
             for out in graph_output_nodes(gm):
                 if ownership_info(out).kind == MUT_BORROW_VIEW:
-                    raise OwnershipError("mutable borrows cannot escape in graph outputs")
+                    raise OwnershipError(
+                        "mutable borrows cannot escape in graph outputs"
+                    )
     for node in gm.graph.nodes:
         if not node_has_tensor_value(node):
             continue
@@ -136,7 +139,8 @@ def verify_strict_ownership(gm):
         if node.op == "call_function" and node.target is BORROW:
             end = next(
                 (
-                    n for n in gm.graph.nodes
+                    n
+                    for n in gm.graph.nodes
                     if n.op == "call_function"
                     and n.target is END
                     and isinstance(n.args[0], fx.Node)
@@ -152,7 +156,9 @@ def verify_strict_ownership(gm):
                         "base mut Tensor is used while an &mut Tensor borrow from it is live."
                     )
 
-    allow = gm.meta.get("strict_ownership_signature", {}).get("allow_output_aliasing", False)
+    allow = gm.meta.get("strict_ownership_signature", {}).get(
+        "allow_output_aliasing", False
+    )
     check_output_aliasing_invariant(gm, allow)
 
 
@@ -192,7 +198,10 @@ class StrictOwnershipMode(TorchDispatchMode):
         out = func(*args, **kwargs)
         base = args[0]
         if isinstance(base, Tensor) and isinstance(out, Tensor):
-            base_node, out_node = self.proxy_node_for_tensor(base), self.proxy_node_for_tensor(out)
+            base_node, out_node = (
+                self.proxy_node_for_tensor(base),
+                self.proxy_node_for_tensor(out),
+            )
             if out_node.target is torch.ops.aten.slice.Tensor:
                 _, dim, start, end, *rest = out_node.args
                 recipe = f"slice:{dim}:{start}:{end}:{rest[0] if rest else 1}"
@@ -210,7 +219,7 @@ class StrictOwnershipMode(TorchDispatchMode):
         return out
 
     def trace_inplace(self, func, args, kwargs):
-        x = args[0]
+        x = mutated_arg_value(func, args, kwargs)
         if not isinstance(x, Tensor):
             raise OwnershipError(f"inplace op {func} does not mutate a tensor")
         info = ownership_info(self.proxy_node_for_tensor(x))
@@ -225,10 +234,16 @@ class StrictOwnershipMode(TorchDispatchMode):
     def trace_view_mutation(self, func, args, kwargs, info):
         view = args[0]
         base = self.view_bases.get(view)
-        if base is None or info.base is None or ownership_info(info.base).kind != MUT_TENSOR:
+        if (
+            base is None
+            or info.base is None
+            or ownership_info(info.base).kind != MUT_TENSOR
+        ):
             raise self.readonly_view_mutation_error(view)
         if str(info.view_recipe).startswith("as_strided"):
-            raise OwnershipError("as_strided view mutation is not supported in strict_make_fx MVP.")
+            raise OwnershipError(
+                "as_strided view mutation is not supported in strict_make_fx MVP."
+            )
         out = func(self.emit_mut_borrow_view(base, info), *args[1:], **kwargs)
         self.proxy_node_for_tensor(out).meta["strict_ownership"] = OwnershipInfo(
             MUT_BORROW_VIEW,
@@ -307,7 +322,7 @@ class StrictOwnershipMode(TorchDispatchMode):
         )
 
     def immutable_tensor_mutation_error(self, node):
-        name = node.name[:-2] if node.name.endswith("_1") else node.name
+        name = node.name.removesuffix("_1")
         if node.op == "placeholder":
             return OwnershipError(
                 f"cannot mutate input {name} because it is not a mut Tensor.\n"
@@ -325,7 +340,7 @@ def borrow_mut_view_impl(base, recipe):
     parts = recipe.split(":")
     if len(parts) != 5 or parts[0] != "slice":
         raise OwnershipError(f"unsupported strict borrow view recipe: {recipe!r}")
-    _, dim, start, end, step = tuple([parts[0], *map(int, parts[1:])])
+    _, dim, start, end, step = (parts[0], *map(int, parts[1:]))
     return torch.ops.aten.slice.Tensor(base, dim, start, end, step)
 
 
@@ -357,17 +372,23 @@ def alias_sets(v):
 
 def returns_mutated_alias(schema):
     args = [
-        a for a in schema.arguments
+        a
+        for a in schema.arguments
         if schema_value_is_tensor(a) and a.alias_info and a.alias_info.is_write
     ]
     rets = [
-        r for r in schema.returns
+        r
+        for r in schema.returns
         if schema_value_is_tensor(r) and r.alias_info and r.alias_info.is_write
     ]
-    return len(args) == len(rets) == 1 and bool(alias_sets(args[0]) & alias_sets(rets[0]))
+    return len(args) == len(rets) == 1 and bool(
+        alias_sets(args[0]) & alias_sets(rets[0])
+    )
 
 
 def op_effect(target):
+    if target is operator.getitem:
+        return "fresh"
     if target in METADATA_MUTATION:
         return "metadata"
     schema = getattr(target, "_schema", None)
@@ -392,7 +413,9 @@ def has_hidden_mutation(target):
 
 
 def op_name(target):
-    return {BORROW: "strict.borrow_mut_view", END: "strict.end_borrow"}.get(target, str(target))
+    return {BORROW: "strict.borrow_mut_view", END: "strict.end_borrow"}.get(
+        target, str(target)
+    )
 
 
 def unknown_op_error(target):
@@ -404,7 +427,9 @@ def unknown_op_error(target):
 
 def metadata_mutation_error(target):
     name = target._schema.name.split("::")[-1]
-    return OwnershipError(f"metadata mutation {name} is not supported in strict_make_fx MVP.")
+    return OwnershipError(
+        f"metadata mutation {name} is not supported in strict_make_fx MVP."
+    )
 
 
 def hidden_mutation_error(target):
@@ -423,24 +448,60 @@ def verify_call_node(node, ends):
     if node.target not in MARKERS and kind == "unknown" and node_has_tensor_value(node):
         raise unknown_op_error(node.target)
     if kind == "inplace":
-        mutated = node.args[0]
+        mutated = mutated_arg_node(node)
         if not isinstance(mutated, fx.Node):
-            raise OwnershipError(f"inplace op {node.target} does not mutate a tensor node")
+            raise OwnershipError(
+                f"inplace op {node.target} does not mutate a tensor node"
+            )
         if ownership_info(mutated).kind not in {MUT_TENSOR, MUT_BORROW_VIEW}:
-            raise OwnershipError("Tensor and &Tensor cannot be passed to inplace mutation ops.")
+            raise OwnershipError(
+                "Tensor and &Tensor cannot be passed to inplace mutation ops."
+            )
         for user in mutated.users:
-            if user is not node:
+            if user is not node and appears_after(user, node):
                 raise OwnershipError(
                     f"consumed mut Tensor value {mutated.name} is used after mutation."
                 )
     if node.target is END:
         borrow = node.args[0]
         if not isinstance(borrow, fx.Node):
-            raise OwnershipError("strict.end_borrow argument must be a mutable borrow node")
+            raise OwnershipError(
+                "strict.end_borrow argument must be a mutable borrow node"
+            )
         info = ownership_info(borrow)
         if info.kind != MUT_BORROW_VIEW or info.borrow_id is None:
             raise OwnershipError("strict.end_borrow argument must be a mutable borrow")
         ends[info.borrow_id] = ends.get(info.borrow_id, 0) + 1
+
+
+def mutated_arg_node(node):
+    schema = getattr(node.target, "_schema", None)
+    if schema is None:
+        return node.args[0]
+    writes = [
+        (i, arg)
+        for i, arg in enumerate(schema.arguments)
+        if schema_value_is_tensor(arg) and arg.alias_info and arg.alias_info.is_write
+    ]
+    if len(writes) != 1:
+        return node.args[0]
+    i, arg = writes[0]
+    return node.kwargs[arg.name] if arg.name in node.kwargs else node.args[i]
+
+
+def mutated_arg_value(target, args, kwargs):
+    schema = getattr(target, "_schema", None)
+    if schema is None:
+        return args[0]
+    writes = [
+        (i, arg)
+        for i, arg in enumerate(schema.arguments)
+        if schema_value_is_tensor(arg) and arg.alias_info and arg.alias_info.is_write
+    ]
+    if len(writes) != 1:
+        return args[0]
+    i, arg = writes[0]
+    return kwargs[arg.name] if arg.name in kwargs else args[i]
 
 
 def tensor_leaves(x):
@@ -516,6 +577,16 @@ def appears_between(candidate, start, end):
         elif node is end:
             return False
         elif active and node is candidate:
+            return True
+    return False
+
+
+def appears_after(candidate, start):
+    seen_start = False
+    for node in start.graph.nodes:
+        if node is start:
+            seen_start = True
+        elif seen_start and node is candidate:
             return True
     return False
 
@@ -660,6 +731,26 @@ class TestStrictMakeFxPrototype(unittest.TestCase):
         x = torch.randn(8)
         with self.assertRaisesRegex(OwnershipError, "possible aliasing"):
             strict_make_fx(f, mut_argnums=(0,))(x, x)
+
+    def test_autograd_saved_clone_before_mutation(self):
+        def f(x):
+            y = x + 1
+            y.sin_()
+            y.cos_()
+            return y.sum()
+
+        def joint(x):
+            y = f(x)
+            (gx,) = torch.autograd.grad(y, (x,))
+            return y, gx
+
+        text = print_strict_fx(
+            strict_make_fx(joint)(torch.randn(8, requires_grad=True))
+        )
+        self.assertIn("aten.clone.default(%add)", text)
+        self.assertIn("aten.clone.default(%sin_)", text)
+        self.assertIn("aten.sin_.default(%add)", text)
+        self.assertIn("aten.cos_.default(%sin_)", text)
 
 
 if __name__ == "__main__":
